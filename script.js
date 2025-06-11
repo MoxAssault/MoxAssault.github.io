@@ -1,19 +1,33 @@
 // script.js
 
-// Mirror on jsDelivr to avoid rate‐limits / CORS issues
-const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json';
+// We'll try jsDelivr on the 'main' branch (default is "main" :contentReference[oaicite:0]{index=0}),
+// then fall back to raw.githubusercontent if needed.
+const API_URLS = [
+  'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@main/db/vpsdb.json',
+  'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/main/db/vpsdb.json'
+];
 
 window.addEventListener('DOMContentLoaded', () => {
   const btn   = document.getElementById('searchBtn');
   const input = document.getElementById('idInput');
   btn.addEventListener('click', searchById);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') searchById(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchById();
+  });
 });
 
 async function fetchVPSDB() {
-  const resp = await fetch(API_URL);
-  if (!resp.ok) throw new Error(`Failed to fetch JSON: ${resp.status}`);
-  return resp.json();
+  for (const url of API_URLS) {
+    try {
+      const resp = await fetch(url);
+      console.log(`🗄️ Trying fetch from: ${url} → ${resp.status}`);
+      if (!resp.ok) throw new Error(`Status ${resp.status}`);
+      return resp.json();
+    } catch (err) {
+      console.warn(`⚠️ Fetch failed from ${url}: ${err.message}`);
+    }
+  }
+  throw new Error('All VPS DB fetch attempts failed');
 }
 
 async function searchById() {
@@ -29,12 +43,12 @@ async function searchById() {
   resultsDiv.innerHTML = `<p>Loading results for “${rawID}”…</p>`;
 
   try {
-    // 1) Fetch the JSON object
     const data = await fetchVPSDB();
-    console.log('🗄 total IDs in JSON:', Object.keys(data).length);
 
-    // 2) Find the matching key (exact or case‐insensitive)
     const keys     = Object.keys(data);
+    console.log('🔑 total IDs in JSON:', keys.length);
+
+    // 1) Exact or CI key lookup
     const exactKey = keys.find(k => k === rawID);
     const ciKey    = exactKey || keys.find(k => k.toLowerCase() === rawID.toLowerCase());
     if (!ciKey) {
@@ -44,20 +58,16 @@ async function searchById() {
     }
     console.log('🔍 using key:', ciKey);
 
-    // 3) Unpack whatever is under that key
-    let entries = [];
+    // 2) Unpack everything under that key
     const record = data[ciKey];
-
+    let entries = [];
     if (Array.isArray(record)) {
-      // array of entries
       entries = record;
     } else if (record && typeof record === 'object') {
-      // could be a single object, or nested types → array/object
-      // if it has its own tableVPSId, treat as one entry:
       if (record.tableVPSId) {
         entries = [record];
       } else {
-        // otherwise assume nested by type:
+        // nested by type → either array or single object
         for (const [type, chunk] of Object.entries(record)) {
           if (Array.isArray(chunk)) {
             chunk.forEach(item => {
@@ -74,18 +84,18 @@ async function searchById() {
 
     console.log('📦 total entries unpacked:', entries.length);
     if (entries.length === 0) {
-      resultsDiv.innerHTML = `<p>No entries found under key “${ciKey}”.</p>`;
+      resultsDiv.innerHTML = `<p>No usable entries under key “${ciKey}”.</p>`;
       return;
     }
 
-    // 4) Group by type
+    // 3) Group by type
     const grouped = entries.reduce((acc, entry) => {
       const t = entry.type || 'Unknown';
       (acc[t] = acc[t] || []).push(entry);
       return acc;
     }, {});
 
-    // 5) Render
+    // 4) Render
     resultsDiv.innerHTML = '';
     for (const [type, list] of Object.entries(grouped)) {
       const h2 = document.createElement('h2');
