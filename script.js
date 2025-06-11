@@ -1,4 +1,6 @@
-// Avoid GitHub-Pages rate limits + CORS issues:
+// script.js
+
+// Mirror on jsDelivr to avoid rate‐limits / CORS issues
 const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -27,86 +29,65 @@ async function searchById() {
   resultsDiv.innerHTML = `<p>Loading results for “${rawID}”…</p>`;
 
   try {
+    // 1) Fetch the JSON object
     const data = await fetchVPSDB();
-    console.log('🗄️ total keys:', Object.keys(data).length);
+    console.log('🗄 total IDs in JSON:', Object.keys(data).length);
 
+    // 2) Find the matching key (exact or case‐insensitive)
+    const keys     = Object.keys(data);
+    const exactKey = keys.find(k => k === rawID);
+    const ciKey    = exactKey || keys.find(k => k.toLowerCase() === rawID.toLowerCase());
+    if (!ciKey) {
+      console.log('🔍 no matching key found for', rawID);
+      resultsDiv.innerHTML = `<p>No entries found for “${rawID}”.</p>`;
+      return;
+    }
+    console.log('🔍 using key:', ciKey);
+
+    // 3) Unpack whatever is under that key
     let entries = [];
+    const record = data[ciKey];
 
-    // 1️⃣ Direct exact-key lookup
-    if (data.hasOwnProperty(rawID)) {
-      const val = data[rawID];
-      console.log('🔍 Direct lookup by key:', rawID);
-
-      if (Array.isArray(val)) {
-        entries = val;
-      } else if (val && typeof val === 'object') {
-        // Single-entry object?
-        if (val.tableVPSId) {
-          entries = [val];
-        } else {
-          // Nested by type (e.g. { "Table": {...}, "Backglass": {...} })
-          console.log('🔧 Unpacking nested types under key');
-          entries = Object.entries(val).map(([type, sub]) => {
-            sub.type = sub.type || type;
-            return sub;
-          });
-        }
-      }
-      console.log(`📦 entries from direct lookup: ${entries.length}`);
-    }
-
-    // 2️⃣ Case-insensitive key lookup
-    if (entries.length === 0) {
-      const foundKey = Object.keys(data)
-        .find(k => k.toLowerCase() === rawID.toLowerCase());
-      if (foundKey) {
-        console.log('🔍 CI key match:', foundKey);
-        const val = data[foundKey];
-        if (Array.isArray(val)) {
-          entries = val;
-        } else if (val.tableVPSId) {
-          entries = [val];
-        } else {
-          entries = Object.entries(val).map(([type, sub]) => {
-            sub.type = sub.type || type;
-            return sub;
-          });
-        }
-        console.log(`📦 entries from CI lookup: ${entries.length}`);
-      }
-    }
-
-    // 3️⃣ Fallback: scan every entry’s tableVPSId (case-insensitive)
-    if (entries.length === 0) {
-      console.log('🔍 Fallback: scanning all entries’ tableVPSId');
-      Object.values(data).forEach(val => {
-        const arr = Array.isArray(val) ? val : [val];
-        arr.forEach(item => {
-          if (
-            item.tableVPSId &&
-            item.tableVPSId.toLowerCase() === rawID.toLowerCase()
-          ) {
-            entries.push(item);
+    if (Array.isArray(record)) {
+      // array of entries
+      entries = record;
+    } else if (record && typeof record === 'object') {
+      // could be a single object, or nested types → array/object
+      // if it has its own tableVPSId, treat as one entry:
+      if (record.tableVPSId) {
+        entries = [record];
+      } else {
+        // otherwise assume nested by type:
+        for (const [type, chunk] of Object.entries(record)) {
+          if (Array.isArray(chunk)) {
+            chunk.forEach(item => {
+              item.type = type;
+              entries.push(item);
+            });
+          } else if (chunk && typeof chunk === 'object') {
+            chunk.type = type;
+            entries.push(chunk);
           }
-        });
-      });
-      console.log(`📦 entries from fallback scan: ${entries.length}`);
+        }
+      }
     }
 
+    console.log('📦 total entries unpacked:', entries.length);
     if (entries.length === 0) {
-      return resultsDiv.innerHTML = `<p>No entries found for “${rawID}”.</p>`;
+      resultsDiv.innerHTML = `<p>No entries found under key “${ciKey}”.</p>`;
+      return;
     }
 
-    // Group by type
+    // 4) Group by type
     const grouped = entries.reduce((acc, entry) => {
       const t = entry.type || 'Unknown';
       (acc[t] = acc[t] || []).push(entry);
       return acc;
     }, {});
 
-    // Render
+    // 5) Render
     resultsDiv.innerHTML = '';
-    Object.entries(grouped).forEach(([type, list]) => {
+    for (const [type, list] of Object.entries(grouped)) {
       const h2 = document.createElement('h2');
       h2.textContent = type;
       resultsDiv.appendChild(h2);
@@ -125,7 +106,7 @@ async function searchById() {
         ul.appendChild(li);
       });
       resultsDiv.appendChild(ul);
-    });
+    }
 
   } catch (err) {
     console.error(err);
