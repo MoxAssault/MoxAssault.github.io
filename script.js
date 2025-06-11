@@ -1,6 +1,4 @@
-// script.js
-
-// Fetch from the 'master' branch where your 7bjYHY-8wv entry lives:
+// Try jsDelivr first, then raw GitHub if needed
 const API_URLS = [
   'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json',
   'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
@@ -43,18 +41,29 @@ async function searchById() {
   try {
     const data = await fetchVPSDB();
 
-    // 1) Find the matching key (exact or CI)
-    const keys     = Object.keys(data);
-    const exactKey = keys.find(k => k === rawID);
-    const ciKey    = exactKey || keys.find(k => k.toLowerCase() === rawID.toLowerCase());
-    console.log('🔑 match key:', ciKey);
-    if (!ciKey) {
+    // 1) Locate the record
+    let record;
+    if (Array.isArray(data)) {
+      console.log('🔍 Data is array, length:', data.length);
+      record = data.find(r =>
+        typeof r.id === 'string' &&
+        r.id.toLowerCase() === rawID.toLowerCase()
+      );
+    } else {
+      const keys     = Object.keys(data);
+      console.log('🔑 Data is object, total IDs:', keys.length);
+      const exactKey = keys.find(k => k === rawID);
+      const ciKey    = exactKey || keys.find(k => k.toLowerCase() === rawID.toLowerCase());
+      console.log('🔍 Using key:', ciKey);
+      if (ciKey) record = data[ciKey];
+    }
+
+    if (!record) {
       resultsDiv.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
       return;
     }
 
-    // 2) Pull out just the five groups we want:
-    const record    = data[ciKey];
+    // 2) Pull only the five file‐groups
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
@@ -67,21 +76,20 @@ async function searchById() {
     for (const g of groupKeys) {
       const chunk = record[g];
       if (Array.isArray(chunk) && chunk.length) {
+        console.log(`📦 pulled ${chunk.length} items from ${g}`);
         chunk.forEach(item => {
-          // tag it so we know which list it goes in
           item._group = g;
           entries.push(item);
         });
-        console.log(`📦 pulled ${chunk.length} items from ${g}`);
       }
     }
 
     if (entries.length === 0) {
-      resultsDiv.innerHTML = `<p class="error">No file entries under “${ciKey}”.</p>`;
+      resultsDiv.innerHTML = `<p class="error">No file entries under “${rawID}”.</p>`;
       return;
     }
 
-    // 3) Group by _group
+    // 3) Group them by _group
     const grouped = entries.reduce((acc, it) => {
       (acc[it._group] = acc[it._group] || []).push(it);
       return acc;
@@ -90,7 +98,7 @@ async function searchById() {
     // 4) Render
     resultsDiv.innerHTML = '';
     for (const [group, list] of Object.entries(grouped)) {
-      // humanize the heading
+      // humanize heading: e.g. "b2sFiles" → "B2s Files"
       const heading = group
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, s => s.toUpperCase());
@@ -101,9 +109,9 @@ async function searchById() {
       const ul = document.createElement('ul');
       list.forEach(item => {
         const li = document.createElement('li');
-        // show filename or fallback to id
+        // display the file ID, or fallback to a JSON string
         li.textContent = item.id || JSON.stringify(item);
-        // if there's a URL, link it
+        // if there's a URL array, link the first one
         if (item.urls?.length) {
           const a = document.createElement('a');
           a.href = item.urls[0].url;
