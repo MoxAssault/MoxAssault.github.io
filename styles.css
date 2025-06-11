@@ -7,7 +7,7 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: #888;
+  background: #888888;
   color: #333;
   padding: 20px;
 }
@@ -29,7 +29,7 @@ h1 {
 }
 
 #idInput {
-  width: 250px;
+  width: 300px;
   padding: 0.5rem;
   font-size: 1rem;
   border: 1px solid #ccc;
@@ -51,7 +51,7 @@ h1 {
 }
 
 #results h2 {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   color: #0077cc;
 }
 
