@@ -1,8 +1,10 @@
-// Use jsDelivr mirror to avoid GitHub-Pages rate-limits
+// script.js
+
+// Use jsDelivr mirror to avoid GitHub-Pages rate-limits:
 const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db/db/vpsdb.json';
 
 window.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('searchBtn');
+  const btn   = document.getElementById('searchBtn');
   const input = document.getElementById('idInput');
 
   btn.addEventListener('click', searchById);
@@ -18,62 +20,74 @@ async function fetchVPSDB() {
 }
 
 async function searchById() {
-  const id = document.getElementById('idInput').value.trim();
+  const rawID = document.getElementById('idInput').value.trim();
+  const idUC  = rawID.toUpperCase();      // normalize for case-insensitive
   const resultsDiv = document.getElementById('results');
   resultsDiv.innerHTML = '';
 
-  if (!id) {
-    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
-    return;
+  if (!rawID) {
+    return resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
   }
 
-  resultsDiv.innerHTML = `<p>Loading results for “${id}”…</p>`;
+  resultsDiv.innerHTML = `<p>Loading results for “${rawID}”…</p>`;
 
   try {
-    // 1) Fetch and parse
     const raw = await fetchVPSDB();
 
-    // 2) Normalize into [{ id, entry }, …]
-    const list = Array.isArray(raw)
-      ? raw.map(entry => ({ id: entry.tableVPSId || null, entry }))
-      : Object.entries(raw).map(([key, entry]) => ({ id: key, entry }));
+    let matches = [];
 
-    console.log('🔢 total items:', list.length);
-
-    // 3) Filter by either the key or internal field
-    const matches = list
-      .filter(item => item.id === id || item.entry.tableVPSId === id)
-      .map(item => {
-        item.entry._vpsID = item.id;
-        return item.entry;
-      });
-
-    console.log('✅ matches found:', matches.length);
-
-    if (matches.length === 0) {
-      resultsDiv.innerHTML = `<p>No entries found for “${id}”.</p>`;
-      return;
+    // 1) If it's an object, try to find the matching key (ignore case)
+    if (!Array.isArray(raw)) {
+      const allKeys = Object.keys(raw);
+      console.log('🔑 JSON keys sample:', allKeys.slice(0,10));
+      const foundKey = allKeys.find(k => k.toUpperCase() === idUC);
+      console.log('🔍 foundKey (object lookup):', foundKey);
+      if (foundKey) {
+        // raw[foundKey] might be a single entry or an array of entries
+        const entry = raw[foundKey];
+        matches = Array.isArray(entry) ? entry : [entry];
+      }
     }
 
-    // 4) Group by `type`
+    // 2) Fallback: if still no matches and raw is array or object-values, filter by tableVPSId
+    if (matches.length === 0) {
+      const list = Array.isArray(raw)
+        ? raw
+        : Object.values(raw);
+
+      matches = list.filter(e => {
+        return (
+          typeof e.tableVPSId === 'string' &&
+          e.tableVPSId.toUpperCase() === idUC
+        );
+      });
+      console.log('🔍 fallback array filter found:', matches.length);
+    }
+
+    if (matches.length === 0) {
+      return resultsDiv.innerHTML = `<p>No entries found for “${rawID}”.</p>`;
+    }
+
+    // 3) Group by type
     const grouped = matches.reduce((acc, entry) => {
       const t = entry.type || 'Unknown';
-      (acc[t] = acc[t] || []).push(entry);
+      (acc[t] = acc[t]||[]).push(entry);
       return acc;
     }, {});
 
-    // 5) Render each group
+    // 4) Render
     resultsDiv.innerHTML = '';
     for (const [type, items] of Object.entries(grouped)) {
-      const heading = document.createElement('h2');
-      heading.textContent = type;
-      resultsDiv.appendChild(heading);
+      const h2 = document.createElement('h2');
+      h2.textContent = type;
+      resultsDiv.appendChild(h2);
 
       const ul = document.createElement('ul');
       items.forEach(item => {
         const li = document.createElement('li');
         li.textContent = item.tableName || item.name || JSON.stringify(item);
-        li.textContent += ` (ID: ${item._vpsID})`;
+        // show the real key if desired (for debugging)
+        if (item._vpsID) li.textContent += ` (ID: ${item._vpsID})`;
 
         if (item.mediaUrl) {
           const a = document.createElement('a');
@@ -82,7 +96,6 @@ async function searchById() {
           a.target = '_blank';
           li.appendChild(a);
         }
-
         ul.appendChild(li);
       });
       resultsDiv.appendChild(ul);
