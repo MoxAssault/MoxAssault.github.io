@@ -1,10 +1,5 @@
-// script.js
-
-// Use jsDelivr mirror to avoid GitHub-Pages rate-limits:
-const API_URLS = [
-  'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db/db/vpsdb.json',
-  'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
-];
+// Use jsDelivr mirror of the GitHub repo for CORS & no rate-limits
+const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json';
 
 window.addEventListener('DOMContentLoaded', () => {
   const btn   = document.getElementById('searchBtn');
@@ -17,88 +12,83 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchVPSDB() {
-  for (const url of API_URLS) {
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`Status ${resp.status}`);
-      return resp.json();
-    } catch (e) {
-      console.warn(`Failed to fetch from ${url}: ${e.message}`);
-    }
-  }
-  throw new Error('All VPS DB fetch attempts failed');
+  const resp = await fetch(API_URL);
+  if (!resp.ok) throw new Error(`Failed to fetch JSON: ${resp.status}`);
+  return resp.json();
 }
 
 async function searchById() {
-  const rawID = document.getElementById('idInput').value.trim();
-  const idUC  = rawID.toUpperCase();      // normalize for case-insensitive
+  const rawID      = document.getElementById('idInput').value.trim();
   const resultsDiv = document.getElementById('results');
   resultsDiv.innerHTML = '';
 
   if (!rawID) {
-    return resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    return;
   }
 
   resultsDiv.innerHTML = `<p>Loading results for “${rawID}”…</p>`;
 
   try {
-    const raw = await fetchVPSDB();
+    const data = await fetchVPSDB();
+    console.log('🗄️ total keys in JSON:', Object.keys(data).length);
 
-    let matches = [];
+    let entries = [];
 
-    // 1) If it's an object, try to find the matching key (ignore case)
-    if (!Array.isArray(raw)) {
-      const allKeys = Object.keys(raw);
-      console.log('🔑 JSON keys sample:', allKeys.slice(0,10));
-      const foundKey = allKeys.find(k => k.toUpperCase() === idUC);
-      console.log('🔍 foundKey (object lookup):', foundKey);
+    // 1️⃣ Direct lookup by exact key
+    if (data.hasOwnProperty(rawID)) {
+      entries = Array.isArray(data[rawID]) ? data[rawID] : [data[rawID]];
+      console.log(`🔍 Direct match: found ${entries.length} entries for key “${rawID}”`);
+    }
+
+    // 2️⃣ Case-insensitive key lookup
+    if (entries.length === 0) {
+      const foundKey = Object.keys(data)
+        .find(k => k.toLowerCase() === rawID.toLowerCase());
       if (foundKey) {
-        // raw[foundKey] might be a single entry or an array of entries
-        const entry = raw[foundKey];
-        matches = Array.isArray(entry) ? entry : [entry];
+        entries = Array.isArray(data[foundKey]) ? data[foundKey] : [data[foundKey]];
+        console.log(`🔍 CI match: found ${entries.length} entries for key “${foundKey}”`);
       }
     }
 
-    // 2) Fallback: if still no matches and raw is array or object-values, filter by tableVPSId
-    if (matches.length === 0) {
-      const list = Array.isArray(raw)
-        ? raw
-        : Object.values(raw);
-
-      matches = list.filter(e => {
-        return (
-          typeof e.tableVPSId === 'string' &&
-          e.tableVPSId.toUpperCase() === idUC
-        );
+    // 3️⃣ Fallback: scan every entry’s tableVPSId
+    if (entries.length === 0) {
+      Object.values(data).forEach(val => {
+        const arr = Array.isArray(val) ? val : [val];
+        arr.forEach(item => {
+          if (
+            item.tableVPSId &&
+            item.tableVPSId.toLowerCase() === rawID.toLowerCase()
+          ) {
+            entries.push(item);
+          }
+        });
       });
-      console.log('🔍 fallback array filter found:', matches.length);
+      console.log(`🔍 Fallback: found ${entries.length} entries via tableVPSId`);
     }
 
-    if (matches.length === 0) {
+    if (entries.length === 0) {
       return resultsDiv.innerHTML = `<p>No entries found for “${rawID}”.</p>`;
     }
 
-    // 3) Group by type
-    const grouped = matches.reduce((acc, entry) => {
+    // Group by `type`
+    const grouped = entries.reduce((acc, entry) => {
       const t = entry.type || 'Unknown';
-      (acc[t] = acc[t]||[]).push(entry);
+      (acc[t] = acc[t] || []).push(entry);
       return acc;
     }, {});
 
-    // 4) Render
+    // Render
     resultsDiv.innerHTML = '';
-    for (const [type, items] of Object.entries(grouped)) {
+    Object.entries(grouped).forEach(([type, list]) => {
       const h2 = document.createElement('h2');
       h2.textContent = type;
       resultsDiv.appendChild(h2);
 
       const ul = document.createElement('ul');
-      items.forEach(item => {
+      list.forEach(item => {
         const li = document.createElement('li');
-        li.textContent = item.tableName || item.name || JSON.stringify(item);
-        // show the real key if desired (for debugging)
-        if (item._vpsID) li.textContent += ` (ID: ${item._vpsID})`;
-
+        li.textContent = item.tableName || item.name || 'Unnamed Entry';
         if (item.mediaUrl) {
           const a = document.createElement('a');
           a.href = item.mediaUrl;
@@ -109,7 +99,7 @@ async function searchById() {
         ul.appendChild(li);
       });
       resultsDiv.appendChild(ul);
-    }
+    });
 
   } catch (err) {
     console.error(err);
