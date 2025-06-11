@@ -46,8 +46,10 @@ async function handleSearch() {
   const id = document.getElementById("idInput").value.trim();
   const errorDiv = document.getElementById("error");
   const resultsDiv = document.getElementById("results");
+  const filterContainer = document.getElementById("filterContainer");
   errorDiv.textContent = "";
   resultsDiv.innerHTML = "";
+  filterContainer.innerHTML = "";
 
   try {
     const db = await fetchDB();
@@ -58,9 +60,45 @@ async function handleSearch() {
     const linked = getLinkedEntriesRecursive(db, baseEntry, allFields);
     const grouped = groupByType(linked);
 
+    const types = Object.keys(grouped);
+    types.forEach(type => {
+      const label = document.createElement("label");
+      label.style.marginRight = "10px";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = JSON.parse(localStorage.getItem(`filter_${type}`) ?? "true");
+      checkbox.dataset.type = type;
+      checkbox.addEventListener("change", () => {
+        const cards = document.querySelectorAll(`.card[data-type='${type}']`);
+        cards.forEach(card => card.style.display = checkbox.checked ? "block" : "none");
+        localStorage.setItem(`filter_${type}`, checkbox.checked);
+      });
+      label.appendChild(checkbox);
+      label.append(` ${type}`);
+      filterContainer.appendChild(label);
+
+      const cards = document.querySelectorAll(`.card[data-type='${type}']`);
+      cards.forEach(card => card.style.display = checkbox.checked ? "block" : "none");
+    });
+
+    const resetButton = document.createElement("button");
+    resetButton.textContent = "Reset Filters";
+    resetButton.style.margin = "10px 0";
+    resetButton.onclick = () => {
+      types.forEach(type => {
+        localStorage.setItem(`filter_${type}`, true);
+        const checkbox = filterContainer.querySelector(`input[data-type='${type}']`);
+        if (checkbox) checkbox.checked = true;
+        const cards = document.querySelectorAll(`.card[data-type='${type}']`);
+        cards.forEach(card => card.style.display = "block");
+      });
+    };
+    filterContainer.appendChild(resetButton);
+
     for (const [type, entries] of Object.entries(grouped)) {
       const card = document.createElement("div");
       card.className = "card";
+      card.dataset.type = type;
       const title = document.createElement("h2");
       title.textContent = `${type} (${entries.length})`;
       const ul = document.createElement("ul");
@@ -71,7 +109,7 @@ async function handleSearch() {
           .map(f => {
             const val = Array.isArray(entry[f]) ? entry[f].join(", ") : entry[f];
             const span = document.createElement("span");
-            span.className = "tag tooltip";
+            span.className = `tag tooltip ${f}`;
             span.textContent = `${f}: ${val}`;
             span.title = f;
             return span.outerHTML;
