@@ -1,14 +1,11 @@
-// Use jsDelivr mirror of the GitHub repo for CORS & no rate-limits
+// Avoid GitHub-Pages rate limits + CORS issues:
 const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json';
 
 window.addEventListener('DOMContentLoaded', () => {
   const btn   = document.getElementById('searchBtn');
   const input = document.getElementById('idInput');
-
   btn.addEventListener('click', searchById);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchById();
-  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') searchById(); });
 });
 
 async function fetchVPSDB() {
@@ -31,14 +28,31 @@ async function searchById() {
 
   try {
     const data = await fetchVPSDB();
-    console.log('🗄️ total keys in JSON:', Object.keys(data).length);
+    console.log('🗄️ total keys:', Object.keys(data).length);
 
     let entries = [];
 
-    // 1️⃣ Direct lookup by exact key
+    // 1️⃣ Direct exact-key lookup
     if (data.hasOwnProperty(rawID)) {
-      entries = Array.isArray(data[rawID]) ? data[rawID] : [data[rawID]];
-      console.log(`🔍 Direct match: found ${entries.length} entries for key “${rawID}”`);
+      const val = data[rawID];
+      console.log('🔍 Direct lookup by key:', rawID);
+
+      if (Array.isArray(val)) {
+        entries = val;
+      } else if (val && typeof val === 'object') {
+        // Single-entry object?
+        if (val.tableVPSId) {
+          entries = [val];
+        } else {
+          // Nested by type (e.g. { "Table": {...}, "Backglass": {...} })
+          console.log('🔧 Unpacking nested types under key');
+          entries = Object.entries(val).map(([type, sub]) => {
+            sub.type = sub.type || type;
+            return sub;
+          });
+        }
+      }
+      console.log(`📦 entries from direct lookup: ${entries.length}`);
     }
 
     // 2️⃣ Case-insensitive key lookup
@@ -46,13 +60,25 @@ async function searchById() {
       const foundKey = Object.keys(data)
         .find(k => k.toLowerCase() === rawID.toLowerCase());
       if (foundKey) {
-        entries = Array.isArray(data[foundKey]) ? data[foundKey] : [data[foundKey]];
-        console.log(`🔍 CI match: found ${entries.length} entries for key “${foundKey}”`);
+        console.log('🔍 CI key match:', foundKey);
+        const val = data[foundKey];
+        if (Array.isArray(val)) {
+          entries = val;
+        } else if (val.tableVPSId) {
+          entries = [val];
+        } else {
+          entries = Object.entries(val).map(([type, sub]) => {
+            sub.type = sub.type || type;
+            return sub;
+          });
+        }
+        console.log(`📦 entries from CI lookup: ${entries.length}`);
       }
     }
 
-    // 3️⃣ Fallback: scan every entry’s tableVPSId
+    // 3️⃣ Fallback: scan every entry’s tableVPSId (case-insensitive)
     if (entries.length === 0) {
+      console.log('🔍 Fallback: scanning all entries’ tableVPSId');
       Object.values(data).forEach(val => {
         const arr = Array.isArray(val) ? val : [val];
         arr.forEach(item => {
@@ -64,14 +90,14 @@ async function searchById() {
           }
         });
       });
-      console.log(`🔍 Fallback: found ${entries.length} entries via tableVPSId`);
+      console.log(`📦 entries from fallback scan: ${entries.length}`);
     }
 
     if (entries.length === 0) {
       return resultsDiv.innerHTML = `<p>No entries found for “${rawID}”.</p>`;
     }
 
-    // Group by `type`
+    // Group by type
     const grouped = entries.reduce((acc, entry) => {
       const t = entry.type || 'Unknown';
       (acc[t] = acc[t] || []).push(entry);
