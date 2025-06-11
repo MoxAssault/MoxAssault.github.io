@@ -60,9 +60,16 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchVPSDB() {
-  const resp = await fetch(API_URL);
-  if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
-  return resp.json();
+  for (const url of API_URLS) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Status ${resp.status}`);
+      return resp.json();
+    } catch (e) {
+      console.warn(`Failed to fetch from ${url}: ${e.message}`);
+    }
+  }
+  throw new Error('All VPS DB fetch attempts failed');
 }
 
 async function searchById() {
