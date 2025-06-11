@@ -53,6 +53,10 @@ async function handleSearch() {
   resultsDiv.innerHTML = "";
   filterContainer.innerHTML = "";
 
+  if (!searchButton || !spinner) {
+    console.error("Missing searchButton or spinner element.");
+    return;
+  }
   searchButton.disabled = true;
   spinner.style.display = "block";
 
