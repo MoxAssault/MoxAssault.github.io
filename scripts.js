@@ -1,7 +1,10 @@
 // script.js
 
 // Use jsDelivr mirror to avoid GitHub-Pages rate-limits:
-const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db/db/vpsdb.json';
+const API_URLS = [
+  'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db/db/vpsdb.json',
+  'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
+];
 
 window.addEventListener('DOMContentLoaded', () => {
   const btn   = document.getElementById('searchBtn');
@@ -14,9 +17,16 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function fetchVPSDB() {
-  const resp = await fetch(API_URL);
-  if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
-  return resp.json();
+  for (const url of API_URLS) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Status ${resp.status}`);
+      return resp.json();
+    } catch (e) {
+      console.warn(`Failed to fetch from ${url}: ${e.message}`);
+    }
+  }
+  throw new Error('All VPS DB fetch attempts failed');
 }
 
 async function searchById() {
