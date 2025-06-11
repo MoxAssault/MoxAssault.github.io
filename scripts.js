@@ -6,14 +6,30 @@ async function fetchDB() {
   return res.json();
 }
 
-function findLinkedEntries(db, entry, fields) {
-  const linkedIds = new Set();
-  for (const field of fields) {
-    const val = entry[field];
-    if (Array.isArray(val)) val.forEach(v => linkedIds.add(v));
-    else if (val) linkedIds.add(val);
+function getLinkedEntriesRecursive(db, baseEntry, fields, visited = new Set()) {
+  const stack = [baseEntry];
+  const collected = [];
+
+  while (stack.length) {
+    const entry = stack.pop();
+    if (visited.has(entry.id)) continue;
+    visited.add(entry.id);
+    collected.push(entry);
+
+    const linkedIds = new Set();
+    for (const field of fields) {
+      const val = entry[field];
+      if (Array.isArray(val)) val.forEach(v => linkedIds.add(v));
+      else if (val) linkedIds.add(val);
+    }
+
+    for (const id of linkedIds) {
+      const found = db.find(e => e.id === id);
+      if (found && !visited.has(found.id)) stack.push(found);
+    }
   }
-  return db.filter(e => linkedIds.has(e.id));
+
+  return collected;
 }
 
 function groupByType(entries) {
@@ -35,18 +51,12 @@ async function handleSearch() {
 
   try {
     const db = await fetchDB();
-    const matches = db.filter(e => e.id === id);
-    if (matches.length === 0) throw new Error(`No entry found with id '${id}'`);
+    const baseEntry = db.find(e => e.id === id);
+    if (!baseEntry) throw new Error(`No entry found with id '${id}'`);
 
-    const collected = [...matches];
-    for (const main of matches) {
-      const linked = findLinkedEntries(db, main, ["rom", "backglass", "pro"]);
-      for (const e of linked) {
-        if (!collected.find(c => c.id === e.id)) collected.push(e);
-      }
-    }
+    const linked = getLinkedEntriesRecursive(db, baseEntry, ["rom", "backglass", "pro"]);
+    const grouped = groupByType(linked);
 
-    const grouped = groupByType(collected);
     for (const [type, entries] of Object.entries(grouped)) {
       const card = document.createElement("div");
       card.className = "card";
@@ -55,7 +65,11 @@ async function handleSearch() {
       const ul = document.createElement("ul");
       for (const entry of entries) {
         const li = document.createElement("li");
-        li.textContent = `${entry.title || entry.id} (${entry.id})`;
+        const fields = ["rom", "backglass", "pro"]
+          .filter(f => entry[f])
+          .map(f => `${f}: ${Array.isArray(entry[f]) ? entry[f].join(', ') : entry[f]}`)
+          .join(" | ");
+        li.textContent = `${entry.title || entry.id} (${entry.id})${fields ? ' [' + fields + ']' : ''}`;
         ul.appendChild(li);
       }
       card.appendChild(title);
