@@ -1,80 +1,98 @@
-async function searchById() {
-  const id = document.getElementById('idInput').value.trim();
-  const resultsDiv = document.getElementById('results');
-  resultsDiv.innerHTML = '';
+const API_URL = 'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db/db/vpsdb.json';
 
-  if (!id) {
-    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
-    return;
-  }
+console.log('⏱ script.js loaded');
 
-  resultsDiv.innerHTML = `<p>Loading results for “${id}”…</p>`;
+// ensure DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('✅ DOMContentLoaded');
 
-  try {
-    const resp = await fetch(API_URL);
-    if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
-    const data = await resp.json();
+      const btn = document.getElementById('searchBtn');
+      console.log('🔘 Found button:', btn);
+      if (!btn) return console.error('❌ searchBtn not found in DOM');
 
-    // 1) Normalize to an array
-    const items = Array.isArray(data) ? data : Object.values(data);
-    console.log('🔍 total items:', items.length);
-    if (items.length === 0) {
-      resultsDiv.innerHTML = `<p class="error">Database is empty!</p>`;
-      return;
-    }
+      btn.addEventListener('click', searchById);
+      document.getElementById('idInput')
+              .addEventListener('keydown', e => { if (e.key==='Enter') searchById(); });
+    });
 
-    // 2) Figure out which key holds the table ID
-    const sample = items[0];
-    const idKey = Object.keys(sample)
-      .find(k => k.toLowerCase().includes('vpsid')) || null;
-    console.log('🔑 detected ID field:', idKey);
-    if (!idKey) {
-      resultsDiv.innerHTML = `<p class="error">Could not find a “VPS ID” field in your data.</p>`;
-      return;
-    }
+    const API_URL = 'https://virtualpinballspreadsheet.github.io/vps-db/db/vpsdb.json';
 
-    // 3) Filter by that key
-    const matches = items.filter(item => item[idKey] === id);
-    console.log(`✅ found ${matches.length} matches for “${id}”`);
+    async function searchById() {
+      console.log('▶️ searchById() called');
+      const id = document.getElementById('idInput').value.trim();
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
 
-    if (matches.length === 0) {
-      resultsDiv.innerHTML = `<p>No entries found for ID “${id}”.</p>`;
-      return;
-    }
+      if (!id) {
+        console.log('⚠️ empty ID');
+        return resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+      }
 
-    // 4) Group by type (falling back to “Unknown”)
-    const grouped = matches.reduce((acc, item) => {
-      const t = item.type || 'Unknown';
-      (acc[t] = acc[t] || []).push(item);
-      return acc;
-    }, {});
+      resultsDiv.innerHTML = `<p>Loading results for “${id}”…</p>`;
 
-    // 5) Render
-    resultsDiv.innerHTML = '';
-    for (const [type, items] of Object.entries(grouped)) {
-      const h2 = document.createElement('h2');
-      h2.textContent = type;
-      resultsDiv.appendChild(h2);
+      try {
+        const resp = await fetch(API_URL);
+        console.log('📶 fetch status:', resp.status);
+        if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
 
-      const ul = document.createElement('ul');
-      items.forEach(item => {
-        const li = document.createElement('li');
-        // show the table name or fall back to JSON
-        li.textContent = item.tableName || item.name || JSON.stringify(item);
-        // if there’s a download link, append it
-        if (item.mediaUrl) {
-          const a = document.createElement('a');
-          a.href = item.mediaUrl;
-          a.textContent = ' [Download]';
-          a.target = '_blank';
-          li.appendChild(a);
+        const data = await resp.json();
+        console.log('🔍 raw data type:', typeof data);
+
+        const items = Array.isArray(data) ? data : Object.values(data);
+        console.log('📋 total items:', items.length);
+
+        if (items.length === 0) {
+          return resultsDiv.innerHTML = `<p class="error">Database is empty!</p>`;
         }
-        ul.appendChild(li);
-      });
-      resultsDiv.appendChild(ul);
-    }
 
-  } catch (err) {
-    resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
-  }
-}
+        const sample = items[0];
+        const idKey = Object.keys(sample)
+                             .find(k => k.toLowerCase().includes('vpsid'));
+        console.log('🔑 detected ID key:', idKey);
+
+        if (!idKey) {
+          return resultsDiv.innerHTML = `<p class="error">No “VPS ID” field found.</p>`;
+        }
+
+        const matches = items.filter(item => item[idKey] === id);
+        console.log(`✅ found ${matches.length} matches for ID “${id}”`);
+
+        if (matches.length === 0) {
+          return resultsDiv.innerHTML = `<p>No entries found for “${id}”.</p>`;
+        }
+
+        // group by type
+        const grouped = matches.reduce((acc, item) => {
+          const t = item.type || 'Unknown';
+          (acc[t] = acc[t]||[]).push(item);
+          return acc;
+        }, {});
+
+        // render
+        resultsDiv.innerHTML = '';
+        for (const [type, list] of Object.entries(grouped)) {
+          const h2 = document.createElement('h2');
+          h2.textContent = type;
+          resultsDiv.appendChild(h2);
+
+          const ul = document.createElement('ul');
+          list.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.tableName || item.name || JSON.stringify(item);
+            if (item.mediaUrl) {
+              const a = document.createElement('a');
+              a.href = item.mediaUrl;
+              a.textContent = ' [Download]';
+              a.target = '_blank';
+              li.appendChild(a);
+            }
+            ul.appendChild(li);
+          });
+          resultsDiv.appendChild(ul);
+        }
+
+      } catch (err) {
+        console.error(err);
+        resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+      }
+    }
