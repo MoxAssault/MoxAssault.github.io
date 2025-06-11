@@ -1,5 +1,12 @@
 const DB_URL = "https://virtualpinballspreadsheet.github.io/vps-db/db/vpsdb.json";
 
+document.addEventListener("DOMContentLoaded", () => {
+  const searchButton = document.getElementById("searchButton");
+  if (searchButton) {
+    searchButton.addEventListener("click", handleSearch);
+  }
+});
+
 async function fetchDB() {
   const res = await fetch(DB_URL);
   if (!res.ok) throw new Error("Failed to fetch database");
@@ -47,7 +54,7 @@ async function handleSearch() {
   const errorDiv = document.getElementById("error");
   const resultsDiv = document.getElementById("results");
   const filterContainer = document.getElementById("filterContainer");
-  const searchButton = document.querySelector("button[onclick='handleSearch()']");
+  const searchButton = document.getElementById("searchButton");
   const spinner = document.getElementById("spinner");
   errorDiv.textContent = "";
   resultsDiv.innerHTML = "";
@@ -57,6 +64,7 @@ async function handleSearch() {
     console.error("Missing searchButton or spinner element.");
     return;
   }
+
   searchButton.disabled = true;
   spinner.style.display = "block";
 
@@ -131,6 +139,8 @@ async function handleSearch() {
       card.appendChild(ul);
       resultsDiv.appendChild(card);
     }
+
+    resultsDiv.scrollIntoView({ behavior: "smooth" });
   } catch (err) {
     errorDiv.textContent = err.message;
   } finally {
