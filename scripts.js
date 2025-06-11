@@ -54,7 +54,8 @@ async function handleSearch() {
     const baseEntry = db.find(e => e.id === id);
     if (!baseEntry) throw new Error(`No entry found with id '${id}'`);
 
-    const linked = getLinkedEntriesRecursive(db, baseEntry, ["rom", "backglass", "pro"]);
+    const allFields = ["rom", "backglass", "pro", "pup", "altrom", "media"];
+    const linked = getLinkedEntriesRecursive(db, baseEntry, allFields);
     const grouped = groupByType(linked);
 
     for (const [type, entries] of Object.entries(grouped)) {
@@ -65,11 +66,18 @@ async function handleSearch() {
       const ul = document.createElement("ul");
       for (const entry of entries) {
         const li = document.createElement("li");
-        const fields = ["rom", "backglass", "pro"]
+        const fieldsHTML = allFields
           .filter(f => entry[f])
-          .map(f => `${f}: ${Array.isArray(entry[f]) ? entry[f].join(', ') : entry[f]}`)
-          .join(" | ");
-        li.textContent = `${entry.title || entry.id} (${entry.id})${fields ? ' [' + fields + ']' : ''}`;
+          .map(f => {
+            const val = Array.isArray(entry[f]) ? entry[f].join(", ") : entry[f];
+            const span = document.createElement("span");
+            span.className = "tag tooltip";
+            span.textContent = `${f}: ${val}`;
+            span.title = f;
+            return span.outerHTML;
+          }).join(" ");
+
+        li.innerHTML = `${entry.title || entry.id} <strong>(${entry.id})</strong><div class="tags">${fieldsHTML}</div>`;
         ul.appendChild(li);
       }
       card.appendChild(title);
