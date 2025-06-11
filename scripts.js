@@ -47,9 +47,14 @@ async function handleSearch() {
   const errorDiv = document.getElementById("error");
   const resultsDiv = document.getElementById("results");
   const filterContainer = document.getElementById("filterContainer");
+  const searchButton = document.querySelector("button[onclick='handleSearch()']");
+  const spinner = document.getElementById("spinner");
   errorDiv.textContent = "";
   resultsDiv.innerHTML = "";
   filterContainer.innerHTML = "";
+
+  searchButton.disabled = true;
+  spinner.style.display = "block";
 
   try {
     const db = await fetchDB();
@@ -124,5 +129,8 @@ async function handleSearch() {
     }
   } catch (err) {
     errorDiv.textContent = err.message;
+  } finally {
+    spinner.style.display = "none";
+    searchButton.disabled = false;
   }
 }
