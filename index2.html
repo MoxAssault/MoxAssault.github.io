@@ -49,98 +49,101 @@
   'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
 ];
 
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('searchBtn');
+  const input = document.getElementById('idInput');
+
+  btn.addEventListener('click', searchById);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchById();
+  });
+});
+
 async function fetchVPSDB() {
-  for (const url of API_URLS) {
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`Status ${resp.status}`);
-      return resp.json();
-    } catch (e) {
-      console.warn(`Failed to fetch from ${url}: ${e.message}`);
-    }
-  }
-  throw new Error('All VPS DB fetch attempts failed');
+  const resp = await fetch(API_URL);
+  if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
+  return resp.json();
 }
 
-    async function searchById() {
-      console.log('▶️ searchById() called');
-      const id = document.getElementById('idInput').value.trim();
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '';
+async function searchById() {
+  const id = document.getElementById('idInput').value.trim();
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = '';
 
-      if (!id) {
-        console.log('⚠️ empty ID');
-        return resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
-      }
+  if (!id) {
+    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    return;
+  }
 
-      resultsDiv.innerHTML = `<p>Loading results for “${id}”…</p>`;
+  resultsDiv.innerHTML = `<p>Loading results for “${id}”…</p>`;
 
-      try {
-        const resp = await fetch(API_URL);
-        console.log('📶 fetch status:', resp.status);
-        if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
+  try {
+    // 1) Fetch and parse
+    const raw = await fetchVPSDB();
 
-        const data = await fetchVPSDB();
-        console.log('🔍 raw data type:', typeof data);
+    // 2) Normalize into [{ id, entry }, …]
+    const list = Array.isArray(raw)
+      ? raw.map(entry => ({ id: entry.tableVPSId || null, entry }))
+      : Object.entries(raw).map(([key, entry]) => ({ id: key, entry }));
 
-        const items = Array.isArray(data) ? data : Object.values(data);
-        console.log('📋 total items:', items.length);
+    console.log('🔢 total items:', list.length);
 
-        if (items.length === 0) {
-          return resultsDiv.innerHTML = `<p class="error">Database is empty!</p>`;
-        }
+    // 3) Filter by either the key or internal field
+    const matches = list
+      .filter(item => item.id === id || item.entry.tableVPSId === id)
+      .map(item => {
+        item.entry._vpsID = item.id;
+        return item.entry;
+      });
 
-        const sample = items[0];
-        const idKey = Object.keys(sample)
-                             .find(k => k.toLowerCase().includes('vpsid'));
-        console.log('🔑 detected ID key:', idKey);
+    console.log('✅ matches found:', matches.length);
 
-        if (!idKey) {
-          return resultsDiv.innerHTML = `<p class="error">No “VPS ID” field found.</p>`;
-        }
-
-        const matches = items.filter(item => item[idKey] === id);
-        console.log(`✅ found ${matches.length} matches for ID “${id}”`);
-
-        if (matches.length === 0) {
-          return resultsDiv.innerHTML = `<p>No entries found for “${id}”.</p>`;
-        }
-
-        // group by type
-        const grouped = matches.reduce((acc, item) => {
-          const t = item.type || 'Unknown';
-          (acc[t] = acc[t]||[]).push(item);
-          return acc;
-        }, {});
-
-        // render
-        resultsDiv.innerHTML = '';
-        for (const [type, list] of Object.entries(grouped)) {
-          const h2 = document.createElement('h2');
-          h2.textContent = type;
-          resultsDiv.appendChild(h2);
-
-          const ul = document.createElement('ul');
-          list.forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = item.tableName || item.name || JSON.stringify(item);
-            if (item.mediaUrl) {
-              const a = document.createElement('a');
-              a.href = item.mediaUrl;
-              a.textContent = ' [Download]';
-              a.target = '_blank';
-              li.appendChild(a);
-            }
-            ul.appendChild(li);
-          });
-          resultsDiv.appendChild(ul);
-        }
-
-      } catch (err) {
-        console.error(err);
-        resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
-      }
+    if (matches.length === 0) {
+      resultsDiv.innerHTML = `<p>No entries found for “${id}”.</p>`;
+      return;
     }
+
+    // 4) Group by `type`
+    const grouped = matches.reduce((acc, entry) => {
+      const t = entry.type || 'Unknown';
+      (acc[t] = acc[t] || []).push(entry);
+      return acc;
+    }, {});
+
+    // 5) Render each group
+    resultsDiv.innerHTML = '';
+    for (const [type, items] of Object.entries(grouped)) {
+      const heading = document.createElement('h2');
+      heading.textContent = type;
+      resultsDiv.appendChild(heading);
+
+      const ul = document.createElement('ul');
+      items.forEach(item => {
+        const li = document.createElement('li');
+        // display either tableName, name, or raw JSON
+        li.textContent = item.tableName || item.name || JSON.stringify(item);
+        // append the resolved VPS ID
+        li.textContent += ` (ID: ${item._vpsID})`;
+
+        // optional: attach download link if present
+        if (item.mediaUrl) {
+          const a = document.createElement('a');
+          a.href = item.mediaUrl;
+          a.textContent = ' [Download]';
+          a.target = '_blank';
+          li.appendChild(a);
+        }
+
+        ul.appendChild(li);
+      });
+      resultsDiv.appendChild(ul);
+    }
+
+  } catch (err) {
+    console.error(err);
+    resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+  }
+}
   </script>
 </body>
 </html>
