@@ -44,7 +44,23 @@
               .addEventListener('keydown', e => { if (e.key==='Enter') searchById(); });
     });
 
-    const API_URL = 'https://virtualpinballspreadsheet.github.io/vps-db/db/vpsdb.json';
+    const API_URLS = [
+  'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db/db/vpsdb.json',
+  'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
+];
+
+async function fetchVPSDB() {
+  for (const url of API_URLS) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Status ${resp.status}`);
+      return resp.json();
+    } catch (e) {
+      console.warn(`Failed to fetch from ${url}: ${e.message}`);
+    }
+  }
+  throw new Error('All VPS DB fetch attempts failed');
+}
 
     async function searchById() {
       console.log('▶️ searchById() called');
@@ -64,7 +80,7 @@
         console.log('📶 fetch status:', resp.status);
         if (!resp.ok) throw new Error(`Network error: ${resp.status}`);
 
-        const data = await resp.json();
+        const data = await fetchVPSDB();
         console.log('🔍 raw data type:', typeof data);
 
         const items = Array.isArray(data) ? data : Object.values(data);
