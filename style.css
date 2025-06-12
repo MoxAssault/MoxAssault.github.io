@@ -1,146 +1,99 @@
 /* Basic reset */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* === Page & Container Styling === */
 body {
+  background: #000;
+  color: #CCCCCC;
   font-family: Arial, sans-serif;
-  background: #000000;
-  color: #ccc;
   padding: 20px;
 }
 
 .container {
   max-width: 800px;
   margin: 0 auto;
+  background: #1a1a1a;
+  color: #CCCCCC;
+  padding: 20px;
+  border-radius: 8px;
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.search-box {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-
+/* === Header + Search === */
+h1 { text-align: center; margin-bottom: 1rem; }
+.search-box { display: flex; justify-content: center; margin-bottom: 1.5rem; }
 #idInput {
-  width: 300px;
-  padding: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px 0 0 4px;
+  width: 300px; padding: 0.5rem; font-size: 1rem;
+  border: 1px solid #444; border-radius: 4px 0 0 4px;
+  background: #2a2a2a; color: #CCCCCC;
 }
-
 #searchBtn {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border: none;
-  background: #0077cc;
-  color: #fff;
-  cursor: pointer;
+  padding: 0.5rem 1rem; font-size: 1rem; border: none;
+  background: #0077cc; color: #fff; cursor: pointer;
   border-radius: 0 4px 4px 0;
 }
+#searchBtn:hover { background: #005fa3; }
 
-#searchBtn:hover {
-  background: #005fa3;
-}
-
-/* ---- game card ---- */
+/* === Game Card === */
 .game-card {
-  display: flex;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  overflow: hidden;
+  display: flex; background: #2a2a2a; border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5); overflow: hidden;
   margin-bottom: 1.5rem;
 }
 .game-cover {
-  flex: 0 0 150px;      /* make cover much smaller */
-  width: 150px;
-  height: auto;
+  flex: 0 0 150px; width: 150px; height: auto;
   object-fit: cover;
 }
-.game-info {
-  padding: 1rem;
-  flex: 1;
-}
-.game-info h2 {
-  margin-top: 0;
-}
+.game-info { padding: 1rem; flex: 1; }
+.game-info h2 { margin-top: 0; color: #CCCCCC; }
 .game-info .meta {
-  color: #555;
-  font-size: 0.9rem;
-  margin: 0.5rem 0;
+  color: #BBBBBB; font-size: 0.9rem; margin: 0.5rem 0;
 }
-.game-info .tags {
-  margin-top: 0.5rem;
-}
+.game-info .tags { margin-top: 0.5rem; }
 .game-info .tag {
-  display: inline-block;
-  background: #e0e0e0;
-  border-radius: 4px;
-  padding: 2px 6px;
-  margin-right: 4px;
-  font-size: 0.8rem;
+  display: inline-block; background: #444; border-radius: 4px;
+  padding: 2px 6px; margin-right: 4px; font-size: 0.8rem;
+  color: #CCCCCC;
 }
 
-/* ---- results grid ---- */
+/* === Results Grid === */
 #results {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  display: flex; flex-wrap: wrap; gap: 1rem;
 }
 
-/* ---- each category block ---- */
+/* === Category Blocks (3-per-row) === */
 .category-container {
-  flex: 0 0 calc(50% - 1rem);
-  background: #fff;
+  flex: 0 0 calc(33.333% - 1rem);
+  background: #2a2a2a;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid #444;
   border-radius: 4px;
 }
 
-/* ---- dropdowns ---- */
+/* === Dropdowns === */
 .category-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-  color: #0077cc;
+  display: block; margin-bottom: 0.5rem;
+  font-weight: bold; color: #CCCCCC;
 }
 #results select {
-  width: 100%;
-  padding: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  width: 100%; padding: 0.5rem; font-size: 1rem;
+  border: 1px solid #444; border-radius: 4px;
+  background: #1f1f1f; color: #CCCCCC;
 }
 
-/* ---- item display ---- */
-.item-display {
-  margin-top: 0.75rem;
-}
+/* === Item Display === */
+.item-display { margin-top: 0.75rem; }
 .item-display img {
-  max-width: 100%;
-  height: auto;
-  display: block;
+  max-width: 75%; height: auto; display: block;
   margin-bottom: 0.75rem;
 }
 .item-display dl dt {
-  font-weight: bold;
-  margin-top: 0.5rem;
+  font-weight: bold; margin-top: 0.5rem; color: #CCCCCC;
 }
 .item-display dl dd {
-  margin: 0 0 0.5rem 1rem;
+  margin: 0 0 0.5rem 1rem; color: #EEEEEE;
 }
 
-/* ---- errors ---- */
+/* === Error Messages === */
 .error {
-  color: #c00;
-  text-align: center;
-  margin-top: 1rem;
+  color: #f55; text-align: center; margin-top: 1rem;
 }
