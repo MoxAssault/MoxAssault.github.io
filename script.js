@@ -184,7 +184,7 @@ async function searchById() {
         };
         
         const appendField = (key, val) => {
-          if (['authors', 'features', 'tableFormat'].includes(key)) {
+          if (['authors', 'features', 'tableFormat', 'version'].includes(key)) {
             const group = document.createElement('div');
             const label = document.createElement('dt');
             label.textContent = humanize(key);
