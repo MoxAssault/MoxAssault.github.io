@@ -26,7 +26,6 @@ async function fetchVPSDB() {
   throw new Error('Failed to load VPS DB JSON');
 }
 
-// Utility to humanize keys
 function humanize(key) {
   return key
     .replace(/([A-Z])/g, ' $1')
@@ -35,17 +34,21 @@ function humanize(key) {
 }
 
 async function searchById() {
-  const rawID      = document.getElementById('idInput').value.trim();
+  const rawID = document.getElementById('idInput').value.trim();
+  const gameCardContainer = document.getElementById('gameCardContainer');
+  const categoryGrid = document.getElementById('categoryGrid');
   const resultsDiv = document.getElementById('results');
-  resultsDiv.classList.remove('two-per-row','three-per-row');
-  resultsDiv.innerHTML = '';
+
+  gameCardContainer.innerHTML = '';
+  categoryGrid.innerHTML = '';
+  categoryGrid.classList.remove('two-per-row', 'three-per-row');
 
   if (!rawID) {
-    resultsDiv.innerHTML = `<p class=\"error\">Please enter a VPS Table ID.</p>`;
+    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     return;
   }
 
-  resultsDiv.innerHTML = `<p>Searching for “${rawID}”…</p>`;
+  gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
   try {
     const data = await fetchVPSDB();
@@ -54,44 +57,35 @@ async function searchById() {
       : null;
 
     if (!record) {
-      resultsDiv.innerHTML = `<p class=\"error\">No entries found for “${rawID}”.</p>`;
+      gameCardContainer.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
       return;
     }
 
-    // Clear loading text
-    resultsDiv.innerHTML = '';
-
-    // Define categories
     const groupKeys = [
-      'tableFiles',
-      'b2sFiles',
-      'romFiles',
-      'altColorFiles',
-      'pupPackFiles',
-      'mediaPackFiles'
+      'tableFiles', 'b2sFiles', 'romFiles',
+      'altColorFiles', 'pupPackFiles', 'mediaPackFiles'
     ];
+    const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
+    categoryGrid.classList.add(present.length > 4 ? 'three-per-row' : 'two-per-row');
 
-    // Determine cover image URL: top-level or first available in file groups
     let coverUrl = record.imgUrl;
     if (!coverUrl) {
       for (const g of groupKeys) {
-        if (Array.isArray(record[g]) && record[g].length && record[g][0].imgUrl) {
+        if (record[g]?.[0]?.imgUrl) {
           coverUrl = record[g][0].imgUrl;
           break;
         }
       }
     }
 
-    // ---- Game Card ----
     const card = document.createElement('div');
     card.className = 'game-card';
-
     if (coverUrl) {
-      const cover = document.createElement('img');
-      cover.className = 'game-cover';
-      cover.src = coverUrl;
-      cover.alt = record.name || rawID;
-      card.appendChild(cover);
+      const img = document.createElement('img');
+      img.className = 'game-cover';
+      img.src = coverUrl;
+      img.alt = record.name || rawID;
+      card.appendChild(img);
     }
 
     const info = document.createElement('div');
@@ -113,38 +107,29 @@ async function searchById() {
     if (Array.isArray(record.theme)) {
       const tagsDiv = document.createElement('div');
       tagsDiv.className = 'tags';
-      record.theme.forEach(t => {
+      record.theme.forEach(tag => {
         const span = document.createElement('span');
         span.className = 'tag';
-        span.textContent = t;
+        span.textContent = tag;
         tagsDiv.appendChild(span);
       });
       info.appendChild(tagsDiv);
     }
 
     card.appendChild(info);
-    document.getElementById('gameCardContainer').innerHTML = '';
-    document.getElementById('gameCardContainer').appendChild(card);
+    gameCardContainer.innerHTML = '';
+    gameCardContainer.appendChild(card);
 
-    // Decide layout based on category count
-    const grid = document.getElementById('categoryGrid');
-    grid.classList.remove('two-per-row', 'three-per-row');
-    grid.classList.add(present.length > 4 ? 'three-per-row' : 'two-per-row');
-    grid.innerHTML = '';
-
-    // ---- Category Dropdowns ----
     present.forEach(group => {
       const items = record[group];
       const container = document.createElement('div');
       container.className = 'category-container';
 
-      // Label
       const label = document.createElement('label');
       label.className = 'category-label';
       label.textContent = humanize(group);
       container.appendChild(label);
 
-      // Dropdown
       const select = document.createElement('select');
       const placeholder = document.createElement('option');
       placeholder.textContent = `Select a ${humanize(group).replace(/s$/, '')}`;
@@ -158,26 +143,26 @@ async function searchById() {
         opt.textContent = item.id;
         select.appendChild(opt);
       });
-      container.appendChild(select);
 
-      // Display panel
       const display = document.createElement('div');
       display.className = 'item-display';
+      container.appendChild(select);
       container.appendChild(display);
 
       select.addEventListener('change', () => {
         display.innerHTML = '';
-        const sel = select.value;
-        const item = items.find(i => i.id === sel);
+        const item = items.find(i => i.id === select.value);
         if (!item) return;
+
         if (item.imgUrl) {
           const img = document.createElement('img');
           img.src = item.imgUrl;
-          img.alt = sel;
+          img.alt = item.id;
           display.appendChild(img);
         }
+
         const dl = document.createElement('dl');
-        // Helpers
+
         const formatDate = ts => {
           try {
             return new Date(ts).toLocaleDateString(undefined, {
@@ -185,7 +170,7 @@ async function searchById() {
             });
           } catch { return ts; }
         };
-        // Append field function
+
         const appendField = (key, val) => {
           if (['authors', 'features', 'tableFormat', 'version'].includes(key)) {
             const group = document.createElement('div');
@@ -205,7 +190,8 @@ async function searchById() {
             dl.appendChild(holder);
             return;
           }
-          if (['createdAt', 'updatedAt'].includes(key)) return; // handled separately
+          if (['createdAt', 'updatedAt'].includes(key)) return;
+
           const dt = document.createElement('dt');
           dt.textContent = humanize(key);
           const dd = document.createElement('dd');
@@ -213,12 +199,13 @@ async function searchById() {
           dl.appendChild(dt);
           dl.appendChild(dd);
         };
-        // Special: createdAt & updatedAt side-by-side
+
         const dateRow = document.createElement('div');
         dateRow.style.display = 'flex';
         dateRow.style.justifyContent = 'space-between';
         dateRow.style.gap = '1rem';
         dateRow.style.marginBottom = '1rem';
+
         ['createdAt', 'updatedAt'].forEach(dateKey => {
           if (item[dateKey]) {
             const wrap = document.createElement('div');
@@ -231,27 +218,33 @@ async function searchById() {
             dateRow.appendChild(wrap);
           }
         });
+
         display.appendChild(dateRow);
-        // 1. authors, features, tableFormat as bubbles
+
         if (item.authors) appendField('authors', item.authors);
         if (item.features) appendField('features', item.features);
         if (item.tableFormat) appendField('tableFormat', item.tableFormat);
-        // 2. Everything else (except skipped)
-        const ignore = ['id','_group','imgUrl','game','urls','comment','createdAt','updatedAt','authors','features','tableFormat'];
+        if (item.version) appendField('version', item.version);
+
+        const ignore = [
+          'id','_group','imgUrl','game','urls','comment',
+          'createdAt','updatedAt','authors','features','tableFormat','version'
+        ];
         Object.keys(item)
           .filter(k => !ignore.includes(k))
           .sort()
           .forEach(k => appendField(k, item[k]));
-        // 3. comment last
+
         if (item.comment) appendField('comment', item.comment);
+
         display.appendChild(dl);
       });
 
-      document.getElementById('categoryGrid').appendChild(container);
+      categoryGrid.appendChild(container);
     });
 
   } catch (err) {
     console.error(err);
-    resultsDiv.innerHTML = `<p class=\"error\">Error: ${err.message}</p>`;
+    gameCardContainer.innerHTML = `<p class="error">Error: ${err.message}</p>`;
   }
 }
