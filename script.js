@@ -204,7 +204,7 @@ async function searchById() {
           }
           if (['createdAt', 'updatedAt'].includes(key)) return; // handled separately
           const dt = document.createElement('dt');
-          dt.textContent = humanize(key.replace(/At$/, ''));
+          dt.textContent = humanize(key);
           const dd = document.createElement('dd');
           dd.textContent = Array.isArray(val) ? val.join(', ') : val;
           dl.appendChild(dt);
@@ -220,7 +220,7 @@ async function searchById() {
           if (item[dateKey]) {
             const wrap = document.createElement('div');
             const dt = document.createElement('dt');
-            dt.textContent = humanize(dateKey);
+            dt.textContent = humanize(dateKey.replace(/At$/, ''));
             const dd = document.createElement('dd');
             dd.textContent = formatDate(item[dateKey]);
             wrap.appendChild(dt);
