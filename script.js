@@ -204,10 +204,10 @@ async function searchById() {
           }
           if (['createdAt', 'updatedAt'].includes(key)) return; // handled separately
           const dt = document.createElement('dt');
-          dt.textContent = humanize(key);
+          dt.textContent = humanize(key.replace(/At$/, ''));
           const dd = document.createElement('dd');
           dd.textContent = Array.isArray(val) ? val.join(', ') : val;
-          dl.appendChild(dt.replace(' At', ''));
+          dl.appendChild(dt);
           dl.appendChild(dd);
         };
         // Special: createdAt & updatedAt side-by-side
