@@ -19,7 +19,9 @@ async function fetchVPSDB() {
     try {
       const r = await fetch(url);
       if (r.ok) return await r.json();
-    } catch {}
+    } catch (e) {
+      console.warn(`Failed to fetch from ${url}: ${e}`);
+    }
   }
   throw new Error('Failed to load VPS DB JSON');
 }
@@ -39,7 +41,7 @@ async function searchById() {
   resultsDiv.innerHTML = '';
 
   if (!rawID) {
-    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    resultsDiv.innerHTML = `<p class=\"error\">Please enter a VPS Table ID.</p>`;
     return;
   }
 
@@ -52,26 +54,48 @@ async function searchById() {
       : null;
 
     if (!record) {
-      resultsDiv.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
+      resultsDiv.innerHTML = `<p class=\"error\">No entries found for “${rawID}”.</p>`;
       return;
     }
 
+    // Clear loading text
     resultsDiv.innerHTML = '';
 
-    // Game Card
+    // Define categories
+    const groupKeys = [
+      'tableFiles',
+      'b2sFiles',
+      'pupPackFiles',
+      'mediaPackFiles',
+      'romFiles'
+    ];
+
+    // Determine cover image URL: top-level or first available in file groups
+    let coverUrl = record.imgUrl;
+    if (!coverUrl) {
+      for (const g of groupKeys) {
+        if (Array.isArray(record[g]) && record[g].length && record[g][0].imgUrl) {
+          coverUrl = record[g][0].imgUrl;
+          break;
+        }
+      }
+    }
+
+    // ---- Game Card ----
     const card = document.createElement('div');
     card.className = 'game-card';
 
-    if (record.imgUrl) {
+    if (coverUrl) {
       const cover = document.createElement('img');
       cover.className = 'game-cover';
-      cover.src = record.imgUrl;
+      cover.src = coverUrl;
       cover.alt = record.name || rawID;
       card.appendChild(cover);
     }
 
     const info = document.createElement('div');
     info.className = 'game-info';
+
     const title = document.createElement('h2');
     title.textContent = record.name || rawID;
     info.appendChild(title);
@@ -100,29 +124,24 @@ async function searchById() {
     card.appendChild(info);
     resultsDiv.appendChild(card);
 
-    // Dropdown categories
-    const groupKeys = [
-      'tableFiles',
-      'b2sFiles',
-      'pupPackFiles',
-      'mediaPackFiles',
-      'romFiles'
-    ];
-
+    // Decide layout based on category count
     const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
     const layoutClass = present.length > 4 ? 'three-per-row' : 'two-per-row';
     resultsDiv.classList.add(layoutClass);
 
+    // ---- Category Dropdowns ----
     present.forEach(group => {
       const items = record[group];
       const container = document.createElement('div');
       container.className = 'category-container';
 
+      // Label
       const label = document.createElement('label');
       label.className = 'category-label';
       label.textContent = humanize(group);
       container.appendChild(label);
 
+      // Dropdown
       const select = document.createElement('select');
       const placeholder = document.createElement('option');
       placeholder.textContent = `Select a ${humanize(group).replace(/s$/, '')}`;
@@ -138,6 +157,7 @@ async function searchById() {
       });
       container.appendChild(select);
 
+      // Display panel
       const display = document.createElement('div');
       display.className = 'item-display';
       container.appendChild(display);
@@ -155,16 +175,13 @@ async function searchById() {
         }
 
         const dl = document.createElement('dl');
-        Object.entries(item).forEach(([key, val]) => {
-          if (['id', '_group', 'imgUrl', 'game', 'urls'].includes(key)) return;
+        Object.entries(item).forEach(([key,val]) => {
+          if (['id','_group','imgUrl','game','urls'].includes(key)) return;
           const dt = document.createElement('dt');
           dt.textContent = humanize(key);
           const dd = document.createElement('dd');
-          if (Array.isArray(val)) {
-            dd.textContent = val.join(', ');
-          } else {
-            dd.textContent = val;
-          }
+          if (Array.isArray(val)) dd.textContent = val.join(', ');
+          else dd.textContent = val;
           dl.appendChild(dt);
           dl.appendChild(dd);
         });
@@ -176,6 +193,6 @@ async function searchById() {
 
   } catch (err) {
     console.error(err);
-    resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+    resultsDiv.innerHTML = `<p class=\"error\">Error: ${err.message}</p>`;
   }
 }
