@@ -93,7 +93,8 @@ async function searchById() {
         select.selectedIndex = 0;
       });
 
-      resultsDiv.appendChild(select + '<br>');
+      resultsDiv.appendChild(select);
+      resultsDiv.appendChild(document.createElement('br'));
     });
 
   } catch (err) {
