@@ -207,7 +207,7 @@ async function searchById() {
           dt.textContent = humanize(key);
           const dd = document.createElement('dd');
           dd.textContent = Array.isArray(val) ? val.join(', ') : val;
-          dl.appendChild(dt);
+          dl.appendChild(dt.replace(' At', ''));
           dl.appendChild(dd);
         };
         // Special: createdAt & updatedAt side-by-side
@@ -246,7 +246,7 @@ async function searchById() {
 
       resultsDiv.appendChild(container);
     });
-    
+
   } catch (err) {
     console.error(err);
     resultsDiv.innerHTML = `<p class=\"error\">Error: ${err.message}</p>`;
