@@ -69,7 +69,7 @@ async function searchById() {
       label.textContent = group
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, s => s.toUpperCase());
-      resultsDiv.appendChild(label);
+      resultsDiv.appendChild(label, "<br>");
 
       // dropdown
       const select = document.createElement('select');
