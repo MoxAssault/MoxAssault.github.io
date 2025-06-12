@@ -99,8 +99,8 @@ async function searchById() {
       'tableFiles',
       'b2sFiles',
       'pupPackFiles',
-      'wheelArtFiles',
-      'topperFiles'
+      'mediaPackFiles',
+      'romFiles'
     ];
 
     groupKeys.forEach(group => {
