@@ -24,10 +24,17 @@ async function fetchVPSDB() {
   throw new Error('Failed to load VPS DB JSON');
 }
 
+// Utility to humanize keys
+function humanize(key) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/_/g, ' ')
+    .replace(/^./, s => s.toUpperCase());
+}
+
 async function searchById() {
   const rawID      = document.getElementById('idInput').value.trim();
   const resultsDiv = document.getElementById('results');
-  // clear old content & layout classes
   resultsDiv.classList.remove('two-per-row','three-per-row');
   resultsDiv.innerHTML = '';
 
@@ -36,13 +43,10 @@ async function searchById() {
     return;
   }
 
-  // show loading
   resultsDiv.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
   try {
     const data = await fetchVPSDB();
-
-    // find the record
     const record = Array.isArray(data)
       ? data.find(r => r.id?.toLowerCase() === rawID.toLowerCase())
       : null;
@@ -52,10 +56,9 @@ async function searchById() {
       return;
     }
 
-    // **CLEAR** the loading text before rendering
     resultsDiv.innerHTML = '';
 
-    // ---- Game Card ----
+    // Game Card
     const card = document.createElement('div');
     card.className = 'game-card';
 
@@ -69,7 +72,6 @@ async function searchById() {
 
     const info = document.createElement('div');
     info.className = 'game-info';
-
     const title = document.createElement('h2');
     title.textContent = record.name || rawID;
     info.appendChild(title);
@@ -98,7 +100,7 @@ async function searchById() {
     card.appendChild(info);
     resultsDiv.appendChild(card);
 
-    // ---- Categories ----
+    // Dropdown categories
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
@@ -107,7 +109,6 @@ async function searchById() {
       'romFiles'
     ];
 
-    // decide layout
     const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
     const layoutClass = present.length > 4 ? 'three-per-row' : 'two-per-row';
     resultsDiv.classList.add(layoutClass);
@@ -117,18 +118,14 @@ async function searchById() {
       const container = document.createElement('div');
       container.className = 'category-container';
 
-      // label
       const label = document.createElement('label');
       label.className = 'category-label';
-      label.textContent = group
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, s => s.toUpperCase());
+      label.textContent = humanize(group);
       container.appendChild(label);
 
-      // dropdown
       const select = document.createElement('select');
       const placeholder = document.createElement('option');
-      placeholder.textContent = `Select a ${label.textContent.replace(/s$/, '')}`;
+      placeholder.textContent = `Select a ${humanize(group).replace(/s$/, '')}`;
       placeholder.disabled = true;
       placeholder.selected = true;
       select.appendChild(placeholder);
@@ -141,7 +138,6 @@ async function searchById() {
       });
       container.appendChild(select);
 
-      // display
       const display = document.createElement('div');
       display.className = 'item-display';
       container.appendChild(display);
@@ -159,18 +155,13 @@ async function searchById() {
         }
 
         const dl = document.createElement('dl');
-        Object.entries(item).forEach(([key,val]) => {
-          if (['id','_group','imgUrl'].includes(key)) return;
+        Object.entries(item).forEach(([key, val]) => {
+          if (['id', '_group', 'imgUrl', 'game', 'urls'].includes(key)) return;
           const dt = document.createElement('dt');
-          dt.textContent = key;
+          dt.textContent = humanize(key);
           const dd = document.createElement('dd');
-          if (Array.isArray(val)) dd.textContent = val.join(', ');
-          else if (key==='urls' && Array.isArray(val)) {
-            const a = document.createElement('a');
-            a.href = val[0].url;
-            a.textContent = val[0].url;
-            a.target = '_blank';
-            dd.appendChild(a);
+          if (Array.isArray(val)) {
+            dd.textContent = val.join(', ');
           } else {
             dd.textContent = val;
           }
