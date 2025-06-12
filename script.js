@@ -174,7 +174,7 @@ async function searchById() {
           display.appendChild(img);
         }
         const dl = document.createElement('dl');
-        // Field display logic
+        // Helpers
         const formatDate = ts => {
           try {
             return new Date(ts).toLocaleDateString(undefined, {
@@ -182,7 +182,7 @@ async function searchById() {
             });
           } catch { return ts; }
         };
-        
+        // Append field function
         const appendField = (key, val) => {
           if (['authors', 'features', 'tableFormat', 'version'].includes(key)) {
             const group = document.createElement('div');
@@ -191,56 +191,62 @@ async function searchById() {
             dl.appendChild(label);
             const bubbleWrap = document.createElement('div');
             bubbleWrap.className = 'bubble-group';
-
-    (Array.isArray(val) ? val : [val]).forEach(v => {
-      const bubble = document.createElement('span');
-      bubble.className = 'bubble';
-      bubble.textContent = v;
-      bubbleWrap.appendChild(bubble);
-    });
-
-    const holder = document.createElement('dd');
-    holder.appendChild(bubbleWrap);
-    dl.appendChild(holder);
-    return;
-  }
-
-  const dt = document.createElement('dt');
-  dt.textContent = humanize(key);
-  const dd = document.createElement('dd');
-
-  if (key === 'createdAt' || key === 'updatedAt') {
-    dd.textContent = formatDate(val);
-  } else {
-    dd.textContent = Array.isArray(val) ? val.join(', ') : val;
-  }
-
-  dl.appendChild(dt);
-  dl.appendChild(dd);
-};
-
-        // 1. Authors
+            (Array.isArray(val) ? val : [val]).forEach(v => {
+              const bubble = document.createElement('span');
+              bubble.className = 'bubble';
+              bubble.textContent = v;
+              bubbleWrap.appendChild(bubble);
+            });
+            const holder = document.createElement('dd');
+            holder.appendChild(bubbleWrap);
+            dl.appendChild(holder);
+            return;
+          }
+          if (['createdAt', 'updatedAt'].includes(key)) return; // handled separately
+          const dt = document.createElement('dt');
+          dt.textContent = humanize(key);
+          const dd = document.createElement('dd');
+          dd.textContent = Array.isArray(val) ? val.join(', ') : val;
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        };
+        // Special: createdAt & updatedAt side-by-side
+        const dateRow = document.createElement('div');
+        dateRow.style.display = 'flex';
+        dateRow.style.justifyContent = 'space-between';
+        dateRow.style.gap = '1rem';
+        dateRow.style.marginBottom = '1rem';
+        ['createdAt', 'updatedAt'].forEach(dateKey => {
+          if (item[dateKey]) {
+            const wrap = document.createElement('div');
+            const dt = document.createElement('dt');
+            dt.textContent = humanize(dateKey);
+            const dd = document.createElement('dd');
+            dd.textContent = formatDate(item[dateKey]);
+            wrap.appendChild(dt);
+            wrap.appendChild(dd);
+            dateRow.appendChild(wrap);
+          }
+        });
+        display.appendChild(dateRow);
+        // 1. authors, features, tableFormat as bubbles
         if (item.authors) appendField('authors', item.authors);
-        // 2. Version
-        if (item.version) appendField('version', item.version);
-        // 3. Created At
-        if (item.createdAt) appendField('createdAt', formatDate(item.createdAt));
-        // 4. Updated At
-        if (item.updatedAt) appendField('updatedAt', formatDate(item.updatedAt));
-        // 5. Everything else (excluding ignored)
-        const ignore = ['id','_group','imgUrl','game','urls','authors','version','createdAt','updatedAt','comment'];
+        if (item.features) appendField('features', item.features);
+        if (item.tableFormat) appendField('tableFormat', item.tableFormat);
+        // 2. Everything else (except skipped)
+        const ignore = ['id','_group','imgUrl','game','urls','comment','createdAt','updatedAt','authors','features','tableFormat'];
         Object.keys(item)
           .filter(k => !ignore.includes(k))
           .sort()
           .forEach(k => appendField(k, item[k]));
-        // 6. Append 'comment' last if present
+        // 3. comment last
         if (item.comment) appendField('comment', item.comment);
         display.appendChild(dl);
       });
 
       resultsDiv.appendChild(container);
     });
-
+    
   } catch (err) {
     console.error(err);
     resultsDiv.innerHTML = `<p class=\"error\">Error: ${err.message}</p>`;
