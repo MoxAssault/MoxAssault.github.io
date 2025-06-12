@@ -52,7 +52,6 @@ async function searchById() {
     const card = document.createElement('div');
     card.className = 'game-card';
 
-    // cover image
     if (record.imgUrl) {
       const cover = document.createElement('img');
       cover.className = 'game-cover';
@@ -61,10 +60,8 @@ async function searchById() {
       card.appendChild(cover);
     }
 
-    // info panel
     const info = document.createElement('div');
     info.className = 'game-info';
-
     const title = document.createElement('h2');
     title.textContent = record.name || rawID;
     info.appendChild(title);
@@ -78,7 +75,7 @@ async function searchById() {
     ].filter(Boolean).join(' | ');
     info.appendChild(meta);
 
-    if (Array.isArray(record.theme) && record.theme.length) {
+    if (Array.isArray(record.theme)) {
       const tagsDiv = document.createElement('div');
       tagsDiv.className = 'tags';
       record.theme.forEach(t => {
@@ -94,7 +91,7 @@ async function searchById() {
     resultsDiv.innerHTML = '';
     resultsDiv.appendChild(card);
 
-    // ---- now the category dropdowns + displays ----
+    // ---- category dropdowns ----
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
@@ -105,7 +102,11 @@ async function searchById() {
 
     groupKeys.forEach(group => {
       const items = record[group];
-      if (!Array.isArray(items) || items.length === 0) return;
+      if (!Array.isArray(items) || !items.length) return;
+
+      // wrap in container
+      const container = document.createElement('div');
+      container.className = 'category-container';
 
       // label
       const label = document.createElement('label');
@@ -113,7 +114,7 @@ async function searchById() {
       label.textContent = group
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, s => s.toUpperCase());
-      resultsDiv.appendChild(label);
+      container.appendChild(label);
 
       // dropdown
       const select = document.createElement('select');
@@ -130,50 +131,46 @@ async function searchById() {
         select.appendChild(opt);
       });
 
-      // display container
+      container.appendChild(select);
+
+      // display panel
       const display = document.createElement('div');
       display.className = 'item-display';
+      container.appendChild(display);
 
       select.addEventListener('change', () => {
         display.innerHTML = '';
-        const selectedId = select.value;
-        const item = items.find(i => i.id === selectedId);
+        const item = items.find(i => i.id === select.value);
         if (!item) return;
 
-        // image if available
         if (item.imgUrl) {
           const img = document.createElement('img');
           img.src = item.imgUrl;
-          img.alt = selectedId;
+          img.alt = item.id;
           display.appendChild(img);
         }
 
-        // metadata
         const dl = document.createElement('dl');
-        Object.entries(item).forEach(([key, val]) => {
+        Object.entries(item).forEach(([key,val]) => {
           if (['id','_group','imgUrl'].includes(key)) return;
           const dt = document.createElement('dt');
           dt.textContent = key;
           const dd = document.createElement('dd');
-          if (Array.isArray(val)) {
-            dd.textContent = val.join(', ');
-          } else if (key === 'urls' && Array.isArray(val)) {
+          if (Array.isArray(val)) dd.textContent = val.join(', ');
+          else if (key==='urls' && Array.isArray(val)) {
             const a = document.createElement('a');
             a.href = val[0].url;
             a.textContent = val[0].url;
             a.target = '_blank';
             dd.appendChild(a);
-          } else {
-            dd.textContent = val;
-          }
+          } else dd.textContent = val;
           dl.appendChild(dt);
           dl.appendChild(dd);
         });
         display.appendChild(dl);
       });
 
-      resultsDiv.appendChild(select);
-      resultsDiv.appendChild(display);
+      resultsDiv.appendChild(container);
     });
 
   } catch (err) {
