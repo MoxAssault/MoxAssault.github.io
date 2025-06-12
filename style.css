@@ -35,9 +35,13 @@ h1 { text-align: center; margin-bottom: 1rem; }
 
 /* === Game Card === */
 .game-card {
-  display: flex; background: #2a2a2a; border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5); overflow: hidden;
-  margin-bottom: 1.5rem;
+  display: flex;
+  max-width: 600px;
+  margin: 0 auto 1.5rem;
+  background: #2a2a2a;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  overflow: hidden;
 }
 .game-cover {
   flex: 0 0 150px; width: 150px; height: auto;
@@ -57,7 +61,18 @@ h1 { text-align: center; margin-bottom: 1rem; }
 
 /* === Results Grid === */
 #results {
-  display: flex; flex-wrap: wrap; gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Two per row when <=4 categories */
+#results.two-per-row .category-container {
+  flex: 0 0 calc(50% - 1rem);
+}
+/* Three per row when >4 categories */
+#results.three-per-row .category-container {
+  flex: 0 0 calc(33.333% - 1rem);
 }
 
 /* === Category Blocks (3-per-row) === */

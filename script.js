@@ -27,10 +27,12 @@ async function fetchVPSDB() {
 async function searchById() {
   const rawID      = document.getElementById('idInput').value.trim();
   const resultsDiv = document.getElementById('results');
+  // Clear previous classes and content
+  resultsDiv.classList.remove('two-per-row', 'three-per-row');
   resultsDiv.innerHTML = '';
 
   if (!rawID) {
-    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    resultsDiv.innerHTML = `<p class=\"error\">Please enter a VPS Table ID.</p>`;
     return;
   }
   resultsDiv.innerHTML = `<p>Searching for “${rawID}”…</p>`;
@@ -44,7 +46,7 @@ async function searchById() {
       : null;
 
     if (!record) {
-      resultsDiv.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
+      resultsDiv.innerHTML = `<p class=\"error\">No entries found for “${rawID}”.</p>`;
       return;
     }
 
@@ -88,7 +90,6 @@ async function searchById() {
     }
 
     card.appendChild(info);
-    resultsDiv.innerHTML = '';
     resultsDiv.appendChild(card);
 
     // ---- category dropdowns ----
@@ -100,10 +101,13 @@ async function searchById() {
       'romFiles'
     ];
 
-    groupKeys.forEach(group => {
-      const items = record[group];
-      if (!Array.isArray(items) || !items.length) return;
+    // Determine layout: >4 categories => 3-per-row, else 2-per-row
+    const presentGroups = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
+    const layoutClass = presentGroups.length > 4 ? 'three-per-row' : 'two-per-row';
+    resultsDiv.classList.add(layoutClass);
 
+    presentGroups.forEach(group => {
+      const items = record[group];
       // wrap in container
       const container = document.createElement('div');
       container.className = 'category-container';
@@ -175,6 +179,6 @@ async function searchById() {
 
   } catch (err) {
     console.error(err);
-    resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+    resultsDiv.innerHTML = `<p class=\"error\">Error: ${err.message}</p>`;
   }
 }
