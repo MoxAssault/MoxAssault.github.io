@@ -53,8 +53,8 @@ async function searchById() {
       'tableFiles',
       'b2sFiles',
       'pupPackFiles',
-      'wheelArtFiles',
-      'topperFiles'
+      'mediaPackFiles',
+      'romFiles'
     ];
 
     resultsDiv.innerHTML = '';
@@ -69,7 +69,7 @@ async function searchById() {
       label.textContent = group
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, s => s.toUpperCase());
-      resultsDiv.appendChild(label, "<br>");
+      resultsDiv.appendChild(label);
 
       // dropdown
       const select = document.createElement('select');
