@@ -65,9 +65,10 @@ async function searchById() {
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
+      'romFiles',
+      'altColorFiles',
       'pupPackFiles',
-      'mediaPackFiles',
-      'romFiles'
+      'mediaPackFiles'
     ];
 
     // Determine cover image URL: top-level or first available in file groups
