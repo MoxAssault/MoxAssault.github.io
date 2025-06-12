@@ -48,15 +48,61 @@ async function searchById() {
       return;
     }
 
+    // ---- build the game card ----
+    const card = document.createElement('div');
+    card.className = 'game-card';
+
+    // cover image
+    if (record.imgUrl) {
+      const cover = document.createElement('img');
+      cover.className = 'game-cover';
+      cover.src = record.imgUrl;
+      cover.alt = record.name || rawID;
+      card.appendChild(cover);
+    }
+
+    // info panel
+    const info = document.createElement('div');
+    info.className = 'game-info';
+
+    const title = document.createElement('h2');
+    title.textContent = record.name || rawID;
+    info.appendChild(title);
+
+    const meta = document.createElement('p');
+    meta.className = 'meta';
+    meta.textContent = [
+      record.type && `Type: ${record.type}`,
+      record.year && `Year: ${record.year}`,
+      record.manufacturer && `Manufacturer: ${record.manufacturer}`
+    ].filter(Boolean).join(' | ');
+    info.appendChild(meta);
+
+    if (Array.isArray(record.theme) && record.theme.length) {
+      const tagsDiv = document.createElement('div');
+      tagsDiv.className = 'tags';
+      record.theme.forEach(t => {
+        const span = document.createElement('span');
+        span.className = 'tag';
+        span.textContent = t;
+        tagsDiv.appendChild(span);
+      });
+      info.appendChild(tagsDiv);
+    }
+
+    card.appendChild(info);
+    resultsDiv.innerHTML = '';
+    resultsDiv.appendChild(card);
+
+    // ---- now the category dropdowns + displays ----
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
       'pupPackFiles',
-      'mediaPackFiles',
-      'romFiles'
+      'wheelArtFiles',
+      'topperFiles'
     ];
 
-    resultsDiv.innerHTML = '';
     groupKeys.forEach(group => {
       const items = record[group];
       if (!Array.isArray(items) || items.length === 0) return;
@@ -112,7 +158,6 @@ async function searchById() {
           if (Array.isArray(val)) {
             dd.textContent = val.join(', ');
           } else if (key === 'urls' && Array.isArray(val)) {
-            // first URL
             const a = document.createElement('a');
             a.href = val[0].url;
             a.textContent = val[0].url;

@@ -7,8 +7,8 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: #555;
-  color: #CCC;
+  background: #f4f4f4;
+  color: #333;
   padding: 20px;
 }
 
@@ -50,6 +50,44 @@ h1 {
   background: #005fa3;
 }
 
+/* ---- game card ---- */
+.game-card {
+  display: flex;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.game-cover {
+  flex: 0 0 300px;
+  object-fit: cover;
+}
+.game-info {
+  padding: 1rem;
+  flex: 1;
+}
+.game-info h2 {
+  margin-top: 0;
+}
+.game-info .meta {
+  color: #555;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+.game-info .tags {
+  margin-top: 0.5rem;
+}
+.game-info .tag {
+  display: inline-block;
+  background: #e0e0e0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-right: 4px;
+  font-size: 0.8rem;
+}
+
+/* ---- category dropdowns ---- */
 .category-label {
   display: block;
   margin-top: 1.5rem;
@@ -67,6 +105,7 @@ h1 {
   margin-bottom: 0.5rem;
 }
 
+/* ---- item display ---- */
 .item-display {
   background: #fff;
   padding: 1rem;
@@ -74,23 +113,21 @@ h1 {
   border-radius: 4px;
   margin-bottom: 1.5rem;
 }
-
 .item-display img {
   max-width: 100%;
   height: auto;
   display: block;
   margin-bottom: 1rem;
 }
-
 .item-display dl dt {
   font-weight: bold;
   margin-top: 0.5rem;
 }
-
 .item-display dl dd {
   margin: 0 0 0.5rem 1rem;
 }
 
+/* ---- errors ---- */
 .error {
   color: #c00;
   text-align: center;
