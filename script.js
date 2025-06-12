@@ -164,29 +164,49 @@ async function searchById() {
 
       select.addEventListener('change', () => {
         display.innerHTML = '';
-        const item = items.find(i => i.id === select.value);
+        const sel = select.value;
+        const item = items.find(i => i.id === sel);
         if (!item) return;
-
         if (item.imgUrl) {
           const img = document.createElement('img');
           img.src = item.imgUrl;
-          img.alt = item.id;
+          img.alt = sel;
           display.appendChild(img);
         }
-
         const dl = document.createElement('dl');
-        Object.entries(item).forEach(([key,val]) => {
-          if (['id','_group','imgUrl','game','urls'].includes(key)) return;
+        // Field display logic
+        const formatDate = ts => {
+          try {
+            return new Date(ts).toLocaleDateString(undefined, {
+              year: 'numeric', month: 'short', day: 'numeric'
+            });
+          } catch { return ts; }
+        };
+        const appendField = (key, val) => {
           const dt = document.createElement('dt');
           dt.textContent = humanize(key);
           const dd = document.createElement('dd');
-          if (Array.isArray(val)) dd.textContent = val.join(', ');
-          else dd.textContent = val;
+          dd.textContent = Array.isArray(val) ? val.join(', ') : val;
           dl.appendChild(dt);
           dl.appendChild(dd);
-        });
+        };
+        // 1. Authors
+        if (item.authors) appendField('authors', item.authors);
+        // 2. Version
+        if (item.version) appendField('version', item.version);
+        // 3. Created At
+        if (item.createdAt) appendField('createdAt', formatDate(item.createdAt));
+        // 4. Updated At
+        if (item.updatedAt) appendField('updatedAt', formatDate(item.updatedAt));
+        // 5. Everything else (excluding ignored)
+        const ignore = ['id','_group','imgUrl','game','urls','authors','version','createdAt','updatedAt'];
+        Object.keys(item)
+          .filter(k => !ignore.includes(k))
+          .sort()
+          .forEach(k => appendField(k, item[k]));
         display.appendChild(dl);
       });
+
 
       resultsDiv.appendChild(container);
     });
