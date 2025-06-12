@@ -50,17 +50,49 @@ h1 {
   background: #005fa3;
 }
 
-#results h2 {
+.category-label {
+  display: block;
   margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
   color: #0077cc;
 }
 
-#results ul {
-  list-style: disc inside;
+#results select {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.item-display {
+  background: #fff;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.item-display img {
+  max-width: 100%;
+  height: auto;
+  display: block;
   margin-bottom: 1rem;
+}
+
+.item-display dl dt {
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.item-display dl dd {
+  margin: 0 0 0.5rem 1rem;
 }
 
 .error {
   color: #c00;
   text-align: center;
+  margin-top: 1rem;
 }

@@ -38,7 +38,7 @@ async function searchById() {
   try {
     const data = await fetchVPSDB();
 
-    // locate record in array by `id`
+    // locate record by `id`
     const record = Array.isArray(data)
       ? data.find(r => r.id?.toLowerCase() === rawID.toLowerCase())
       : null;
@@ -48,13 +48,12 @@ async function searchById() {
       return;
     }
 
-    // only these five groups:
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
       'pupPackFiles',
-      'mediaPackFiles',
-      'romFiles'
+      'wheelArtFiles',
+      'topperFiles'
     ];
 
     resultsDiv.innerHTML = '';
@@ -65,7 +64,6 @@ async function searchById() {
       // label
       const label = document.createElement('label');
       label.className = 'category-label';
-      // humanize: "tableFiles" → "Table Files"
       label.textContent = group
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, s => s.toUpperCase());
@@ -74,30 +72,67 @@ async function searchById() {
       // dropdown
       const select = document.createElement('select');
       const placeholder = document.createElement('option');
-      placeholder.textContent = `Select a ${label.textContent.slice(0, -1)}`;
+      placeholder.textContent = `Select a ${label.textContent.replace(/s$/, '')}`;
       placeholder.disabled = true;
       placeholder.selected = true;
       select.appendChild(placeholder);
 
       items.forEach(item => {
         const opt = document.createElement('option');
-        opt.value = item.urls?.[0]?.url || '';
+        opt.value = item.id;
         opt.textContent = item.id;
         select.appendChild(opt);
       });
 
-      // open link on change
+      // display container
+      const display = document.createElement('div');
+      display.className = 'item-display';
+
       select.addEventListener('change', () => {
-        const url = select.value;
-        if (url) window.open(url, '_blank');
-        select.selectedIndex = 0;
+        display.innerHTML = '';
+        const selectedId = select.value;
+        const item = items.find(i => i.id === selectedId);
+        if (!item) return;
+
+        // image if available
+        if (item.imgUrl) {
+          const img = document.createElement('img');
+          img.src = item.imgUrl;
+          img.alt = selectedId;
+          display.appendChild(img);
+        }
+
+        // metadata
+        const dl = document.createElement('dl');
+        Object.entries(item).forEach(([key, val]) => {
+          if (['id','_group','imgUrl'].includes(key)) return;
+          const dt = document.createElement('dt');
+          dt.textContent = key;
+          const dd = document.createElement('dd');
+          if (Array.isArray(val)) {
+            dd.textContent = val.join(', ');
+          } else if (key === 'urls' && Array.isArray(val)) {
+            // first URL
+            const a = document.createElement('a');
+            a.href = val[0].url;
+            a.textContent = val[0].url;
+            a.target = '_blank';
+            dd.appendChild(a);
+          } else {
+            dd.textContent = val;
+          }
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        });
+        display.appendChild(dl);
       });
 
       resultsDiv.appendChild(select);
-      resultsDiv.appendChild(document.createElement('br'));
+      resultsDiv.appendChild(display);
     });
 
   } catch (err) {
+    console.error(err);
     resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
   }
 }
