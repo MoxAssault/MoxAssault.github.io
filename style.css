@@ -1,37 +1,35 @@
 /* Basic reset */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin:0; padding:0; }
 
-/* === Page & Container Styling === */
+/* === Page & Container === */
 body {
   background: #000;
   color: #CCCCCC;
   font-family: Arial, sans-serif;
   padding: 20px;
 }
-
 .container {
   max-width: 800px;
   margin: 0 auto;
   background: #1a1a1a;
-  color: #CCCCCC;
   padding: 20px;
   border-radius: 8px;
 }
 
-/* === Header + Search === */
+/* === Header & Search === */
 h1 { text-align: center; margin-bottom: 1rem; }
 .search-box { display: flex; justify-content: center; margin-bottom: 1.5rem; }
 #idInput {
-  width: 300px; padding: 0.5rem; font-size: 1rem;
-  border: 1px solid #444; border-radius: 4px 0 0 4px;
-  background: #2a2a2a; color: #CCCCCC;
+  width:300px; padding:.5rem; font-size:1rem;
+  border:1px solid #444; border-radius:4px 0 0 4px;
+  background:#2a2a2a; color:#CCCCCC;
 }
 #searchBtn {
-  padding: 0.5rem 1rem; font-size: 1rem; border: none;
-  background: #0077cc; color: #fff; cursor: pointer;
-  border-radius: 0 4px 4px 0;
+  padding:.5rem 1rem; font-size:1rem; border:none;
+  background:#0077cc; color:#fff; cursor:pointer;
+  border-radius:0 4px 4px 0;
 }
-#searchBtn:hover { background: #005fa3; }
+#searchBtn:hover { background:#005fa3; }
 
 /* === Game Card === */
 .game-card {
@@ -44,19 +42,21 @@ h1 { text-align: center; margin-bottom: 1rem; }
   overflow: hidden;
 }
 .game-cover {
-  flex: 0 0 150px; width: 150px; height: auto;
+  flex: 0 0 150px;
+  width: 150px;
+  height: auto;
   object-fit: cover;
 }
-.game-info { padding: 1rem; flex: 1; }
-.game-info h2 { margin-top: 0; color: #CCCCCC; }
+.game-info { padding:1rem; flex:1; }
+.game-info h2 { margin-top:0; color:#CCCCCC; }
 .game-info .meta {
-  color: #BBBBBB; font-size: 0.9rem; margin: 0.5rem 0;
+  color:#BBBBBB; font-size:.9rem; margin:.5rem 0;
 }
-.game-info .tags { margin-top: 0.5rem; }
+.game-info .tags { margin-top:.5rem; }
 .game-info .tag {
-  display: inline-block; background: #444; border-radius: 4px;
-  padding: 2px 6px; margin-right: 4px; font-size: 0.8rem;
-  color: #CCCCCC;
+  display:inline-block; background:#444; border-radius:4px;
+  padding:2px 6px; margin-right:4px; font-size:.8rem;
+  color:#CCCCCC;
 }
 
 /* === Results Grid === */
@@ -65,50 +65,63 @@ h1 { text-align: center; margin-bottom: 1rem; }
   flex-wrap: wrap;
   gap: 1rem;
 }
-
-/* Two per row when <=4 categories */
+/* two per row when 1–4 categories */
 #results.two-per-row .category-container {
   flex: 0 0 calc(50% - 1rem);
 }
-/* Three per row when >4 categories */
+/* three per row when >4 categories */
 #results.three-per-row .category-container {
   flex: 0 0 calc(33.333% - 1rem);
 }
 
-/* === Category Blocks (3-per-row) === */
+/* === Category Container === */
 .category-container {
-  flex: 0 0 calc(33.333% - 1rem);
   background: #2a2a2a;
-  padding: 0.75rem;
+  padding: .75rem;
   border: 1px solid #444;
   border-radius: 4px;
 }
 
 /* === Dropdowns === */
 .category-label {
-  display: block; margin-bottom: 0.5rem;
-  font-weight: bold; color: #CCCCCC;
+  display: block;
+  margin-bottom: .5rem;
+  font-weight: bold;
+  color: #CCCCCC;
 }
 #results select {
-  width: 100%; padding: 0.5rem; font-size: 1rem;
-  border: 1px solid #444; border-radius: 4px;
-  background: #1f1f1f; color: #CCCCCC;
+  width: 100%;
+  padding: .5rem;
+  font-size: 1rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #1f1f1f;
+  color: #CCCCCC;
 }
 
 /* === Item Display === */
-.item-display { margin-top: 0.75rem; }
+.item-display {
+  margin-top: .75rem;
+}
 .item-display img {
-  max-width: 75%; height: auto; display: block;
-  margin-bottom: 0.75rem;
+  max-width: 75%;   /* 3/4 size */
+  height: auto;
+  display: block;
+  margin-bottom: .75rem;
 }
 .item-display dl dt {
-  font-weight: bold; margin-top: 0.5rem; color: #CCCCCC;
+  font-weight: bold;
+  margin-top: .5rem;
+  color: #CCCCCC;
 }
 .item-display dl dd {
-  margin: 0 0 0.5rem 1rem; color: #EEEEEE;
+  margin: 0 0 .5rem 1rem;
+  color: #EEEEEE;
 }
 
-/* === Error Messages === */
+/* === Error === */
 .error {
-  color: #f55; text-align: center; margin-top: 1rem;
+  color: #f55;
+  text-align: center;
+  margin-top: 1rem;
 }

@@ -27,30 +27,35 @@ async function fetchVPSDB() {
 async function searchById() {
   const rawID      = document.getElementById('idInput').value.trim();
   const resultsDiv = document.getElementById('results');
-  // Clear previous classes and content
-  resultsDiv.classList.remove('two-per-row', 'three-per-row');
+  // clear old content & layout classes
+  resultsDiv.classList.remove('two-per-row','three-per-row');
   resultsDiv.innerHTML = '';
 
   if (!rawID) {
-    resultsDiv.innerHTML = `<p class=\"error\">Please enter a VPS Table ID.</p>`;
+    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     return;
   }
+
+  // show loading
   resultsDiv.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
   try {
     const data = await fetchVPSDB();
 
-    // locate record by `id`
+    // find the record
     const record = Array.isArray(data)
       ? data.find(r => r.id?.toLowerCase() === rawID.toLowerCase())
       : null;
 
     if (!record) {
-      resultsDiv.innerHTML = `<p class=\"error\">No entries found for “${rawID}”.</p>`;
+      resultsDiv.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
       return;
     }
 
-    // ---- build the game card ----
+    // **CLEAR** the loading text before rendering
+    resultsDiv.innerHTML = '';
+
+    // ---- Game Card ----
     const card = document.createElement('div');
     card.className = 'game-card';
 
@@ -64,6 +69,7 @@ async function searchById() {
 
     const info = document.createElement('div');
     info.className = 'game-info';
+
     const title = document.createElement('h2');
     title.textContent = record.name || rawID;
     info.appendChild(title);
@@ -92,7 +98,7 @@ async function searchById() {
     card.appendChild(info);
     resultsDiv.appendChild(card);
 
-    // ---- category dropdowns ----
+    // ---- Categories ----
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
@@ -101,14 +107,13 @@ async function searchById() {
       'romFiles'
     ];
 
-    // Determine layout: >4 categories => 3-per-row, else 2-per-row
-    const presentGroups = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
-    const layoutClass = presentGroups.length > 4 ? 'three-per-row' : 'two-per-row';
+    // decide layout
+    const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
+    const layoutClass = present.length > 4 ? 'three-per-row' : 'two-per-row';
     resultsDiv.classList.add(layoutClass);
 
-    presentGroups.forEach(group => {
+    present.forEach(group => {
       const items = record[group];
-      // wrap in container
       const container = document.createElement('div');
       container.className = 'category-container';
 
@@ -134,10 +139,9 @@ async function searchById() {
         opt.textContent = item.id;
         select.appendChild(opt);
       });
-
       container.appendChild(select);
 
-      // display panel
+      // display
       const display = document.createElement('div');
       display.className = 'item-display';
       container.appendChild(display);
@@ -167,7 +171,9 @@ async function searchById() {
             a.textContent = val[0].url;
             a.target = '_blank';
             dd.appendChild(a);
-          } else dd.textContent = val;
+          } else {
+            dd.textContent = val;
+          }
           dl.appendChild(dt);
           dl.appendChild(dd);
         });
@@ -179,6 +185,6 @@ async function searchById() {
 
   } catch (err) {
     console.error(err);
-    resultsDiv.innerHTML = `<p class=\"error\">Error: ${err.message}</p>`;
+    resultsDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
   }
 }
