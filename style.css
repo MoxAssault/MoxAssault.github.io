@@ -59,18 +59,20 @@ h1 { text-align: center; margin-bottom: 1rem; }
   color:#CCCCCC;
 }
 
-/* === Results Grid === */
-#results {
+/* === Game Card Container === */
+#gameCardContainer {
+  margin-bottom: 1.5rem;
+}
+/* === Category Grid === */
+#categoryGrid {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
 }
-/* two per row when 1–4 categories */
-#results.two-per-row .category-container {
+#categoryGrid.two-per-row .category-container {
   flex: 0 0 calc(50% - 1rem);
 }
-/* three per row when >4 categories */
-#results.three-per-row .category-container {
+#categoryGrid.three-per-row .category-container {
   flex: 0 0 calc(33.333% - 1rem);
 }
 

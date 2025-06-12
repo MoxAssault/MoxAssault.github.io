@@ -123,12 +123,14 @@ async function searchById() {
     }
 
     card.appendChild(info);
-    resultsDiv.appendChild(card);
+    document.getElementById('gameCardContainer').innerHTML = '';
+    document.getElementById('gameCardContainer').appendChild(card);
 
     // Decide layout based on category count
-    const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
-    const layoutClass = present.length > 4 ? 'three-per-row' : 'two-per-row';
-    resultsDiv.classList.add(layoutClass);
+    const grid = document.getElementById('categoryGrid');
+    grid.classList.remove('two-per-row', 'three-per-row');
+    grid.classList.add(present.length > 4 ? 'three-per-row' : 'two-per-row');
+    grid.innerHTML = '';
 
     // ---- Category Dropdowns ----
     present.forEach(group => {
@@ -245,7 +247,7 @@ async function searchById() {
         display.appendChild(dl);
       });
 
-      resultsDiv.appendChild(container);
+      document.getElementById('categoryGrid').appendChild(container);
     });
 
   } catch (err) {
