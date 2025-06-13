@@ -155,7 +155,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   color: #EEEEEE;
 }
 .bubble-group {
-  margin: 0.5rem 0 1rem 0;
+  margin: 0.25rem 0 1rem 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -174,13 +174,14 @@ h1 { text-align: center; margin-bottom: 1rem; }
   color: #CCCCCC;
 }
 .comment-box {
-  background: #585858;
-  color: #e1e1e1;
-  padding: 1rem;
+  background: #444;
+  color: #CCCCCC;
+  padding: .75rem;
   border-radius: 8px;
-  margin-bottom: 1.2rem;
-  margin-top: 1rem;
+  margin-bottom: .5rem;
+  margin-top: .25rem;
   font-size: 1rem;
+  font-weight: bold;
   box-shadow: 0 1px 8px rgba(0,0,0,0.3);
   word-break: break-word;
 }
