@@ -93,7 +93,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
 
 /* === Dropdowns === */
 .category-container select {
-  width: calc(100% - 42px);
+  width: calc(100% - 40px);
   padding: .5rem;
   font-size: 1rem;
   border: 1px solid #444;
@@ -109,6 +109,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   position: relative;
   display: inline-block;
   margin-left: 10px;
+  margin-top: 4px;
 }
 .thumb-small {
   width: 28px;
