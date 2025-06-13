@@ -159,32 +159,44 @@ async function searchById() {
       thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
       thumb = document.createElement('img');
-      thumb.alt = 'Preview';
+      thumb.alt = '';
       thumbWrap.appendChild(thumb);
       container.appendChild(thumbWrap);
 
       // Hover reposition will be handled in CSS + JS below
       thumb.addEventListener('mouseenter', () => {
         // limit size
-        const maxW = window.innerWidth * 0.9, maxH = window.innerHeight * 0.9;
-        thumb.style.maxWidth = maxW + 'px';
+        const maxW = window.innerWidth * 0.9;
+        const maxH = window.innerHeight * 0.9;
+        thumb.style.maxWidth  = maxW + 'px';
         thumb.style.maxHeight = maxH + 'px';
-        thumb.style.width = 'auto';
-        thumb.style.height = 'auto';
+        thumb.style.width     = 'auto';
+        thumb.style.height    = 'auto';
+        thumb.style.position  = 'fixed';
+        thumb.style.zIndex    = '999';
         // position near thumbnail
-        const rect = thumbWrap.getBoundingClientRect();
-        let x = rect.right + 10, y = rect.top;
-        if (x + thumb.naturalWidth > window.innerWidth) {
-          x = rect.left - thumb.naturalWidth - 10;
-        }
-        if (y + thumb.naturalHeight > window.innerHeight) {
-          y = window.innerHeight - thumb.naturalHeight - 10;
-        }
-        thumb.style.position = 'fixed';
-        thumb.style.left = x + 'px';
-        thumb.style.top = y + 'px';
-        thumb.style.zIndex = '999';
+        requestAnimationFrame(() => {
+          const wrapRect = thumbWrap.getBoundingClientRect();
+          const thumbRect = thumb.getBoundingClientRect();
+          // start just to the right
+          let x = wrapRect.right + 10;
+          let y = wrapRect.top;
+          // if off the right edge, flip to left
+          if (x + thumbRect.width > window.innerWidth) {
+            x = wrapRect.left - thumbRect.width - 10;
+          }
+          // if bottom overflows, pull up
+          if (y + thumbRect.height > window.innerHeight) {
+            y = window.innerHeight - thumbRect.height - 10;
+          }
+          // never go negative
+          x = Math.max(0, x);
+          y = Math.max(0, y);
+          thumb.style.left = x + 'px';
+          thumb.style.top  = y + 'px';
+        });
       });
+      // Reset on mouse leave
       thumb.addEventListener('mouseleave', () => {
         thumb.style.position = '';
         thumb.style.left = '';
