@@ -84,11 +84,14 @@ h1 { text-align: center; margin-bottom: 1rem; }
   font-size: 1.1rem;
   font-weight: bold;
   color: #FFFFFF;
-  background: #0077cc;
+  background: #220000;
   padding: 6px 10px;
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+.comment-box + .category-label {
+  margin-top: 1.5rem;
 }
 
 /* === Dropdowns === */
@@ -102,6 +105,11 @@ h1 { text-align: center; margin-bottom: 1rem; }
   color: #CCCCCC;
   display: inline-block;
   vertical-align: top;
+}
+.fullwidth-select {
+  width: 100% !important;
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
 /* Thumbnail preview next to dropdown */
@@ -123,8 +131,8 @@ h1 { text-align: center; margin-bottom: 1rem; }
   display: none;
   position: absolute;
   top: 0;
-  left: -750%;
-  max-width: 350px;
+  left: -1000%;
+  max-width: 325px;
   width: auto;
   height: auto;
   border: 2px solid #fff;

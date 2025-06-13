@@ -144,6 +144,10 @@ async function searchById() {
     placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
+    // Make select full width for non-table/b2s
+    if (group !== 'tableFiles' && group !== 'b2sFiles') {
+      select.classList.add('fullwidth-select');
+    }
     items.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
@@ -250,6 +254,10 @@ async function searchById() {
       display.appendChild(dl);
       // 4) Comment last, as a BOX
       if (item.comment) {
+        const commentLabel = document.createElement('div');
+        commentLabel.className = 'category-label';
+        commentLabel.textContent = 'Comments';
+        display.appendChild(commentLabel);
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment-box';
         commentDiv.textContent = item.comment;
