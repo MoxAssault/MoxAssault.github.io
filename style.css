@@ -28,7 +28,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   background:#2a2a2a; color:#CCCCCC;
 }
 #searchBtn {
-  padding:.5rem 1rem; font-size:1rem; border:none;
+  padding:.5rem 1rem; font-size:1rem; border:1px solid #444;
   background:#2a2a2a; color:#CCCCCC; cursor:pointer;
   border-radius:0 4px 4px 0;
 }
@@ -152,7 +152,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
 .bubble {
   background: #444;
   color: #CCCCCC;
-  padding: 2px 4px;
+  padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.85rem;
   white-space: nowrap;
