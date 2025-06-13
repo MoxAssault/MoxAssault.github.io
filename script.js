@@ -1,24 +1,27 @@
-// script.js
-
 const API_URLS = [
   'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json',
   'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
 ];
 
-window.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('searchBtn');
-  const input = document.getElementById('idInput');
-  btn.addEventListener('click', searchById);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchById();
-  });
-});
+let vpsCache = null; // cache for all records
+let lastSuggestions = [];
+let activeSuggestionIndex = -1;
 
+// Fetch VPS DB JSON from Multiple Sources to Ensure Availability
+/**
+  * Fetches the VPS DB JSON from multiple URLs and caches the result.
+  * Returns the cached data if available, otherwise fetches from the first successful URL.
+  * Throws an error if all fetch attempts fail.
+**/
 async function fetchVPSDB() {
+  if (vpsCache) return vpsCache;
   for (const url of API_URLS) {
     try {
       const resp = await fetch(url);
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        vpsCache = await resp.json();
+        return vpsCache;
+      }
     } catch (e) {
       console.warn(`Failed to fetch from ${url}: ${e}`);
     }
@@ -26,6 +29,7 @@ async function fetchVPSDB() {
   throw new Error('Failed to load VPS DB JSON');
 }
 
+// Humanize Keys for Headers (e.g. "tableFiles" -> "Table Files")
 function humanize(key) {
   return key
     .replace(/([A-Z])/g, ' $1')
@@ -34,6 +38,94 @@ function humanize(key) {
     .trim();
 }
 
+// Initialize on DOMContentLoaded
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('searchBtn');
+  const input = document.getElementById('idInput');
+  const suggestions = document.getElementById('suggestions');
+
+  btn.addEventListener('click', searchById);
+
+  // Handle Enter Key on Input
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (activeSuggestionIndex >= 0 && lastSuggestions.length) {
+        // Select current suggestion
+        input.value = lastSuggestions[activeSuggestionIndex].id;
+        suggestions.classList.remove('active');
+        searchById();
+        e.preventDefault();
+      } else {
+        searchById();
+      }
+    }
+    // Handle Up/Down for Suggestions
+    if (['ArrowDown', 'ArrowUp'].includes(e.key) && lastSuggestions.length) {
+      e.preventDefault();
+      if (e.key === 'ArrowDown') {
+        activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, lastSuggestions.length - 1);
+      } else {
+        activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+      }
+      updateSuggestionsUI();
+    }
+    // Escape to Close Suggestions
+    if (e.key === 'Escape') {
+      suggestions.classList.remove('active');
+    }
+  });
+
+  // Handle Input for Suggestions
+  input.addEventListener('input', async () => {
+    const val = input.value.trim().toLowerCase();
+    suggestions.innerHTML = '';
+    lastSuggestions = [];
+    activeSuggestionIndex = -1;
+    if (!val) {
+      suggestions.classList.remove('active');
+      return;
+    }
+    const data = await fetchVPSDB();
+    // Show up to 8 matches by name or id
+    lastSuggestions = data.filter(
+      r => r.id?.toLowerCase().includes(val) || r.name?.toLowerCase().includes(val)
+    ).slice(0, 8);
+    if (lastSuggestions.length) {
+      suggestions.classList.add('active');
+      updateSuggestionsUI();
+    } else {
+      suggestions.classList.remove('active');
+    }
+  });
+
+  // Handle Clicks on Suggestions
+  document.addEventListener('click', (e) => {
+    // Hide suggestions if click outside
+    if (!suggestions.contains(e.target) && e.target !== input) {
+      suggestions.classList.remove('active');
+    }
+  });
+
+  // Handle Mouseover for Suggestions
+  function updateSuggestionsUI() {
+    suggestions.innerHTML = '';
+    lastSuggestions.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'suggestion-item' + (i === activeSuggestionIndex ? ' active' : '');
+      div.textContent = `${s.name || '[No Name]'} (${s.id})`;
+      div.addEventListener('mousedown', (e) => {
+        // Use mousedown instead of click so it registers before blur
+        input.value = s.id;
+        suggestions.classList.remove('active');
+        searchById();
+        e.preventDefault();
+      });
+      suggestions.appendChild(div);
+    });
+  }
+});
+
+// Function to Search by Table ID
 async function searchById() {
   const rawID = document.getElementById('idInput').value.trim();
   const gameCardContainer = document.getElementById('gameCardContainer');
@@ -44,12 +136,14 @@ async function searchById() {
   categoryGrid.innerHTML = '';
   categoryGrid.className = 'two-per-row';
 
+  // Validate Input
   if (!rawID) {
     gameCardContainer.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     return;
   }
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
+  // Fetch Database to Find Table ID
   let record;
   try {
     const data = await fetchVPSDB();
@@ -61,6 +155,7 @@ async function searchById() {
     return;
   }
 
+  // If No Table Found
   if (!record) {
     gameCardContainer.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
     return;
@@ -84,10 +179,12 @@ async function searchById() {
   }
   const info = document.createElement('div');
   info.className = 'game-info';
+  
   // Title
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
   info.appendChild(title);
+  
   // Meta line
   const meta = document.createElement('p');
   meta.className = 'meta';
@@ -97,6 +194,7 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | ');
   info.appendChild(meta);
+  
   // Theme tags
   if (Array.isArray(record.theme)) {
     const tagsDiv = document.createElement('div');
@@ -113,7 +211,7 @@ async function searchById() {
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
 
-  // Date formatter
+  // Format Date
   const formatDate = ts => {
     try {
       return new Date(ts).toLocaleDateString(undefined, {
@@ -124,30 +222,33 @@ async function searchById() {
     }
   };
 
-  // Render categories
+  // Render Categories
   const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
   present.forEach(group => {
     const items = record[group];
     const container = document.createElement('div');
     container.className = 'category-container';
 
-    // Header
+    // Category Header
     const lbl = document.createElement('label');
     lbl.className = 'category-label';
     lbl.textContent = humanize(group);
     container.appendChild(lbl);
 
-    // Dropdown
+    // Create Dropdown
     const select = document.createElement('select');
     const placeholder = document.createElement('option');
     placeholder.textContent = `Select a ${humanize(group).slice(0,-1)}`;
     placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
-    // Make select full width for non-table/b2s
+
+    // Add Full Width Class for non-table & b2s
     if (group !== 'tableFiles' && group !== 'b2sFiles') {
       select.classList.add('fullwidth-select');
     }
+
+    // Populate Options for Dropdown 
     items.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
@@ -156,19 +257,19 @@ async function searchById() {
     });
     container.appendChild(select);
 
-    // Thumbnail only for tableFiles & b2sFiles
+    // Show Thumbnails table & b2s ONLY
     let thumb, preview;
     if (group === 'tableFiles' || group === 'b2sFiles') {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
 
-      // small thumb
+      // Small Thumbnail
       thumb = document.createElement('img');
       thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
 
-      // hidden preview
+      // Hidden Preview
       preview = document.createElement('img');
       preview.className = 'thumb-preview';
       preview.alt = '';
@@ -216,7 +317,7 @@ async function searchById() {
 
       // Field appender
       const appendField = (k, v) => {
-        if (['authors','features','tableFormat','version', 'fileName'].includes(k)) {
+        if (['authors','features','tableFormat','version'].includes(k)) {
           const dt = document.createElement('dt');
           dt.textContent = humanize(k);
           dl.appendChild(dt);
@@ -233,7 +334,7 @@ async function searchById() {
           dl.appendChild(dd);
           return;
         }
-        if (['game','urls','imgUrl','createdAt','updatedAt', 'folder', 'type'].includes(k)) return;
+        if (['game','urls','imgUrl','createdAt','updatedAt'].includes(k)) return;
         const dt = document.createElement('dt');
         dt.textContent = humanize(k);
         const dd = document.createElement('dd');
@@ -241,30 +342,33 @@ async function searchById() {
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
+
       // 1) Badge fields
-      ['authors','features','tableFormat','version', 'fileName'].forEach(k => {
+      ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
       });
       // 2) Other fields
       Object.keys(item)
-        .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment', 'folder', 'type', 'fileName'].includes(k))
+        .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
+
       // 3) Append all fields first
       display.appendChild(dl);
-      // 4) Comment last, as a BOX
+
+      // 4) Comment last, as a BOX with label
       if (item.comment) {
         const commentLabel = document.createElement('div');
-        commentLabel.className = 'comment-label';
+        commentLabel.className = 'category-label';
         commentLabel.textContent = 'Comments';
         display.appendChild(commentLabel);
+
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment-box';
         commentDiv.textContent = item.comment;
         display.appendChild(commentDiv);
       }
     });
-
     categoryGrid.appendChild(container);
   });
 }
