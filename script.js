@@ -6,7 +6,7 @@ const API_URLS = [
 ];
 
 window.addEventListener('DOMContentLoaded', () => {
-  const btn   = document.getElementById('searchBtn');
+  const btn = document.getElementById('searchBtn');
   const input = document.getElementById('idInput');
   btn.addEventListener('click', searchById);
   input.addEventListener('keydown', e => {
@@ -35,23 +35,21 @@ function humanize(key) {
 }
 
 async function searchById() {
-  const rawID             = document.getElementById('idInput').value.trim();
+  const rawID = document.getElementById('idInput').value.trim();
   const gameCardContainer = document.getElementById('gameCardContainer');
-  const categoryGrid      = document.getElementById('categoryGrid');
-  const resultsDiv        = document.getElementById('results');
+  const categoryGrid = document.getElementById('categoryGrid');
 
   // Reset UI
   gameCardContainer.innerHTML = '';
-  categoryGrid.innerHTML      = '';
-  categoryGrid.className      = 'two-per-row'; // always two-per-row
+  categoryGrid.innerHTML = '';
+  categoryGrid.className = 'two-per-row';
 
   if (!rawID) {
-    resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    gameCardContainer.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     return;
   }
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
-  // Fetch and find record
   let record;
   try {
     const data = await fetchVPSDB();
@@ -62,6 +60,7 @@ async function searchById() {
     gameCardContainer.innerHTML = `<p class="error">Error: ${err.message}</p>`;
     return;
   }
+
   if (!record) {
     gameCardContainer.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
     return;
@@ -153,65 +152,28 @@ async function searchById() {
     });
     container.appendChild(select);
 
-    // Thumbnail only for Table and B2S
+    // Thumbnail only for tableFiles & b2sFiles
     let thumb, preview;
     if (group === 'tableFiles' || group === 'b2sFiles') {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
+
       // small thumb
       thumb = document.createElement('img');
       thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
+
       // hidden preview
       preview = document.createElement('img');
       preview.className = 'thumb-preview';
       preview.alt = '';
       thumbWrap.appendChild(preview);
+
       container.appendChild(thumbWrap);
     }
-    // Hover reposition will be handled in CSS + JS below
-    thumb.addEventListener('mouseenter', () => {
-      // limit size
-      const maxW = window.innerWidth * 0.9;
-      const maxH = window.innerHeight * 0.9;
-      thumb.style.maxWidth  = maxW + 'px';
-      thumb.style.maxHeight = maxH + 'px';
-      thumb.style.width     = 'auto';
-      thumb.style.height    = 'auto';
-      thumb.style.position  = 'fixed';
-      thumb.style.zIndex    = '999';
-      // position near thumbnail
-      requestAnimationFrame(() => {
-        const wrapRect = thumbWrap.getBoundingClientRect();
-        const thumbRect = thumb.getBoundingClientRect();
-        // start just to the right
-        let x = wrapRect.right + 10;
-        let y = wrapRect.top;
-        // if off the right edge, flip to left
-        if (x + thumbRect.width > window.innerWidth) {
-          x = wrapRect.left - thumbRect.width - 10;
-        }
-        // if bottom overflows, pull up
-        if (y + thumbRect.height > window.innerHeight) {
-          y = window.innerHeight - thumbRect.height - 10;
-        }
-        // never go negative
-        x = Math.max(0, x);
-        y = Math.max(0, y);
-        thumb.style.left = x + 'px';
-        thumb.style.top  = y + 'px';
-      });
-    });
-    // Reset on mouse leave
-    select.addEventListener('change', () => {
-      const item = items.find(i => i.id === select.value);
-      if (!item) return;
-      // update both images
-      if (thumb)   thumb.src   = item.imgUrl || '';
-      if (preview) preview.src = item.imgUrl || '';
-    });
-    // Details (no full image)
+
+    // Details panel (no full-size image)
     const display = document.createElement('div');
     display.className = 'item-display';
     container.appendChild(display);
@@ -220,8 +182,10 @@ async function searchById() {
       display.innerHTML = '';
       const item = items.find(i => i.id === select.value);
       if (!item) return;
-      // update thumbnail
-      if (thumb) thumb.src = item.imgUrl || '';
+
+      // update thumbnail & preview
+      if (thumb)   thumb.src   = item.imgUrl || '';
+      if (preview) preview.src = item.imgUrl || '';
 
       // metadata list
       const dl = document.createElement('dl');
@@ -236,7 +200,7 @@ async function searchById() {
         if (item[key]) {
           const w = document.createElement('div');
           const dt = document.createElement('dt');
-          dt.textContent = humanize(key.replace(/At$/,''));
+          dt.textContent = humanize(key.replace(/At$/, ''));
           const dd = document.createElement('dd');
           dd.textContent = formatDate(item[key]);
           w.appendChild(dt);
@@ -247,14 +211,14 @@ async function searchById() {
       display.appendChild(dateRow);
 
       // Field appender
-      const appendField = (k,v) => {
+      const appendField = (k, v) => {
         if (['authors','features','tableFormat','version'].includes(k)) {
           const dt = document.createElement('dt');
           dt.textContent = humanize(k);
           dl.appendChild(dt);
           const wrap = document.createElement('div');
           wrap.className = 'bubble-group';
-          (Array.isArray(v)?v:[v]).forEach(val => {
+          (Array.isArray(v) ? v : [v]).forEach(val => {
             const b = document.createElement('span');
             b.className = 'bubble';
             b.textContent = val;
@@ -269,21 +233,21 @@ async function searchById() {
         const dt = document.createElement('dt');
         dt.textContent = humanize(k);
         const dd = document.createElement('dd');
-        dd.textContent = Array.isArray(v)?v.join(', '):v;
+        dd.textContent = Array.isArray(v) ? v.join(', ') : v;
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
 
-      // 1) bubbles
+      // 1) Badge fields
       ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
       });
-      // 2) others
+      // 2) Other fields
       Object.keys(item)
         .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
-      // 3) comment
+      // 3) Comment last
       if (item.comment) appendField('comment', item.comment);
 
       display.appendChild(dl);
