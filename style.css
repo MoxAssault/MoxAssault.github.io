@@ -84,14 +84,11 @@ h1 { text-align: center; margin-bottom: 1rem; }
   font-size: 1.1rem;
   font-weight: bold;
   color: #FFFFFF;
-  background: #220000;
+  background: #1a1a1a;
   padding: 6px 10px;
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-.comment-box + .category-label {
-  margin-top: 1.5rem;
 }
 
 /* === Dropdowns === */
@@ -170,6 +167,11 @@ h1 { text-align: center; margin-bottom: 1rem; }
   border-radius: 12px;
   font-size: 0.85rem;
   white-space: nowrap;
+}
+.comment-label {
+  font-weight: bold;
+  margin-top: .5rem;
+  color: #CCCCCC;
 }
 .comment-box {
   background: #585858;

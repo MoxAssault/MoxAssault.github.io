@@ -255,7 +255,7 @@ async function searchById() {
       // 4) Comment last, as a BOX
       if (item.comment) {
         const commentLabel = document.createElement('div');
-        commentLabel.className = 'category-label';
+        commentLabel.className = 'comment-label';
         commentLabel.textContent = 'Comments';
         display.appendChild(commentLabel);
         const commentDiv = document.createElement('div');
