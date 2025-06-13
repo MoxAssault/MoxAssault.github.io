@@ -237,7 +237,6 @@ async function searchById() {
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
-
       // 1) Badge fields
       ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
@@ -247,15 +246,15 @@ async function searchById() {
         .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
-      // 3) Comment last, as a BOX
+      // 3) Append all fields first
+      display.appendChild(dl);
+      // 4) Comment last, as a BOX
       if (item.comment) {
         const commentDiv = document.createElement('div');
         commentDiv.className = 'comment-box';
         commentDiv.textContent = item.comment;
         display.appendChild(commentDiv);
       }
-
-      display.appendChild(dl);
     });
 
     categoryGrid.appendChild(container);

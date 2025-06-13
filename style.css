@@ -123,7 +123,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   display: none;
   position: absolute;
   top: 0;
-  left: -650%;
+  left: -750%;
   max-width: 350px;
   width: auto;
   height: auto;
@@ -164,7 +164,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   white-space: nowrap;
 }
 .comment-box {
-  background: #181818;
+  background: #585858;
   color: #e1e1e1;
   padding: 1rem;
   border-radius: 8px;
