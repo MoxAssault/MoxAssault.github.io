@@ -43,14 +43,14 @@ async function searchById() {
   // Reset UI
   gameCardContainer.innerHTML = '';
   categoryGrid.innerHTML      = '';
-  categoryGrid.className      = ''; // remove any previous layout class
+  categoryGrid.className      = '';
 
   if (!rawID) {
     resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     return;
   }
 
-  // Show loading state
+  // Loading state
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
   try {
@@ -64,7 +64,7 @@ async function searchById() {
       return;
     }
 
-    // Determine which categories exist
+    // Categories to render
     const groupKeys = [
       'tableFiles',
       'b2sFiles',
@@ -75,10 +75,10 @@ async function searchById() {
     ];
     const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
 
-    // Always two-per-row layout
+    // Always two-per-row
     categoryGrid.classList.add('two-per-row');
 
-    // Determine cover image (fallback through categories)
+    // Fallback cover image
     let coverUrl = record.imgUrl;
     if (!coverUrl) {
       for (const g of present) {
@@ -101,10 +101,12 @@ async function searchById() {
     }
     const info = document.createElement('div');
     info.className = 'game-info';
+
     // Title
     const title = document.createElement('h2');
     title.textContent = record.name || rawID;
     info.appendChild(title);
+
     // Meta line
     const meta = document.createElement('p');
     meta.className = 'meta';
@@ -114,6 +116,7 @@ async function searchById() {
       record.manufacturer && `Manufacturer: ${record.manufacturer}`
     ].filter(Boolean).join(' | ');
     info.appendChild(meta);
+
     // Theme tags
     if (Array.isArray(record.theme)) {
       const tagsDiv = document.createElement('div');
@@ -126,11 +129,12 @@ async function searchById() {
       });
       info.appendChild(tagsDiv);
     }
+
     card.appendChild(info);
     gameCardContainer.innerHTML = '';
     gameCardContainer.appendChild(card);
 
-    // Helper to format timestamps
+    // Helper to format dates
     const formatDate = ts => {
       try {
         return new Date(ts).toLocaleDateString(undefined, {
@@ -141,7 +145,7 @@ async function searchById() {
       }
     };
 
-    // Render each present category
+    // Render each category
     present.forEach(group => {
       const items = record[group];
 
@@ -170,7 +174,7 @@ async function searchById() {
       });
       container.appendChild(select);
 
-      // Thumbnail wrapper (updates on select)
+      // Thumbnail next to dropdown
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
       const thumb = document.createElement('img');
@@ -178,28 +182,22 @@ async function searchById() {
       thumbWrap.appendChild(thumb);
       container.appendChild(thumbWrap);
 
-      // Detail display
+      // Details panel (no full-size image)
       const display = document.createElement('div');
       display.className = 'item-display';
       container.appendChild(display);
 
       select.addEventListener('change', () => {
-        // Clear display
         display.innerHTML = '';
-        // Find selected item
         const item = items.find(i => i.id === select.value);
         if (!item) return;
-        // Update thumbnail
+
+        // Update thumbnail source
         thumb.src = item.imgUrl || '';
-        // Show main image in details
-        if (item.imgUrl) {
-          const img = document.createElement('img');
-          img.src = item.imgUrl;
-          img.alt = item.id;
-          display.appendChild(img);
-        }
+
         // Build metadata list
         const dl = document.createElement('dl');
+
         // Date row
         const dateRow = document.createElement('div');
         dateRow.style.display = 'flex';
@@ -222,7 +220,7 @@ async function searchById() {
 
         // Append fields in order
         const appendField = (key, val) => {
-          // Bubbles
+          // Badge bubbles
           if (['authors','features','tableFormat','version'].includes(key)) {
             const dt = document.createElement('dt');
             dt.textContent = humanize(key);
@@ -240,9 +238,9 @@ async function searchById() {
             dl.appendChild(dd);
             return;
           }
-          // Skip dates (handled), game, urls
-          if (['createdAt','updatedAt','game','urls'].includes(key)) return;
-          // Basic fields
+          // Skip image, game, urls, handled date
+          if (['imgUrl','game','urls','createdAt','updatedAt'].includes(key)) return;
+          // Normal fields
           const dt = document.createElement('dt');
           dt.textContent = humanize(key);
           const dd = document.createElement('dd');
@@ -251,23 +249,23 @@ async function searchById() {
           dl.appendChild(dd);
         };
 
-        // 1. Bubble fields
+        // 1) Badge fields
         ['authors','features','tableFormat','version'].forEach(k => {
           if (item[k]) appendField(k, item[k]);
         });
 
-        // 2. Others
+        // 2) Other fields
         const ignored = [
-          'id','_group','imgUrl','game','urls',
+          'id','_group','imgUrl','game','urls','comment',
           'createdAt','updatedAt','authors','features',
-          'tableFormat','version','comment'
+          'tableFormat','version'
         ];
         Object.keys(item)
           .filter(k => !ignored.includes(k))
           .sort()
           .forEach(k => appendField(k, item[k]));
 
-        // 3. Comment last
+        // 3) Comment last
         if (item.comment) appendField('comment', item.comment);
 
         display.appendChild(dl);
