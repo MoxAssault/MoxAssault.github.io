@@ -233,7 +233,7 @@ async function searchById() {
           dl.appendChild(dd);
           return;
         }
-        if (['game','urls','imgUrl','createdAt','updatedAt'].includes(k)) return;
+        if (['game','urls','imgUrl','createdAt','updatedAt', 'folder', 'type'].includes(k)) return;
         const dt = document.createElement('dt');
         dt.textContent = humanize(k);
         const dd = document.createElement('dd');
@@ -242,7 +242,7 @@ async function searchById() {
         dl.appendChild(dd);
       };
       // 1) Badge fields
-      ['authors','features','tableFormat','version'].forEach(k => {
+      ['authors','features','tableFormat','version', 'fileName'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
       });
       // 2) Other fields
