@@ -247,8 +247,13 @@ async function searchById() {
         .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
-      // 3) Comment last
-      if (item.comment) appendField('comment', item.comment);
+      // 3) Comment last, as a BOX
+      if (item.comment) {
+        const commentDiv = document.createElement('div');
+        commentDiv.className = 'comment-box';
+        commentDiv.textContent = item.comment;
+        display.appendChild(commentDiv);
+      }
 
       display.appendChild(dl);
     });
