@@ -91,6 +91,11 @@ h1 {
   background: #0077cc;
   color: #fff;
 }
+.broken-option {
+  color: #888 !important;
+  background: #222 !important;
+  font-style: italic;
+}
 
 /* === Game Card Container === */
 .game-card {

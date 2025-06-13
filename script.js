@@ -255,9 +255,9 @@ async function searchById() {
       opt.value = item.id;
       opt.textContent = item.id;
       // Disable and style broken table files
-      if (group === 'tableFiles' && item.broken === true) {
+      if (item.broken === true) {
         opt.disabled = true;
-        opt.textContent += ' (Broken)';
+        opt.textContent += ' (⛔ Broken)';
         opt.className = 'broken-option';
       }
       select.appendChild(opt);
