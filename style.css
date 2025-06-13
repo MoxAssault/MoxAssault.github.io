@@ -29,7 +29,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
 }
 #searchBtn {
   padding:.5rem 1rem; font-size:1rem; border:none;
-  background:#0077cc; color:#fff; cursor:pointer;
+  background:#2a2a2a; color:#CCCCCC; cursor:pointer;
   border-radius:0 4px 4px 0;
 }
 #searchBtn:hover { background:#005fa3; }
@@ -109,6 +109,8 @@ h1 { text-align: center; margin-bottom: 1rem; }
   position: relative;
   vertical-align: middle;
   margin-left: 8px;
+  border: 1px solid #444;
+  background: #1f1f1f;
 }
 .thumbnail-wrapper img {
   width: 28px;
@@ -121,7 +123,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   position: absolute;
   top: -10px;
   left: -10px;
-  width: 200px;
+  width: 300px;
   height: auto;
   z-index: 10;
   border: 2px solid #fff;

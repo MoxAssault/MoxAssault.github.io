@@ -178,7 +178,7 @@ async function searchById() {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
       const thumb = document.createElement('img');
-      thumb.alt = 'Preview';
+      thumb.alt = '';
       thumbWrap.appendChild(thumb);
       container.appendChild(thumbWrap);
 
@@ -255,11 +255,7 @@ async function searchById() {
         });
 
         // 2) Other fields
-        const ignored = [
-          'id','_group','imgUrl','game','urls','comment',
-          'createdAt','updatedAt','authors','features',
-          'tableFormat','version'
-        ];
+        const ignored = [ 'id','_group','imgUrl','game','urls','comment','createdAt','updatedAt','authors','features','tableFormat','version' ];
         Object.keys(item)
           .filter(k => !ignored.includes(k))
           .sort()
