@@ -109,8 +109,6 @@ h1 { text-align: center; margin-bottom: 1rem; }
   position: relative;
   vertical-align: middle;
   margin-left: 8px;
-  border: 1px solid #444;
-  background: #1f1f1f;
 }
 .thumbnail-wrapper img {
   width: 28px;
@@ -123,10 +121,13 @@ h1 { text-align: center; margin-bottom: 1rem; }
   position: absolute;
   top: -10px;
   left: -10px;
-  width: 300px;
+  max-width: 90vw; /* Never exceed 90% of viewport dimensions */
+  max-height: 90vh;
+  width: auto;
   height: auto;
   z-index: 10;
   border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 /* === Item Display === */
