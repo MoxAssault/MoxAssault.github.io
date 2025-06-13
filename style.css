@@ -192,11 +192,33 @@ h1 { text-align: center; margin-bottom: 1rem; }
 }
 
 /* === Suggestions List === */
+.search-float-container {
+  position: fixed;
+  top: 28px; /* adjust as needed */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  min-width: 340px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 1.5px 8px rgba(0,0,0,0.18);
+  background: #222;
+  border-radius: 10px;
+  padding: 18px 18px 8px 18px;
+}
+@media (max-width: 600px) {
+  .search-float-container {
+    min-width: 0;
+    width: 97vw;
+    left: 1.5vw;
+    transform: none;
+    padding: 12px 2vw 4px 2vw;
+  }
+}
 .suggestions-list {
   position: relative;
   z-index: 10;
-  max-width: 340px;
-  margin: 0 auto;
+  margin: 0;
   background: #232323;
   border: 1px solid #444;
   border-radius: 0 0 6px 6px;
@@ -204,6 +226,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   font-size: 1rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   display: none;
+  max-width: none;
 }
 .suggestions-list.active {
   display: block;

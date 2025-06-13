@@ -139,6 +139,7 @@ async function searchById() {
   // Validate Input
   if (!rawID) {
     gameCardContainer.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
+    document.searchById.placeholder = 'Please enter a VPS Table ID';
     return;
   }
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
