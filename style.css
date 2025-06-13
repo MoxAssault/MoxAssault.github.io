@@ -140,7 +140,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   color: #CCCCCC;
 }
 .item-display dl dd {
-  margin: 0 0 .5rem 1rem;
+  margin: 0 0 .5rem .25rem;
   color: #EEEEEE;
 }
 .bubble-group {
@@ -152,7 +152,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
 .bubble {
   background: #444;
   color: #CCCCCC;
-  padding: 4px 8px;
+  padding: 2px 4px;
   border-radius: 12px;
   font-size: 0.85rem;
   white-space: nowrap;
