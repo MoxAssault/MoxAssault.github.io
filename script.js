@@ -154,57 +154,63 @@ async function searchById() {
     container.appendChild(select);
 
     // Thumbnail only for Table and B2S
-    let thumb, thumbWrap;
+    let thumb, preview;
     if (group === 'tableFiles' || group === 'b2sFiles') {
-      thumbWrap = document.createElement('span');
+      const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
+      // small thumb
       thumb = document.createElement('img');
+      thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
+      // hidden preview
+      preview = document.createElement('img');
+      preview.className = 'thumb-preview';
+      preview.alt = '';
+      thumbWrap.appendChild(preview);
       container.appendChild(thumbWrap);
-
-      // Hover reposition will be handled in CSS + JS below
-      thumb.addEventListener('mouseenter', () => {
-        // limit size
-        const maxW = window.innerWidth * 0.9;
-        const maxH = window.innerHeight * 0.9;
-        thumb.style.maxWidth  = maxW + 'px';
-        thumb.style.maxHeight = maxH + 'px';
-        thumb.style.width     = 'auto';
-        thumb.style.height    = 'auto';
-        thumb.style.position  = 'fixed';
-        thumb.style.zIndex    = '999';
-        // position near thumbnail
-        requestAnimationFrame(() => {
-          const wrapRect = thumbWrap.getBoundingClientRect();
-          const thumbRect = thumb.getBoundingClientRect();
-          // start just to the right
-          let x = wrapRect.right + 10;
-          let y = wrapRect.top;
-          // if off the right edge, flip to left
-          if (x + thumbRect.width > window.innerWidth) {
-            x = wrapRect.left - thumbRect.width - 10;
-          }
-          // if bottom overflows, pull up
-          if (y + thumbRect.height > window.innerHeight) {
-            y = window.innerHeight - thumbRect.height - 10;
-          }
-          // never go negative
-          x = Math.max(0, x);
-          y = Math.max(0, y);
-          thumb.style.left = x + 'px';
-          thumb.style.top  = y + 'px';
-        });
-      });
-      // Reset on mouse leave
-      thumb.addEventListener('mouseleave', () => {
-        thumb.style.position = '';
-        thumb.style.left = '';
-        thumb.style.top = '';
-        thumb.style.zIndex = '';
-      });
     }
-
+    // Hover reposition will be handled in CSS + JS below
+    thumb.addEventListener('mouseenter', () => {
+      // limit size
+      const maxW = window.innerWidth * 0.9;
+      const maxH = window.innerHeight * 0.9;
+      thumb.style.maxWidth  = maxW + 'px';
+      thumb.style.maxHeight = maxH + 'px';
+      thumb.style.width     = 'auto';
+      thumb.style.height    = 'auto';
+      thumb.style.position  = 'fixed';
+      thumb.style.zIndex    = '999';
+      // position near thumbnail
+      requestAnimationFrame(() => {
+        const wrapRect = thumbWrap.getBoundingClientRect();
+        const thumbRect = thumb.getBoundingClientRect();
+        // start just to the right
+        let x = wrapRect.right + 10;
+        let y = wrapRect.top;
+        // if off the right edge, flip to left
+        if (x + thumbRect.width > window.innerWidth) {
+          x = wrapRect.left - thumbRect.width - 10;
+        }
+        // if bottom overflows, pull up
+        if (y + thumbRect.height > window.innerHeight) {
+          y = window.innerHeight - thumbRect.height - 10;
+        }
+        // never go negative
+        x = Math.max(0, x);
+        y = Math.max(0, y);
+        thumb.style.left = x + 'px';
+        thumb.style.top  = y + 'px';
+      });
+    });
+    // Reset on mouse leave
+    select.addEventListener('change', () => {
+      const item = items.find(i => i.id === select.value);
+      if (!item) return;
+      // update both images
+      if (thumb)   thumb.src   = item.imgUrl || '';
+      if (preview) preview.src = item.imgUrl || '';
+    });
     // Details (no full image)
     const display = document.createElement('div');
     display.className = 'item-display';
