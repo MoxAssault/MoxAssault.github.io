@@ -1,3 +1,4 @@
+
 /* Basic reset */
 * { box-sizing: border-box; margin:0; padding:0; }
 
@@ -15,10 +16,12 @@ body {
   padding: 20px;
   border-radius: 8px;
 }
-
-/* === Header & Search === */
 h1 { text-align: center; margin-bottom: 1rem; }
-.search-box { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+.search-box {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
 #idInput {
   width:300px; padding:.5rem; font-size:1rem;
   border:1px solid #444; border-radius:4px 0 0 4px;
@@ -59,32 +62,21 @@ h1 { text-align: center; margin-bottom: 1rem; }
   color:#CCCCCC;
 }
 
-/* === Game Card Container === */
-#gameCardContainer {
-  margin-bottom: 1.5rem;
-}
-/* === Category Grid === */
+/* === Results Grid === */
 #categoryGrid {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
 }
-#categoryGrid.two-per-row .category-container {
+#categoryGrid .category-container {
   flex: 0 0 calc(50% - 1rem);
-}
-#categoryGrid.three-per-row .category-container {
-  flex: 0 0 calc(33.333% - 1rem);
-}
-
-/* === Category Container === */
-.category-container {
   background: #2a2a2a;
   padding: .75rem;
   border: 1px solid #444;
   border-radius: 4px;
 }
 
-/* === Dropdowns === */
+/* === Category Header === */
 .category-label {
   display: block;
   margin-bottom: 0.75rem;
@@ -97,25 +89,47 @@ h1 { text-align: center; margin-bottom: 1rem; }
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-#results select {
-  width: 100%;
+
+/* === Dropdowns === */
+.category-container select {
+  width: calc(100% - 42px);
   padding: .5rem;
   font-size: 1rem;
   border: 1px solid #444;
   border-radius: 4px;
   background: #1f1f1f;
   color: #CCCCCC;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Thumbnail preview next to dropdown */
+.thumbnail-wrapper {
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.thumbnail-wrapper img {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid #666;
+}
+.thumbnail-wrapper img:hover {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 200px;
+  height: auto;
+  z-index: 10;
+  border: 2px solid #fff;
 }
 
 /* === Item Display === */
 .item-display {
   margin-top: .75rem;
-}
-.item-display img {
-  max-width: 75%;   /* 3/4 size */
-  height: auto;
-  display: block;
-  margin-bottom: .75rem;
 }
 .item-display dl dt {
   font-weight: bold;
@@ -126,21 +140,12 @@ h1 { text-align: center; margin-bottom: 1rem; }
   margin: 0 0 .5rem 1rem;
   color: #EEEEEE;
 }
-
-/* === Error === */
-.error {
-  color: #f55;
-  text-align: center;
-  margin-top: 1rem;
-}
-
 .bubble-group {
   margin: 0.5rem 0 1rem 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
-
 .bubble {
   background: #444;
   color: #CCCCCC;
@@ -148,4 +153,11 @@ h1 { text-align: center; margin-bottom: 1rem; }
   border-radius: 12px;
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+/* === Error === */
+.error {
+  color: #f55;
+  text-align: center;
+  margin-top: 1rem;
 }

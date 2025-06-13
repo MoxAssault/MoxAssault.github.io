@@ -30,24 +30,27 @@ function humanize(key) {
   return key
     .replace(/([A-Z])/g, ' $1')
     .replace(/_/g, ' ')
-    .replace(/^./, s => s.toUpperCase());
+    .replace(/^./, s => s.toUpperCase())
+    .trim();
 }
 
 async function searchById() {
-  const rawID = document.getElementById('idInput').value.trim();
+  const rawID             = document.getElementById('idInput').value.trim();
   const gameCardContainer = document.getElementById('gameCardContainer');
-  const categoryGrid = document.getElementById('categoryGrid');
-  const resultsDiv = document.getElementById('results');
+  const categoryGrid      = document.getElementById('categoryGrid');
+  const resultsDiv        = document.getElementById('results');
 
+  // Reset UI
   gameCardContainer.innerHTML = '';
-  categoryGrid.innerHTML = '';
-  categoryGrid.classList.remove('two-per-row', 'three-per-row');
+  categoryGrid.innerHTML      = '';
+  categoryGrid.className      = ''; // remove any previous layout class
 
   if (!rawID) {
     resultsDiv.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     return;
   }
 
+  // Show loading state
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
 
   try {
@@ -61,23 +64,32 @@ async function searchById() {
       return;
     }
 
+    // Determine which categories exist
     const groupKeys = [
-      'tableFiles', 'b2sFiles', 'romFiles',
-      'altColorFiles', 'pupPackFiles', 'mediaPackFiles'
+      'tableFiles',
+      'b2sFiles',
+      'romFiles',
+      'altColorFiles',
+      'pupPackFiles',
+      'mediaPackFiles'
     ];
     const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
-    categoryGrid.classList.add(present.length > 4 ? 'three-per-row' : 'two-per-row');
 
+    // Always two-per-row layout
+    categoryGrid.classList.add('two-per-row');
+
+    // Determine cover image (fallback through categories)
     let coverUrl = record.imgUrl;
     if (!coverUrl) {
-      for (const g of groupKeys) {
-        if (record[g]?.[0]?.imgUrl) {
+      for (const g of present) {
+        if (record[g][0]?.imgUrl) {
           coverUrl = record[g][0].imgUrl;
           break;
         }
       }
     }
 
+    // Build game card
     const card = document.createElement('div');
     card.className = 'game-card';
     if (coverUrl) {
@@ -87,14 +99,13 @@ async function searchById() {
       img.alt = record.name || rawID;
       card.appendChild(img);
     }
-
     const info = document.createElement('div');
     info.className = 'game-info';
-
+    // Title
     const title = document.createElement('h2');
     title.textContent = record.name || rawID;
     info.appendChild(title);
-
+    // Meta line
     const meta = document.createElement('p');
     meta.className = 'meta';
     meta.textContent = [
@@ -103,7 +114,7 @@ async function searchById() {
       record.manufacturer && `Manufacturer: ${record.manufacturer}`
     ].filter(Boolean).join(' | ');
     info.appendChild(meta);
-
+    // Theme tags
     if (Array.isArray(record.theme)) {
       const tagsDiv = document.createElement('div');
       tagsDiv.className = 'tags';
@@ -115,24 +126,38 @@ async function searchById() {
       });
       info.appendChild(tagsDiv);
     }
-
     card.appendChild(info);
     gameCardContainer.innerHTML = '';
     gameCardContainer.appendChild(card);
 
+    // Helper to format timestamps
+    const formatDate = ts => {
+      try {
+        return new Date(ts).toLocaleDateString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+      } catch {
+        return ts;
+      }
+    };
+
+    // Render each present category
     present.forEach(group => {
       const items = record[group];
+
       const container = document.createElement('div');
       container.className = 'category-container';
 
+      // Header
       const label = document.createElement('label');
       label.className = 'category-label';
       label.textContent = humanize(group);
       container.appendChild(label);
 
+      // Dropdown
       const select = document.createElement('select');
       const placeholder = document.createElement('option');
-      placeholder.textContent = `Select a ${humanize(group).replace(/s$/, '')}`;
+      placeholder.textContent = `Select a ${humanize(group).slice(0, -1)}`;
       placeholder.disabled = true;
       placeholder.selected = true;
       select.appendChild(placeholder);
@@ -143,69 +168,44 @@ async function searchById() {
         opt.textContent = item.id;
         select.appendChild(opt);
       });
+      container.appendChild(select);
 
+      // Thumbnail wrapper (updates on select)
+      const thumbWrap = document.createElement('span');
+      thumbWrap.className = 'thumbnail-wrapper';
+      const thumb = document.createElement('img');
+      thumb.alt = 'Preview';
+      thumbWrap.appendChild(thumb);
+      container.appendChild(thumbWrap);
+
+      // Detail display
       const display = document.createElement('div');
       display.className = 'item-display';
-      container.appendChild(select);
       container.appendChild(display);
 
       select.addEventListener('change', () => {
+        // Clear display
         display.innerHTML = '';
+        // Find selected item
         const item = items.find(i => i.id === select.value);
         if (!item) return;
-
+        // Update thumbnail
+        thumb.src = item.imgUrl || '';
+        // Show main image in details
         if (item.imgUrl) {
           const img = document.createElement('img');
           img.src = item.imgUrl;
           img.alt = item.id;
           display.appendChild(img);
         }
-
+        // Build metadata list
         const dl = document.createElement('dl');
-
-        const formatDate = ts => {
-          try {
-            return new Date(ts).toLocaleDateString(undefined, {
-              year: 'numeric', month: 'short', day: 'numeric'
-            });
-          } catch { return ts; }
-        };
-
-        const appendField = (key, val) => {
-          if (['authors', 'features', 'tableFormat', 'version'].includes(key)) {
-            const group = document.createElement('div');
-            const label = document.createElement('dt');
-            label.textContent = humanize(key);
-            dl.appendChild(label);
-            const bubbleWrap = document.createElement('div');
-            bubbleWrap.className = 'bubble-group';
-            (Array.isArray(val) ? val : [val]).forEach(v => {
-              const bubble = document.createElement('span');
-              bubble.className = 'bubble';
-              bubble.textContent = v;
-              bubbleWrap.appendChild(bubble);
-            });
-            const holder = document.createElement('dd');
-            holder.appendChild(bubbleWrap);
-            dl.appendChild(holder);
-            return;
-          }
-          if (['createdAt', 'updatedAt'].includes(key)) return;
-
-          const dt = document.createElement('dt');
-          dt.textContent = humanize(key);
-          const dd = document.createElement('dd');
-          dd.textContent = Array.isArray(val) ? val.join(', ') : val;
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        };
-
+        // Date row
         const dateRow = document.createElement('div');
         dateRow.style.display = 'flex';
         dateRow.style.justifyContent = 'space-between';
         dateRow.style.gap = '1rem';
         dateRow.style.marginBottom = '1rem';
-
         ['createdAt', 'updatedAt'].forEach(dateKey => {
           if (item[dateKey]) {
             const wrap = document.createElement('div');
@@ -218,23 +218,56 @@ async function searchById() {
             dateRow.appendChild(wrap);
           }
         });
-
         display.appendChild(dateRow);
 
-        if (item.authors) appendField('authors', item.authors);
-        if (item.features) appendField('features', item.features);
-        if (item.tableFormat) appendField('tableFormat', item.tableFormat);
-        if (item.version) appendField('version', item.version);
+        // Append fields in order
+        const appendField = (key, val) => {
+          // Bubbles
+          if (['authors','features','tableFormat','version'].includes(key)) {
+            const dt = document.createElement('dt');
+            dt.textContent = humanize(key);
+            dl.appendChild(dt);
+            const bubbleWrap = document.createElement('div');
+            bubbleWrap.className = 'bubble-group';
+            (Array.isArray(val) ? val : [val]).forEach(v => {
+              const bubble = document.createElement('span');
+              bubble.className = 'bubble';
+              bubble.textContent = v;
+              bubbleWrap.appendChild(bubble);
+            });
+            const dd = document.createElement('dd');
+            dd.appendChild(bubbleWrap);
+            dl.appendChild(dd);
+            return;
+          }
+          // Skip dates (handled), game, urls
+          if (['createdAt','updatedAt','game','urls'].includes(key)) return;
+          // Basic fields
+          const dt = document.createElement('dt');
+          dt.textContent = humanize(key);
+          const dd = document.createElement('dd');
+          dd.textContent = Array.isArray(val) ? val.join(', ') : val;
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        };
 
-        const ignore = [
-          'id','_group','imgUrl','game','urls','comment',
-          'createdAt','updatedAt','authors','features','tableFormat','version'
+        // 1. Bubble fields
+        ['authors','features','tableFormat','version'].forEach(k => {
+          if (item[k]) appendField(k, item[k]);
+        });
+
+        // 2. Others
+        const ignored = [
+          'id','_group','imgUrl','game','urls',
+          'createdAt','updatedAt','authors','features',
+          'tableFormat','version','comment'
         ];
         Object.keys(item)
-          .filter(k => !ignore.includes(k))
+          .filter(k => !ignored.includes(k))
           .sort()
           .forEach(k => appendField(k, item[k]));
 
+        // 3. Comment last
         if (item.comment) appendField('comment', item.comment);
 
         display.appendChild(dl);
