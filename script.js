@@ -254,10 +254,26 @@ async function searchById() {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.id;
-      // Disable and style broken table files
-      if (item.broken === true) {
+      // Detect "broken" at any level (top or nested in urls)
+      let isBroken = false;
+      // Top level
+      if (item.broken === true || item.broken === "true") isBroken = true;
+      // Nested under "urls" (array or object)
+      if (!isBroken && item.urls) {
+        if (Array.isArray(item.urls)) {
+          isBroken = item.urls.some(
+            u => (u && (u.broken === true || u.broken === "true"))
+          );
+        } else if (typeof item.urls === 'object') {
+          isBroken = Object.values(item.urls).some(
+            u => (u && (u.broken === true || u.broken === "true"))
+          );
+        }
+      }
+      // If broken, mark option as disabled and add "(Broken)" text
+      if (isBroken) {
         opt.disabled = true;
-        opt.textContent += ' (⛔ Broken)';
+        opt.textContent += ' (🚫Broken)';
         opt.className = 'broken-option';
       }
       select.appendChild(opt);
