@@ -101,14 +101,14 @@ h1 { text-align: center; margin-bottom: 1rem; }
   background: #1f1f1f;
   color: #CCCCCC;
   display: inline-block;
-  vertical-align: middle;
+  vertical-align: top;
 }
 
 /* Thumbnail preview next to dropdown */
 .thumbnail-wrapper {
   position: relative;
   display: inline-block;
-  margin-left: 8px;
+  margin-left: 10px;
 }
 .thumb-small {
   width: 28px;
@@ -116,6 +116,7 @@ h1 { text-align: center; margin-bottom: 1rem; }
   object-fit: cover;
   border: 1px solid #666;
   border-radius: 4px;
+  vertical-align: middle;
 }
 .thumb-preview {
   display: none;
