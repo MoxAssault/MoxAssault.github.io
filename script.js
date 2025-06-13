@@ -216,7 +216,7 @@ async function searchById() {
 
       // Field appender
       const appendField = (k, v) => {
-        if (['authors','features','tableFormat','version'].includes(k)) {
+        if (['authors','features','tableFormat','version', 'fileName'].includes(k)) {
           const dt = document.createElement('dt');
           dt.textContent = humanize(k);
           dl.appendChild(dt);
@@ -247,7 +247,7 @@ async function searchById() {
       });
       // 2) Other fields
       Object.keys(item)
-        .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
+        .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment', 'folder', 'type', 'fileName'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
       // 3) Append all fields first
