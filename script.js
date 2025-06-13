@@ -254,8 +254,15 @@ async function searchById() {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.id;
+      // Disable and style broken table files
+      if (group === 'tableFiles' && item.broken === true) {
+        opt.disabled = true;
+        opt.textContent += ' (Broken)';
+        opt.className = 'broken-option';
+      }
       select.appendChild(opt);
     });
+    // Add select to container
     container.appendChild(select);
 
     // Show Thumbnails table & b2s ONLY
@@ -360,7 +367,7 @@ async function searchById() {
       // 4) Comment last, as a BOX with label
       if (item.comment) {
         const commentLabel = document.createElement('div');
-        commentLabel.className = 'category-label';
+        commentLabel.className = 'comment-label';
         commentLabel.textContent = 'Comments';
         display.appendChild(commentLabel);
 
