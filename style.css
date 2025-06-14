@@ -19,7 +19,7 @@ body {
 }
 .top-spacer { text-align: center; margin-top: 9.5rem; }
 
-/* === Floating Search Box === */
+/* === Floating Search Bar === */
 .search-float-container {
   position: fixed;
   top: 40px; /* adjust as needed */
@@ -55,10 +55,14 @@ body {
 }
 /* Search/Close/X Buttons */
 #searchBtn {
-  border: solid #444; border-width: 1px 1px 1px 0;
-  background: #2a2a2a; border-radius: 0 4px 4px 0;
-  color: #CCCCCC; cursor: pointer;
-  padding: .5rem 1rem; font-size: 1rem;
+  border: solid #444;
+  border-width: 1px 1px 1px 0;
+  background: #2a2a2a;
+  border-radius: 0 4px 4px 0;
+  color: #CCCCCC;
+  cursor: pointer;
+  padding: .5rem 1rem;
+  font-size: 1rem;
 }
 #searchBtn:hover {
   background:#444;
@@ -136,22 +140,30 @@ h1 {
 .game-card {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  max-width: 900px;
+  align-items: flex-start;
+  max-width: 800px;
   margin: 0 auto 1.5rem;
   background: #2a2a2a;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   overflow: hidden;
-  min-height: 180px;
+  min-height: 150px;
 }
-.game-cover {
-  flex: 0 0 150px;
-  width: 150px;
-  height: auto;
+.card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+  padding: 1.5rem 1rem 1.5rem 1rem;
+  gap: 1.2rem;
+}
+.game-thumb {
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  margin-top: 1.5rem 1.5rem 1.5rem 1rem;
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1.5px solid #444;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.24);
   background: #191919;
 }
 .game-info {
@@ -161,41 +173,6 @@ h1 {
   flex-direction: column;
   justify-content: flex-start;
   min-width: 0;
-}
-.button-col {
-  flex: 0 0 54px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem 0 0.3rem;
-}
-
-/* Vertical (sideways) compile button */
-.vertical-btn {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg);
-  height: 170px;
-  width: 48px;
-  font-size: 1em;
-  letter-spacing: 0.05em;
-  white-space: pre-line;
-  background: #0077cc;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.17);
-  transition: background 0.15s, opacity 0.13s;
-  opacity: 1;
-  margin: 0;
-  padding: 0.5em 0.2em;
-}
-.vertical-btn:disabled {
-  background: #222;
-  color: #aaa;
-  cursor: not-allowed;
-  opacity: 0.7;
 }
 
 /* Compile button for fallback (mobile/stacked) */
@@ -226,25 +203,13 @@ h1 {
     min-width: 0;
     max-width: 98vw;
   }
-  .game-cover, .game-info, .button-col {
-    margin: 0 auto;
-    padding: 0.8rem;
+  .card-left, .game-info {
     width: 95%;
-  }
-  .button-col {
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
+    padding: 1.2rem 1rem 0.7rem 1rem;
     min-width: 0;
-    padding: 0.5rem 0;
   }
-  .vertical-btn {
-    writing-mode: horizontal-tb;
-    transform: none;
+  .compile-btn {
     width: 100%;
-    height: 48px;
-    margin-top: 1rem;
   }
 }
 

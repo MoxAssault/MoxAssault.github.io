@@ -188,16 +188,26 @@ async function searchById() {
   // Left : Cover Image
   const card = document.createElement('div');
   card.className = 'game-card';
+  const leftCol = document.createElement('div');
+  leftCol.className = 'card-left';
   let coverUrl = record.imgUrl ||
     groupKeys.map(g => record[g]?.[0]?.imgUrl).find(u => u);
   if (coverUrl) {
-    const img = document.createElement('img');
-    img.className = 'game-cover';
-    img.src = coverUrl;
-    img.alt = record.name || rawID;
-    card.appendChild(img);
+    const thumb = document.createElement('img');
+    thumb.className = 'game-thumb';
+    thumb.src = coverUrl;
+    thumb.alt = record.name || rawID;
+    leftCol.appendChild(thumb);
   }
-  // Middle : Info Panel
+  const compileBtn = document.createElement('button');
+  compileBtn.id = 'compileBtn';
+  compileBtn.className = 'compile-btn';
+  compileBtn.textContent = 'Compile & Download IDs';
+  compileBtn.disabled = true;
+  leftCol.appendChild(compileBtn);
+
+  card.appendChild(leftCol);
+  // Right : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
   ////// Title
@@ -226,16 +236,6 @@ async function searchById() {
     info.appendChild(tagsDiv);
   }
   card.appendChild(info);
-  // Right : Button Column with Vertical Compile Button
-  const buttonCol = document.createElement('div');
-  buttonCol.className = 'button-col';
-  let compileBtn = document.createElement('button');
-  compileBtn.id = 'compileBtn';
-  compileBtn.className = 'compile-btn vertical-btn';
-  compileBtn.textContent = 'Compile';
-  compileBtn.disabled = true;
-  buttonCol.appendChild(compileBtn);
-  card.appendChild(buttonCol);
   // Clear and Insert New Card
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
