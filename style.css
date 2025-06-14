@@ -156,6 +156,7 @@ h1 {
   justify-content: flex-start;
   min-width: 90px;
   padding: 1rem 1rem;
+  position: relative;
 }
 .game-thumb {
   width: 75px;
@@ -166,6 +167,21 @@ h1 {
   box-shadow: 0 2px 8px rgba(0,0,0,0.24);
   background: #191919;
 }
+.main-thumb-preview {
+  display: none;
+  position: absolute;
+  left: 90px; /* Adjust for offset from thumb */
+  top: 0;
+  width: 220px;
+  max-width: 280px;
+  max-height: 280px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: #000;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.40), 0 1.5px 8px rgba(0,0,0,0.18);
+  z-index: 999;
+}
+
 .game-info {
   flex: 1 1 0;
   padding: 1rem 1rem 1rem 1rem;
@@ -311,7 +327,8 @@ h1 {
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   z-index: 999;
 }
-.thumbnail-wrapper:hover .thumb-preview {
+.thumbnail-wrapper:hover .thumb-preview,
+.game-thumb:hover + .main-thumb-preview {
   display: block;
 }
 

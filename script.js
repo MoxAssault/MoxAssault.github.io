@@ -185,7 +185,7 @@ async function searchById() {
     'pupPackFiles',
     'mediaPackFiles'
   ];
-  const card = document.createElement('div');
+/*   const card = document.createElement('div');
   card.className = 'game-card';
   // Left : Cover Image
   const leftCol = document.createElement('div');
@@ -199,8 +199,26 @@ async function searchById() {
     thumb.alt = record.name || rawID;
     leftCol.appendChild(thumb);
   }
+  card.appendChild(leftCol); */
+  const leftCol = document.createElement('div');
+  leftCol.className = 'card-left';
+  if (coverUrl) {
+    // Main thumb
+    const thumb = document.createElement('img');
+    thumb.className = 'game-thumb';
+    thumb.src = coverUrl;
+    thumb.alt = record.name || rawID;
+    leftCol.appendChild(thumb);
+    // Pop-out preview
+    const preview = document.createElement('img');
+    preview.className = 'main-thumb-preview';
+    preview.src = coverUrl;
+    preview.alt = record.name || rawID;
+    leftCol.appendChild(preview);
+  }
   card.appendChild(leftCol);
-  
+
+
   // Middle : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
