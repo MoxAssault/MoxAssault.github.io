@@ -328,6 +328,7 @@ h1 {
   z-index: 999;
 }
 .thumbnail-wrapper:hover .thumb-preview,
+.card-imgcol:hover .main-thumb-preview,
 .game-thumb:hover + .main-thumb-preview {
   display: block;
 }
