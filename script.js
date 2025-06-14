@@ -230,6 +230,7 @@ async function searchById() {
     });
     info.appendChild(tagsDiv);
   }
+  card.appendChild(info);
 
   // Right : Compile Button
   const btnCol = document.createElement('div');
