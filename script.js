@@ -376,19 +376,16 @@ async function searchById() {
       const dl = document.createElement('dl');
       ////// Date Row
       const dateRow = document.createElement('div');
-      dateRow.style.display = 'flex';
-      dateRow.style.justifyContent = 'space-between';
-      dateRow.style.gap = '1rem';
-      dateRow.style.marginBottom = '1rem';
+      dateRow.className = 'date';
       ['createdAt','updatedAt'].forEach(key => {
         if (item[key]) {
           const w = document.createElement('div');
           const dt = document.createElement('dt');
-          dt.textContent = humanize(key.replace(/At$/, ''));
-          const dd = document.createElement('dd');
-          dd.textContent = formatDate(item[key]);
+          dt.textContent = `${humanize(key.replace(/At$/, ''))}:  ${formatDate(item[key])}`;
+          // const dd = document.createElement('dd');
+          // dd.textContent = formatDate(item[key]);
           w.appendChild(dt);
-          w.appendChild(dd);
+          // w.appendChild(dd);
           dateRow.appendChild(w);
         }
       });

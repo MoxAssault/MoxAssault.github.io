@@ -352,6 +352,14 @@ h1 {
   margin: 0 0 .5rem .25rem;
   color: #EEEEEE;
 }
+.item-display date {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  font-size: .75rem;
+}
 .bubble-group {
   position: relative;
   margin: 0.25rem 0 1rem 0;
