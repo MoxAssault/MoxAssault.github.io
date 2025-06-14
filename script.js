@@ -151,19 +151,16 @@ async function searchById() {
   const rawID = document.getElementById('idInput').value.trim();
   const gameCardContainer = document.getElementById('gameCardContainer');
   const categoryGrid = document.getElementById('categoryGrid');
-
   // Reset UI
   gameCardContainer.innerHTML = '';
   categoryGrid.innerHTML = '';
   categoryGrid.className = 'two-per-row';
-
   // Validate Input
   if (!rawID) {
     document.searchById.placeholder = 'Please enter a VPS Table ID';
     return;
   }
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
-
   // Fetch Database to Find Table ID
   let record;
   try {
@@ -175,22 +172,21 @@ async function searchById() {
     gameCardContainer.innerHTML = `<p class="error">Error: ${err.message}</p>`;
     return;
   }
-
   // If No Table Found
   if (!record) {
     gameCardContainer.innerHTML = `<p class="error">No entries found for “${rawID}”.</p>`;
     return;
   }
-
+  
   // Build game card
   const groupKeys = [
     'tableFiles','b2sFiles','romFiles',
     'altColorFiles','pupPackFiles','mediaPackFiles'
   ];
-  let coverUrl = record.imgUrl ||
-    groupKeys.map(g => record[g]?.[0]?.imgUrl).find(u => u);
+  let coverUrl = record.imgUrl || groupKeys.map(g => record[g]?.[0]?.imgUrl).find(u => u);
   const card = document.createElement('div');
   card.className = 'game-card';
+  // Create Image on the Left
   if (coverUrl) {
     const img = document.createElement('img');
     img.className = 'game-cover';
@@ -198,6 +194,7 @@ async function searchById() {
     img.alt = record.name || rawID;
     card.appendChild(img);
   }
+  // Create Info Panel on the Right
   const info = document.createElement('div');
   info.className = 'game-info';
   // Title
@@ -225,10 +222,6 @@ async function searchById() {
     });
     info.appendChild(tagsDiv);
   }
-  card.appendChild(info);
-  gameCardContainer.innerHTML = '';
-  gameCardContainer.appendChild(card);
-
   // Create and insert the Compile/Download button under the game card
   let compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
@@ -237,7 +230,12 @@ async function searchById() {
   compileBtn.disabled = true; // initially disabled
   compileBtn.style.margin = "1.3rem auto 0 auto";
   compileBtn.style.display = "block";
-  gameCardContainer.appendChild(compileBtn);
+  info.appendChild(compileBtn);
+  // Finish Card Layout
+  card.appendChild(info);
+  // Clear and Insert New Card
+  gameCardContainer.innerHTML = '';
+  gameCardContainer.appendChild(card);
 
   // Date formatter
   const formatDate = ts => {
@@ -256,13 +254,11 @@ async function searchById() {
     const items = record[group];
     const container = document.createElement('div');
     container.className = 'category-container';
-
     // Header
     const lbl = document.createElement('label');
     lbl.className = 'category-label';
     lbl.textContent = humanize(group);
     container.appendChild(lbl);
-
     // Dropdown
     const select = document.createElement('select');
     const placeholder = document.createElement('option');
@@ -270,18 +266,15 @@ async function searchById() {
     placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
-
     // Make select full width for non-table/b2s
     if (group !== 'tableFiles' && group !== 'b2sFiles') {
       select.classList.add('fullwidth-select');
     }
-
     // Option creation -- robust "broken" check
     items.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.id;
-
       // Detect "broken" at any level (top or nested in urls)
       let isBroken = false;
       // Check Top level
@@ -304,7 +297,6 @@ async function searchById() {
         opt.textContent += ' (❌Broken)';
         opt.className = 'broken-option';
       }
-
       select.appendChild(opt);
     });
     // Add select to container
@@ -315,22 +307,18 @@ async function searchById() {
     if (group === 'tableFiles' || group === 'b2sFiles') {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
-
       // small thumb
       thumb = document.createElement('img');
       thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
-
       // hidden preview
       preview = document.createElement('img');
       preview.className = 'thumb-preview';
       preview.alt = '';
       thumbWrap.appendChild(preview);
-
       container.appendChild(thumbWrap);
     }
-
     // Details panel (no full-size image)
     const display = document.createElement('div');
     display.className = 'item-display';
@@ -341,14 +329,11 @@ async function searchById() {
       display.innerHTML = '';
       const item = items.find(i => i.id === select.value);
       if (!item) return;
-
       // update thumbnail & preview
       if (thumb)   thumb.src   = item.imgUrl || '';
       if (preview) preview.src = item.imgUrl || '';
-
       // metadata list
       const dl = document.createElement('dl');
-
       // Date row
       const dateRow = document.createElement('div');
       dateRow.style.display = 'flex';
@@ -368,7 +353,6 @@ async function searchById() {
         }
       });
       display.appendChild(dateRow);
-
       // Field appender
       const appendField = (k, v) => {
         if (['authors','features','tableFormat','version'].includes(k)) {
@@ -396,7 +380,6 @@ async function searchById() {
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
-
       // 1) Badge fields
       ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
@@ -406,14 +389,13 @@ async function searchById() {
         .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
-
-      // Append all fields first
+      // 3) Append all fields first
       display.appendChild(dl);
 
-      // 3) Comment last, as a BOX with label
+      // 4) Comment last, as a BOX with label
       if (item.comment) {
         const commentLabel = document.createElement('div');
-        commentLabel.className = 'category-label';
+        commentLabel.className = 'comment-label';
         commentLabel.textContent = 'Comments';
         display.appendChild(commentLabel);
 
