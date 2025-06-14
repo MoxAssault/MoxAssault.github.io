@@ -185,9 +185,9 @@ async function searchById() {
     'pupPackFiles',
     'mediaPackFiles'
   ];
-  // Left : Cover Image
   const card = document.createElement('div');
   card.className = 'game-card';
+  // Left : Cover Image
   const leftCol = document.createElement('div');
   leftCol.className = 'card-left';
   let coverUrl = record.imgUrl ||
@@ -199,15 +199,8 @@ async function searchById() {
     thumb.alt = record.name || rawID;
     leftCol.appendChild(thumb);
   }
-  const compileBtn = document.createElement('button');
-  compileBtn.id = 'compileBtn';
-  compileBtn.className = 'compile-btn';
-  compileBtn.textContent = 'LFG, Build YML!';
-  compileBtn.disabled = true;
-  leftCol.appendChild(compileBtn);
-
   card.appendChild(leftCol);
-  // Right : Info Panel
+  // Middle : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
   ////// Theme tags
@@ -236,8 +229,18 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | '); */
   info.appendChild(meta);
-  
-  card.appendChild(info);
+  // Right : Compile Button
+  const btnCol = document.createElement('div');
+  btnCol.className = 'card-right';
+
+  const compileBtn = document.createElement('button');
+  compileBtn.id = 'compileBtn';
+  compileBtn.className = 'compile-btn';
+  compileBtn.textContent = 'LFG, Build YML!';
+  compileBtn.disabled = true;
+  btnCol.appendChild(compileBtn);
+
+  card.appendChild(btnCol);
   // Clear and Insert New Card
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
