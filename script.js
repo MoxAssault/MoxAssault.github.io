@@ -202,7 +202,7 @@ async function searchById() {
   const compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
   compileBtn.className = 'compile-btn';
-  compileBtn.textContent = 'Compile & Download IDs';
+  compileBtn.textContent = 'LFG, Build YML!';
   compileBtn.disabled = true;
   leftCol.appendChild(compileBtn);
 
@@ -210,6 +210,18 @@ async function searchById() {
   // Right : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
+  ////// Theme tags
+  if (Array.isArray(record.theme)) {
+    const tagsDiv = document.createElement('div');
+    tagsDiv.className = 'tags';
+    record.theme.forEach(tag => {
+      const span = document.createElement('span');
+      span.className = 'tag';
+      span.textContent = tag;
+      tagsDiv.appendChild(span);
+    });
+    info.appendChild(tagsDiv);
+  }
   ////// Title
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
@@ -224,18 +236,7 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | '); */
   info.appendChild(meta);
-  ////// Theme tags
-  if (Array.isArray(record.theme)) {
-    const tagsDiv = document.createElement('div');
-    tagsDiv.className = 'tags';
-    record.theme.forEach(tag => {
-      const span = document.createElement('span');
-      span.className = 'tag';
-      span.textContent = tag;
-      tagsDiv.appendChild(span);
-    });
-    info.appendChild(tagsDiv);
-  }
+  
   card.appendChild(info);
   // Clear and Insert New Card
   gameCardContainer.innerHTML = '';
