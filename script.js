@@ -202,6 +202,8 @@ async function searchById() {
   card.appendChild(leftCol); */
   const leftCol = document.createElement('div');
   leftCol.className = 'card-left';
+  let coverUrl = record.imgUrl ||
+    groupKeys.map(g => record[g]?.[0]?.imgUrl).find(u => u);
   if (coverUrl) {
     // Main thumb
     const thumb = document.createElement('img');
