@@ -475,23 +475,37 @@ h1 {
 
 .meta-boxes {
   display: flex;
-  gap: 1rem;
+  gap: 0;
   margin: 0.2rem 0 0.9rem 0;
   flex-wrap: wrap;
 }
 .meta-box {
   background: #222c3d;
   color: #eee;
-  border-radius: 6px;
   font-size: 1rem;
   font-weight: bold;
   padding: 6px 16px;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(0,0,0,0.16);
-  border: 1px solid #274572;
   display: flex;
   align-items: center;
 }
+.meta-left{
+  flex: 0 0 auto;
+  border-radius: 6px 0 0 6px;
+  border: 1px 0 1px 1px solid #274572;
+}
+.meta-middle{
+  flex: 1;
+  border-radius: 0;
+  border: 1px 0 1px 0 solid #274572;
+}
+.meta-right {
+  flex: 0 0 auto;
+  border-radius: 0 6px 6px 0;
+  border: 1px 1px 1px 0 solid #274572;
+}
+
 @media (max-width: 600px) {
   .meta-boxes {
     gap: 0.6rem;

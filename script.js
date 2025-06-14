@@ -221,20 +221,20 @@ async function searchById() {
   metaBoxes.className = 'meta-boxes';
   //////////// Manufacturer (Year)
   const manufBox = document.createElement('div');
-  manufBox.className = 'meta-box';
+  manufBox.className = 'meta-box, meta-left';
   let manufacturer = record.manufacturer || '';
   let year = record.year ? ` (${record.year})` : '';
   manufBox.textContent = `${manufacturer}${year}`;
   //////////// Updated
   const updatedBox = document.createElement('div');
-  updatedBox.className = 'meta-box';
+  updatedBox.className = 'meta-box, meta-middle';
   const updatedAt = record.updatedAt
     ? (new Date(record.updatedAt)).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
     : '';
   updatedBox.textContent = updatedAt ? `Updated: ${updatedAt}` : '';
   //////////// VPS ID
   const idBox = document.createElement('div');
-  idBox.className = 'meta-box';
+  idBox.className = 'meta-box, meta-right';
   idBox.textContent = record.id || '';
   ////// Add to container
   metaBoxes.appendChild(manufBox);
