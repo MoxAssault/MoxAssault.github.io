@@ -47,7 +47,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const closeBtn = document.getElementById('closeSearch');
 
   btn.addEventListener('click', searchById);
-
   // Handle Enter Key on Input
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
@@ -61,7 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
         searchById();
       }
     }
-    // Handle up/down for suggestions
+    // Handle Up/Down for Suggestions
     if (['ArrowDown', 'ArrowUp'].includes(e.key) && lastSuggestions.length) {
       e.preventDefault();
       if (e.key === 'ArrowDown') {
@@ -71,7 +70,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
       updateSuggestionsUI();
     }
-    // Escape to close suggestions
+    // Handle Escape to Close Suggestions
     if (e.key === 'Escape') {
       suggestions.classList.remove('active');
     }
