@@ -379,14 +379,11 @@ h1 {
   margin-top: 1rem;
 }
 
-
-
-
-/* .game-info h2 { margin-top: 0; color: #CCCCCC; }
+.game-info h2 { margin-top: 0; color: #CCCCCC; }
 .game-info .meta { color: #BBBBBB; font-size: .9rem; margin: .5rem 0; }
 .game-info .tags { margin-top: .5rem; }
 .game-info .tag {
   display: inline-block; background: #444; border-radius: 4px;
   padding: 2px 6px; margin-right: 4px; font-size: .8rem;
   color: #CCCCCC;
-} */
+}
