@@ -200,21 +200,10 @@ async function searchById() {
     leftCol.appendChild(thumb);
   }
   card.appendChild(leftCol);
+  
   // Middle : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
-  ////// Theme tags
-  if (Array.isArray(record.theme)) {
-    const tagsDiv = document.createElement('div');
-    tagsDiv.className = 'tags';
-    record.theme.forEach(tag => {
-      const span = document.createElement('span');
-      span.className = 'tag';
-      span.textContent = tag;
-      tagsDiv.appendChild(span);
-    });
-    info.appendChild(tagsDiv);
-  }
   ////// Title
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
@@ -229,6 +218,19 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | '); */
   info.appendChild(meta);
+  ////// Theme tags
+  if (Array.isArray(record.theme)) {
+    const tagsDiv = document.createElement('div');
+    tagsDiv.className = 'tags';
+    record.theme.forEach(tag => {
+      const span = document.createElement('span');
+      span.className = 'tag';
+      span.textContent = tag;
+      tagsDiv.appendChild(span);
+    });
+    info.appendChild(tagsDiv);
+  }
+
   // Right : Compile Button
   const btnCol = document.createElement('div');
   btnCol.className = 'card-btncol';
