@@ -115,7 +115,6 @@ window.addEventListener('DOMContentLoaded', () => {
       div.className = 'suggestion-item' + (i === activeSuggestionIndex ? ' active' : '');
       div.textContent = `${s.name || '[No Name]'} (${s.id})`;
       div.addEventListener('mousedown', (e) => {
-        // Use mousedown instead of click so it registers before blur
         input.value = s.id;
         suggestions.classList.remove('active');
         searchById();
@@ -156,7 +155,7 @@ async function searchById() {
   categoryGrid.className = 'two-per-row';
   // Validate Input
   if (!rawID) {
-    document.searchById.placeholder = 'Please enter a VPS Table ID';
+    document.getElementById('idInput').placeholder = '!! Please enter a VPS Table ID !!';
     return;
   }
   gameCardContainer.innerHTML = `<p>Searching for “${rawID}”…</p>`;
