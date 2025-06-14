@@ -401,8 +401,8 @@ async function searchById() {
           wrap.className = 'bubble-group';
 
           const arr = Array.isArray(v) ? v : [v];
-          if (arr.length <= 3) {
-            // Show all if 3 or fewer
+          if (arr.length <= 4) {
+            // Show all if 4 or fewer
             arr.forEach(val => {
               const b = document.createElement('span');
               b.className = 'bubble';
@@ -410,8 +410,8 @@ async function searchById() {
               wrap.appendChild(b);
             });
           } else {
-            // Show 2, then "+QTY More" bubble for the rest
-            arr.slice(0,2).forEach(val => {
+            // Show 3, then "+QTY More" bubble for the rest
+            arr.slice(0,3).forEach(val => {
               const b = document.createElement('span');
               b.className = 'bubble';
               b.textContent = val;
@@ -420,12 +420,12 @@ async function searchById() {
 
             const moreBubble = document.createElement('span');
             moreBubble.className = 'bubble bubble-more';
-            moreBubble.textContent = `+${arr.length-2} More`;
+            moreBubble.textContent = `+${arr.length-3} More`;
             moreBubble.tabIndex = 0;
             // Pop-out container
             const popout = document.createElement('div');
             popout.className = 'bubble-popout';
-            arr.slice(2).forEach(val => {
+            arr.slice(3).forEach(val => {
               const li = document.createElement('div');
               li.className = 'bubble';
               li.textContent = val;
