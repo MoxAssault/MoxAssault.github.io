@@ -232,7 +232,7 @@ async function searchById() {
   let compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
   compileBtn.className = 'compile-btn vertical-btn';
-  compileBtn.textContent = 'Compile & Download\nIDs';
+  compileBtn.textContent = 'Compile';
   compileBtn.disabled = true;
   buttonCol.appendChild(compileBtn);
   card.appendChild(buttonCol);
