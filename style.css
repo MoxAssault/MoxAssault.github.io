@@ -181,6 +181,10 @@ h1 {
   box-shadow: 0 8px 32px rgba(0,0,0,0.40), 0 1.5px 8px rgba(0,0,0,0.18);
   z-index: 999;
 }
+.card-imgcol:hover .main-thumb-preview,
+.game-thumb:hover + .main-thumb-preview {
+  display: block;
+}
 
 .game-info {
   flex: 1 1 0;
@@ -327,9 +331,7 @@ h1 {
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   z-index: 999;
 }
-.thumbnail-wrapper:hover .thumb-preview,
-.card-leftCol:hover .main-thumb-preview,
-.game-thumb:hover + .main-thumb-preview {
+.thumbnail-wrapper:hover .thumb-preview{
   display: block;
 }
 
