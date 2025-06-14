@@ -187,19 +187,7 @@ async function searchById() {
   ];
   const card = document.createElement('div');
   card.className = 'game-card';
-  /* // Left : Cover Image
-  const leftCol = document.createElement('div');
-  leftCol.className = 'card-left';
-  let coverUrl = record.imgUrl ||
-    groupKeys.map(g => record[g]?.[0]?.imgUrl).find(u => u);
-  if (coverUrl) {
-    const thumb = document.createElement('img');
-    thumb.className = 'game-thumb';
-    thumb.src = coverUrl;
-    thumb.alt = record.name || rawID;
-    leftCol.appendChild(thumb);
-  }
-  card.appendChild(leftCol); */
+  // Left : Cover Image
   const leftCol = document.createElement('div');
   leftCol.className = 'card-left';
   let coverUrl = record.imgUrl ||
@@ -474,7 +462,7 @@ async function searchById() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'selected-ids.txt';
+    a.download = `${ids.join('-')}_table.yml`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
