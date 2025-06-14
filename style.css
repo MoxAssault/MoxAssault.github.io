@@ -192,7 +192,7 @@ h1 {
 
 .game-info {
   flex: 1 1 0;
-  padding: 1rem 1rem 1rem 1rem;
+  padding: .55rem 1rem .55rem 1rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -393,7 +393,7 @@ h1 {
   font-weight: bold;
   cursor: pointer;
   position: relative;
-  z-index: 101;
+  z-index: 999 auto;
   transition: background 0.18s;
 }
 .bubble-popout .bubble {
@@ -477,34 +477,34 @@ h1 {
 .meta-boxes {
   display: flex;
   gap: 0;
-  margin: 0.2rem 0 0.9rem 0;
+  margin: 0.3rem 0 0.5rem 0;
   flex-wrap: wrap;
 }
 .meta-box {
-  background: #222c3d;
-  color: #eee;
-  font-size: 1rem;
+  background: #333;
+  color: #ccc;
+  font-size: .75rem;
   font-weight: bold;
-  padding: 6px 16px;
+  padding: 5px 5px;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(0,0,0,0.16);
-  display: flex;
-  align-items: center;
+  border: 1px solid #555;
+  align-self: center;
 }
 .meta-left{
   flex: 0 0 auto;
   border-radius: 6px 0 0 6px;
-  border: 1px 0 1px 1px solid #274572;
+  min-width: 150px;
 }
 .meta-middle{
-  flex: 1;
+  flex: 0 0 auto;
   border-radius: 0;
-  border: 1px 0 1px 0 solid #274572;
+  min-width: 175px;
 }
 .meta-right {
   flex: 0 0 auto;
   border-radius: 0 6px 6px 0;
-  border: 1px 1px 1px 0 solid #274572;
+  min-width: 115px;
 }
 
 @media (max-width: 600px) {
