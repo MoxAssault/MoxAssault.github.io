@@ -231,7 +231,7 @@ async function searchById() {
   info.appendChild(meta);
   // Right : Compile Button
   const btnCol = document.createElement('div');
-  btnCol.className = 'card-right';
+  btnCol.className = 'card-btncol';
 
   const compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
