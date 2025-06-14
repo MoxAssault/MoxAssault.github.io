@@ -376,14 +376,34 @@ async function searchById() {
           const dt = document.createElement('dt');
           dt.textContent = humanize(k);
           dl.appendChild(dt);
+
           const wrap = document.createElement('div');
           wrap.className = 'bubble-group';
-          (Array.isArray(v) ? v : [v]).forEach(val => {
+
+          const arr = Array.isArray(v) ? v : [v];
+          arr.slice(0,2).forEach(val => {
             const b = document.createElement('span');
             b.className = 'bubble';
             b.textContent = val;
             wrap.appendChild(b);
           });
+
+          if (arr.length > 2) {
+            const moreBubble = document.createElement('span');
+            moreBubble.className = 'bubble bubble-more';
+            moreBubble.textContent = `+${arr.length-2} More`;
+            // Pop-out container
+            const popout = document.createElement('div');
+            popout.className = 'bubble-popout';
+            arr.slice(2).forEach(val => {
+              const li = document.createElement('div');
+              li.className = 'bubble';
+              li.textContent = val;
+              popout.appendChild(li);
+            });
+            moreBubble.appendChild(popout);
+            wrap.appendChild(moreBubble);
+          }
           const dd = document.createElement('dd');
           dd.appendChild(wrap);
           dl.appendChild(dd);
@@ -462,7 +482,7 @@ async function searchById() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${ids.join('-')}_table.yml`;
+    a.download = `${rawID}_table.yml`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
