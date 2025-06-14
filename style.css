@@ -181,8 +181,9 @@ h1 {
   box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 1.5px 8px rgba(0,0,0,0.28);
   z-index: 999 !important;
 }
-.container, .game-card, .category-container, .item-display {
+.container, .game-card, .category-container, .item-display, .bubble-group {
   overflow: visible !important;
+  position: relative;
 }
 .card-imgcol:hover .main-thumb-preview,
 .game-thumb:hover + .main-thumb-preview {
