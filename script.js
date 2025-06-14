@@ -43,6 +43,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('searchBtn');
   const input = document.getElementById('idInput');
   const suggestions = document.getElementById('suggestions');
+  const floatContainer = document.getElementById('searchFloatContainer');
+  const closeBtn = document.getElementById('closeSearch');
 
   btn.addEventListener('click', searchById);
 
@@ -59,7 +61,7 @@ window.addEventListener('DOMContentLoaded', () => {
         searchById();
       }
     }
-    // Handle Up/Down for Suggestions
+    // Handle up/down for suggestions
     if (['ArrowDown', 'ArrowUp'].includes(e.key) && lastSuggestions.length) {
       e.preventDefault();
       if (e.key === 'ArrowDown') {
@@ -69,7 +71,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
       updateSuggestionsUI();
     }
-    // Escape to Close Suggestions
+    // Escape to close suggestions
     if (e.key === 'Escape') {
       suggestions.classList.remove('active');
     }
@@ -123,6 +125,25 @@ window.addEventListener('DOMContentLoaded', () => {
       suggestions.appendChild(div);
     });
   }
+
+  // Close button logic for mobile
+  closeBtn.addEventListener('click', () => {
+    floatContainer.style.display = 'none';
+    let openBtn = document.getElementById('openSearch');
+    if (!openBtn) {
+      openBtn = document.createElement('button');
+      openBtn.id = 'openSearch';
+      openBtn.className = 'open-btn';
+      openBtn.title = 'Open Search';
+      openBtn.innerHTML = '<span style="font-size:1.6em;">&#128269;</span>';
+      document.body.appendChild(openBtn);
+    }
+    openBtn.style.display = 'block';
+    openBtn.onclick = () => {
+      floatContainer.style.display = '';
+      openBtn.style.display = 'none';
+    };
+  });
 });
 
 // Function to Search by Table ID
@@ -138,7 +159,6 @@ async function searchById() {
 
   // Validate Input
   if (!rawID) {
-    gameCardContainer.innerHTML = `<p class="error">Please enter a VPS Table ID.</p>`;
     document.searchById.placeholder = 'Please enter a VPS Table ID';
     return;
   }
@@ -162,7 +182,7 @@ async function searchById() {
     return;
   }
 
-  //=== Build Game Card ===//
+  // Build game card
   const groupKeys = [
     'tableFiles','b2sFiles','romFiles',
     'altColorFiles','pupPackFiles','mediaPackFiles'
@@ -180,11 +200,11 @@ async function searchById() {
   }
   const info = document.createElement('div');
   info.className = 'game-info';
-  // Add Title
+  // Title
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
   info.appendChild(title);
-  // Add Meta Line(s)
+  // Meta line
   const meta = document.createElement('p');
   meta.className = 'meta';
   meta.textContent = [
@@ -193,7 +213,7 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | ');
   info.appendChild(meta);
-  // Add Theme Tags
+  // Theme tags
   if (Array.isArray(record.theme)) {
     const tagsDiv = document.createElement('div');
     tagsDiv.className = 'tags';
@@ -208,7 +228,8 @@ async function searchById() {
   card.appendChild(info);
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
-  // Add Compile/Download Button
+
+  // Create and insert the Compile/Download button under the game card
   let compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
   compileBtn.className = 'compile-btn';
@@ -218,8 +239,7 @@ async function searchById() {
   compileBtn.style.display = "block";
   gameCardContainer.appendChild(compileBtn);
 
-
-  //=== Format Date ===//
+  // Date formatter
   const formatDate = ts => {
     try {
       return new Date(ts).toLocaleDateString(undefined, {
@@ -230,33 +250,38 @@ async function searchById() {
     }
   };
 
-  //=== Create Categories ===//
+  // Render categories
   const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
   present.forEach(group => {
     const items = record[group];
     const container = document.createElement('div');
     container.className = 'category-container';
-    // Add Category Header
+
+    // Header
     const lbl = document.createElement('label');
     lbl.className = 'category-label';
     lbl.textContent = humanize(group);
     container.appendChild(lbl);
-    // Create and Add Dropdown
+
+    // Dropdown
     const select = document.createElement('select');
     const placeholder = document.createElement('option');
     placeholder.textContent = `Select a ${humanize(group).slice(0,-1)}`;
     placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
-    // Add Full Width Class for non-table & b2s
+
+    // Make select full width for non-table/b2s
     if (group !== 'tableFiles' && group !== 'b2sFiles') {
       select.classList.add('fullwidth-select');
     }
-    // Add Options to Dropdown 
+
+    // Option creation -- robust "broken" check
     items.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.id;
+
       // Detect "broken" at any level (top or nested in urls)
       let isBroken = false;
       // Check Top level
@@ -279,6 +304,7 @@ async function searchById() {
         opt.textContent += ' (❌Broken)';
         opt.className = 'broken-option';
       }
+
       select.appendChild(opt);
     });
     // Add select to container
@@ -289,19 +315,23 @@ async function searchById() {
     if (group === 'tableFiles' || group === 'b2sFiles') {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
-      // Small Thumbnail
+
+      // small thumb
       thumb = document.createElement('img');
       thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
-      // Hidden Preview
+
+      // hidden preview
       preview = document.createElement('img');
       preview.className = 'thumb-preview';
       preview.alt = '';
       thumbWrap.appendChild(preview);
+
       container.appendChild(thumbWrap);
     }
-    // Edit Details Panel (remove thumbnail image from non-table & b2s)
+
+    // Details panel (no full-size image)
     const display = document.createElement('div');
     display.className = 'item-display';
     container.appendChild(display);
@@ -311,12 +341,15 @@ async function searchById() {
       display.innerHTML = '';
       const item = items.find(i => i.id === select.value);
       if (!item) return;
-      // Update Thumbnail & Preview
+
+      // update thumbnail & preview
       if (thumb)   thumb.src   = item.imgUrl || '';
       if (preview) preview.src = item.imgUrl || '';
-      // Metadata List
+
+      // metadata list
       const dl = document.createElement('dl');
-      // Date Row
+
+      // Date row
       const dateRow = document.createElement('div');
       dateRow.style.display = 'flex';
       dateRow.style.justifyContent = 'space-between';
@@ -335,7 +368,8 @@ async function searchById() {
         }
       });
       display.appendChild(dateRow);
-      // Field Appender
+
+      // Field appender
       const appendField = (k, v) => {
         if (['authors','features','tableFormat','version'].includes(k)) {
           const dt = document.createElement('dt');
@@ -362,6 +396,7 @@ async function searchById() {
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
+
       // 1) Badge fields
       ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
@@ -372,13 +407,13 @@ async function searchById() {
         .sort()
         .forEach(k => appendField(k, item[k]));
 
-      // 3) Append all fields first
+      // Append all fields first
       display.appendChild(dl);
 
-      // 4) Comment last, as a BOX with label
+      // 3) Comment last, as a BOX with label
       if (item.comment) {
         const commentLabel = document.createElement('div');
-        commentLabel.className = 'comment-label';
+        commentLabel.className = 'category-label';
         commentLabel.textContent = 'Comments';
         display.appendChild(commentLabel);
 
@@ -388,10 +423,11 @@ async function searchById() {
         display.appendChild(commentDiv);
       }
     });
+
     categoryGrid.appendChild(container);
   });
 
-  //=== Utility to check if any dropdown has a real selection ===//
+  // Utility to check if any dropdown has a real selection
   function checkIfAnySelected() {
     const selects = categoryGrid.querySelectorAll('select');
     for (const sel of selects) {
@@ -401,21 +437,24 @@ async function searchById() {
     }
     return false;
   }
-  
-  //=== Listen for changes in ALL dropdowns ===//
+
+  // Listen for changes in ALL dropdowns to enable/disable compile button
   categoryGrid.querySelectorAll('select').forEach(sel => {
     sel.addEventListener('change', () => {
       compileBtn.disabled = !checkIfAnySelected();
     });
   });
-  
-  //=== Enable Compile Button if any dropdown has a valid selection ===//
+
+  // Compile and Download logic
   compileBtn.onclick = () => {
-    // Find all selected values in categoryGrid dropdowns
     const selects = categoryGrid.querySelectorAll('select');
     const ids = [];
     selects.forEach(sel => {
-      if (sel.value && sel.selectedIndex > 0 && !sel.options[sel.selectedIndex].disabled) {
+      if (
+        sel.value &&
+        sel.selectedIndex > 0 &&
+        !sel.options[sel.selectedIndex].disabled
+      ) {
         ids.push(sel.value);
       }
     });

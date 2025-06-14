@@ -8,15 +8,18 @@
 </head>
 <body>
   <div class="container">
+    <!-- Floating search bar and suggestions -->
     <div class="top-spacer"> </div>
-    <div class="search-float-container">
+    <div class="search-float-container" id="searchFloatContainer">
       <h1>VPXS YML Creator</h1>
       <div class="search-box">
         <input id="idInput" type="text" placeholder="Enter VPS Table ID..." autocomplete="off" />
         <button id="searchBtn">Search</button>
+        <button id="closeSearch" class="close-btn" aria-label="Close Search" title="Close Search">&times;</button>
       </div>
       <div id="suggestions" class="suggestions-list"></div>
     </div>
+    <!-- Results -->
     <div id="results">
       <div id="gameCardContainer"></div>
       <div id="categoryGrid"></div>
