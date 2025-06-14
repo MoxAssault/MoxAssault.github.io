@@ -415,6 +415,7 @@ async function searchById() {
             const moreBubble = document.createElement('span');
             moreBubble.className = 'bubble bubble-more';
             moreBubble.textContent = `+${arr.length-2} More`;
+            moreBubble.tabIndex = 0; // make focusable for accessibility
             // Pop-out container
             const popout = document.createElement('div');
             popout.className = 'bubble-popout';
@@ -425,6 +426,25 @@ async function searchById() {
               popout.appendChild(li);
             });
             moreBubble.appendChild(popout);
+            // Open on click, close on mouseleave or blur ---
+            moreBubble.addEventListener('click', (e) => {
+              e.stopPropagation();
+              // Toggle visibility
+              const isVisible = popout.style.display === 'block';
+              document.querySelectorAll('.bubble-popout').forEach(p => p.style.display = 'none'); // close others
+              popout.style.display = isVisible ? 'none' : 'block';
+            });
+            moreBubble.addEventListener('mouseleave', () => {
+              popout.style.display = 'none';
+            });
+            // Also close on keyboard blur (accessibility)
+            moreBubble.addEventListener('blur', () => {
+              popout.style.display = 'none';
+            });
+            // Optional: clicking elsewhere closes all popouts
+            document.body.addEventListener('click', () => {
+              popout.style.display = 'none';
+            });
             wrap.appendChild(moreBubble);
           }
           const dd = document.createElement('dd');
