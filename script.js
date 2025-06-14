@@ -513,30 +513,74 @@ async function searchById() {
   });
 
   // Compile and Download logic
-  compileBtn.onclick = () => {
+  compileBtn.onclick = (e) => {
+    e.preventDefault();
+    // 1. Gather selected values and available categories
     const selects = categoryGrid.querySelectorAll('select');
-    const ids = [];
+    const chosen = [];
     selects.forEach(sel => {
       if (
         sel.value &&
         sel.selectedIndex > 0 &&
         !sel.options[sel.selectedIndex].disabled
       ) {
-        ids.push(sel.value);
+        // Find parent container and its label (category name)
+        const container = sel.closest('.category-container');
+        const label = container ? container.querySelector('.category-label')?.textContent : '';
+        chosen.push({
+          category: label,
+          id: sel.value
+        });
       }
     });
-    if (ids.length === 0) return;
-    // Create TXT file and download
-    const blob = new Blob([ids.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${rawID}_table.yml`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
+    if (chosen.length === 0) return;
+    // 2. Open modal and render dynamic form
+    const overlay = document.getElementById('modalOverlay');
+    const fieldsDiv = document.getElementById('modalFields');
+    fieldsDiv.innerHTML = '';
+    chosen.forEach(item => {
+      const label = document.createElement('label');
+      label.className = 'modal-field-label';
+      label.textContent = `${item.category} ID`;
+      label.setAttribute('for', `modal-input-${item.category}`);
+      const input = document.createElement('input');
+      input.className = 'modal-input';
+      input.type = 'text';
+      input.id = `modal-input-${item.category}`;
+      input.name = item.category;
+      input.value = item.id;
+      fieldsDiv.appendChild(label);
+      fieldsDiv.appendChild(input);
+    });
+    overlay.style.display = 'flex';
+    // 3. Modal close logic
+    document.getElementById('modalClose').onclick = () => {
+      overlay.style.display = 'none';
+    };
+    overlay.onclick = (evt) => {
+      if (evt.target === overlay) overlay.style.display = 'none';
+    };
+    // 4. Handle form submission (download .txt of current values)
+    const modalForm = document.getElementById('modalForm');
+    modalForm.onsubmit = (evt) => {
+      evt.preventDefault();
+      const ids = [];
+      fieldsDiv.querySelectorAll('input').forEach(input => {
+        if (input.value) ids.push(input.value);
+      });
+      if (ids.length === 0) return;
+      const blob = new Blob([ids.join('\n')], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'selected-ids.txt';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      overlay.style.display = 'none';
+    };
   };
 }

@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="container">
-    <!-- Floating search bar and suggestions -->
+    <!-- START Floating Search -->
     <div class="top-spacer"> </div>
     <div class="search-float-container" id="searchFloatContainer">
       <h1>VPXS YML Creator</h1>
@@ -19,12 +19,26 @@
       </div>
       <div id="suggestions" class="suggestions-list"></div>
     </div>
-    <!-- Results -->
+    <!-- END Floating Search -->
+    <!-- START Results -->
     <div id="results">
       <div id="gameCardContainer"></div>
       <div id="categoryGrid"></div>
     </div>
+    <!-- END Results -->
   </div>
+  <!-- START Submit Modal -->
+  <div id="modalOverlay" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <button id="modalClose" class="modal-close-btn" title="Close">&times;</button>
+      <h2>Submit Table Selections</h2>
+      <form id="modalForm">
+        <div id="modalFields"></div>
+        <button type="submit" class="modal-submit-btn">Confirm & Download</button>
+      </form>
+    </div>
+  </div>
+  <!-- END Submit Modal -->
   <script src="script.js"></script>
 </body>
 </html>
