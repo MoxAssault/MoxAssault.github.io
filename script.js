@@ -401,18 +401,27 @@ async function searchById() {
           wrap.className = 'bubble-group';
 
           const arr = Array.isArray(v) ? v : [v];
-          arr.slice(0,2).forEach(val => {
-            const b = document.createElement('span');
-            b.className = 'bubble';
-            b.textContent = val;
-            wrap.appendChild(b);
-          });
+          if (arr.length <= 3) {
+            // Show all if 3 or fewer
+            arr.forEach(val => {
+              const b = document.createElement('span');
+              b.className = 'bubble';
+              b.textContent = val;
+              wrap.appendChild(b);
+            });
+          } else {
+            // Show 2, then "+QTY More" bubble for the rest
+            arr.slice(0,2).forEach(val => {
+              const b = document.createElement('span');
+              b.className = 'bubble';
+              b.textContent = val;
+              wrap.appendChild(b);
+            });
 
-          if (arr.length > 2) {
             const moreBubble = document.createElement('span');
             moreBubble.className = 'bubble bubble-more';
             moreBubble.textContent = `+${arr.length-2} More`;
-            moreBubble.tabIndex = 0; // make focusable for accessibility
+            moreBubble.tabIndex = 0;
             // Pop-out container
             const popout = document.createElement('div');
             popout.className = 'bubble-popout';
