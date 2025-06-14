@@ -205,7 +205,7 @@ h1 {
   align-self: center;
   justify-content: flex-start;
   min-width: 120px;
-  padding: 1.5rem 1rem 1.5rem 0.7rem;
+  padding: .75rem 1rem .75rem .75rem;
 }
 
 /* Compile button for fallback (mobile/stacked) */
@@ -466,18 +466,23 @@ h1 {
   font-weight: bold;
 }
 .game-info .tags {
-  margin-top: .5rem;
+  margin-top: .25rem;
 }
 .game-info .tag {
-  display: inline-block; background: #444; border-radius: 4px;
-  padding: 2px 6px; margin-right: 4px; font-size: .8rem;
-  color: #CCCCCC;
+  display: inline-block;
+  background: #444;
+  color: #CCC;
+  border-radius: 5px;
+  padding: 3px 6px;
+  margin-right: 5px;
+  font-size: .8rem;
+  font-weight: bold;
 }
 
 .meta-boxes {
   display: flex;
   gap: 0;
-  margin: 0.3rem 0 0.5rem 0;
+  margin: .5rem 0 .25rem 0;
   flex-wrap: wrap;
 }
 .meta-box {
