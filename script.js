@@ -354,7 +354,7 @@ async function searchById() {
         }
       });
       display.appendChild(dateRow);
-      // Field appender
+      ////// Field Appender
       const appendField = (k, v) => {
         if (['authors','features','tableFormat','version'].includes(k)) {
           const dt = document.createElement('dt');
@@ -381,19 +381,18 @@ async function searchById() {
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
-      // 1) Badge fields
+      ////// 1) Badge fields
       ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
       });
-      // 2) Other fields
+      ////// 2) Other fields
       Object.keys(item)
         .filter(k => !['id','_group','game','urls','imgUrl','createdAt','updatedAt','authors','features','tableFormat','version','comment'].includes(k))
         .sort()
         .forEach(k => appendField(k, item[k]));
-      // 3) Append all fields first
+      ////// 3) Append all fields first
       display.appendChild(dl);
-
-      // 4) Comment last, as a BOX with label
+      ////// 4) Comment last, as a BOX with label
       if (item.comment) {
         const commentLabel = document.createElement('div');
         commentLabel.className = 'comment-label';
@@ -410,7 +409,7 @@ async function searchById() {
     categoryGrid.appendChild(container);
   });
 
-  // Utility to check if any dropdown has a real selection
+  // Check for Selection from any Dropdown
   function checkIfAnySelected() {
     const selects = categoryGrid.querySelectorAll('select');
     for (const sel of selects) {
