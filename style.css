@@ -352,7 +352,7 @@ h1 {
   margin: 0 0 .5rem .25rem;
   color: #EEEEEE;
 }
-.item-display date {
+.date {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
