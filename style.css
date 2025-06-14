@@ -482,7 +482,7 @@ h1 {
 .meta-boxes {
   display: flex;
   gap: 0;
-  margin: .5rem 0 .25rem 0;
+  margin: .3rem 0 .25rem 0;
   flex-wrap: wrap;
 }
 .meta-box {
