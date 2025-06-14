@@ -225,17 +225,17 @@ async function searchById() {
     });
     info.appendChild(tagsDiv);
   }
-  // Create and insert the Compile/Download button under the game card
+  card.appendChild(info);
+  // Right : Button Column with Vertical Compile Button
+  const buttonCol = document.createElement('div');
+  buttonCol.className = 'button-col';
   let compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
-  compileBtn.className = 'compile-btn';
-  compileBtn.textContent = 'Compile & Download IDs';
-  compileBtn.disabled = true; // initially disabled
-  compileBtn.style.margin = "1.3rem auto 0 auto";
-  compileBtn.style.display = "block";
-  info.appendChild(compileBtn);
-  // Finish Card Layout
-  card.appendChild(info);
+  compileBtn.className = 'compile-btn vertical-btn';
+  compileBtn.textContent = 'Compile & Download\nIDs';
+  compileBtn.disabled = true;
+  buttonCol.appendChild(compileBtn);
+  card.appendChild(buttonCol);
   // Clear and Insert New Card
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
@@ -257,12 +257,12 @@ async function searchById() {
     const items = record[group];
     const container = document.createElement('div');
     container.className = 'category-container';
-    // Header
+    ////// Header
     const lbl = document.createElement('label');
     lbl.className = 'category-label';
     lbl.textContent = humanize(group);
     container.appendChild(lbl);
-    // Dropdown
+    ////// Dropdown
     const select = document.createElement('select');
     const placeholder = document.createElement('option');
     placeholder.textContent = `Select a ${humanize(group).slice(0,-1)}`;
