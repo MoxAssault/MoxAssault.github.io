@@ -239,7 +239,7 @@ async function searchById() {
   const compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
   compileBtn.className = 'compile-btn';
-  compileBtn.textContent = 'LFG, Build YML!';
+  compileBtn.textContent = 'LFG, Build\nMy YML!';
   compileBtn.disabled = true;
   btnCol.appendChild(compileBtn);
 
