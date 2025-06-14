@@ -197,6 +197,7 @@ h1 {
   transition: background 0.15s;
   opacity: 1;
   margin: .75rem 0;
+  white-space: pre-line;
 }
 .compile-btn:disabled {
   background: #222;
