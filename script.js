@@ -200,11 +200,11 @@ async function searchById() {
   // Middle : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
-      // Title
+  ////// Title
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
   info.appendChild(title);
-      // Meta line
+  ////// Meta line
   const meta = document.createElement('p');
   meta.className = 'meta';
   meta.textContent = [
@@ -213,7 +213,7 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | ');
   info.appendChild(meta);
-      // Theme tags
+  ////// Theme tags
   if (Array.isArray(record.theme)) {
     const tagsDiv = document.createElement('div');
     tagsDiv.className = 'tags';
