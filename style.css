@@ -392,7 +392,7 @@ h1 {
   font-weight: bold;
   cursor: pointer;
   position: relative;
-  z-index: 101;
+  z-index: 101 !important;
   transition: background 0.18s;
 }
 .bubble-popout .bubble {
