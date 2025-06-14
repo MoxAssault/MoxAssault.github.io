@@ -162,7 +162,7 @@ async function searchById() {
     return;
   }
 
-  // Build game card
+  //=== Build Game Card ===//
   const groupKeys = [
     'tableFiles','b2sFiles','romFiles',
     'altColorFiles','pupPackFiles','mediaPackFiles'
@@ -180,13 +180,11 @@ async function searchById() {
   }
   const info = document.createElement('div');
   info.className = 'game-info';
-  
-  // Title
+  // Add Title
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
   info.appendChild(title);
-  
-  // Meta line
+  // Add Meta Line(s)
   const meta = document.createElement('p');
   meta.className = 'meta';
   meta.textContent = [
@@ -195,8 +193,7 @@ async function searchById() {
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
   ].filter(Boolean).join(' | ');
   info.appendChild(meta);
-  
-  // Theme tags
+  // Add Theme Tags
   if (Array.isArray(record.theme)) {
     const tagsDiv = document.createElement('div');
     tagsDiv.className = 'tags';
@@ -211,8 +208,18 @@ async function searchById() {
   card.appendChild(info);
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
+  // Add Compile/Download Button
+  let compileBtn = document.createElement('button');
+  compileBtn.id = 'compileBtn';
+  compileBtn.className = 'compile-btn';
+  compileBtn.textContent = 'Compile & Download IDs';
+  compileBtn.disabled = true; // initially disabled
+  compileBtn.style.margin = "1.3rem auto 0 auto";
+  compileBtn.style.display = "block";
+  gameCardContainer.appendChild(compileBtn);
 
-  // Format Date
+
+  //=== Format Date ===//
   const formatDate = ts => {
     try {
       return new Date(ts).toLocaleDateString(undefined, {
@@ -223,42 +230,38 @@ async function searchById() {
     }
   };
 
-  // Render Categories
+  //=== Create Categories ===//
   const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
   present.forEach(group => {
     const items = record[group];
     const container = document.createElement('div');
     container.className = 'category-container';
-
-    // Category Header
+    // Add Category Header
     const lbl = document.createElement('label');
     lbl.className = 'category-label';
     lbl.textContent = humanize(group);
     container.appendChild(lbl);
-
-    // Create Dropdown
+    // Create and Add Dropdown
     const select = document.createElement('select');
     const placeholder = document.createElement('option');
     placeholder.textContent = `Select a ${humanize(group).slice(0,-1)}`;
     placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
-
     // Add Full Width Class for non-table & b2s
     if (group !== 'tableFiles' && group !== 'b2sFiles') {
       select.classList.add('fullwidth-select');
     }
-
-    // Populate Options for Dropdown 
+    // Add Options to Dropdown 
     items.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.id;
       // Detect "broken" at any level (top or nested in urls)
       let isBroken = false;
-      // Top level
+      // Check Top level
       if (item.broken === true || item.broken === "true") isBroken = true;
-      // Nested under "urls" (array or object)
+      // Check all Nested under "urls" (array or object)
       if (!isBroken && item.urls) {
         if (Array.isArray(item.urls)) {
           isBroken = item.urls.some(
@@ -273,7 +276,7 @@ async function searchById() {
       // If broken, mark option as disabled and add "(Broken)" text
       if (isBroken) {
         opt.disabled = true;
-        opt.textContent += ' (🚫Broken)';
+        opt.textContent += ' (❌Broken)';
         opt.className = 'broken-option';
       }
       select.appendChild(opt);
@@ -281,45 +284,39 @@ async function searchById() {
     // Add select to container
     container.appendChild(select);
 
-    // Show Thumbnails table & b2s ONLY
+    //=== Details Panel (with thumbnail image) ===//
     let thumb, preview;
     if (group === 'tableFiles' || group === 'b2sFiles') {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
-
       // Small Thumbnail
       thumb = document.createElement('img');
       thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
-
       // Hidden Preview
       preview = document.createElement('img');
       preview.className = 'thumb-preview';
       preview.alt = '';
       thumbWrap.appendChild(preview);
-
       container.appendChild(thumbWrap);
     }
-
-    // Details panel (no full-size image)
+    // Edit Details Panel (remove thumbnail image from non-table & b2s)
     const display = document.createElement('div');
     display.className = 'item-display';
     container.appendChild(display);
 
+    //=== Event Listener for Dropdown Change ===//
     select.addEventListener('change', () => {
       display.innerHTML = '';
       const item = items.find(i => i.id === select.value);
       if (!item) return;
-
-      // update thumbnail & preview
+      // Update Thumbnail & Preview
       if (thumb)   thumb.src   = item.imgUrl || '';
       if (preview) preview.src = item.imgUrl || '';
-
-      // metadata list
+      // Metadata List
       const dl = document.createElement('dl');
-
-      // Date row
+      // Date Row
       const dateRow = document.createElement('div');
       dateRow.style.display = 'flex';
       dateRow.style.justifyContent = 'space-between';
@@ -338,8 +335,7 @@ async function searchById() {
         }
       });
       display.appendChild(dateRow);
-
-      // Field appender
+      // Field Appender
       const appendField = (k, v) => {
         if (['authors','features','tableFormat','version'].includes(k)) {
           const dt = document.createElement('dt');
@@ -366,7 +362,6 @@ async function searchById() {
         dl.appendChild(dt);
         dl.appendChild(dd);
       };
-
       // 1) Badge fields
       ['authors','features','tableFormat','version'].forEach(k => {
         if (item[k]) appendField(k, item[k]);
@@ -395,4 +390,47 @@ async function searchById() {
     });
     categoryGrid.appendChild(container);
   });
+
+  //=== Utility to check if any dropdown has a real selection ===//
+  function checkIfAnySelected() {
+    const selects = categoryGrid.querySelectorAll('select');
+    for (const sel of selects) {
+      if (sel.value && sel.selectedIndex > 0 && !sel.options[sel.selectedIndex].disabled) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  //=== Listen for changes in ALL dropdowns ===//
+  categoryGrid.querySelectorAll('select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      compileBtn.disabled = !checkIfAnySelected();
+    });
+  });
+  
+  //=== Enable Compile Button if any dropdown has a valid selection ===//
+  compileBtn.onclick = () => {
+    // Find all selected values in categoryGrid dropdowns
+    const selects = categoryGrid.querySelectorAll('select');
+    const ids = [];
+    selects.forEach(sel => {
+      if (sel.value && sel.selectedIndex > 0 && !sel.options[sel.selectedIndex].disabled) {
+        ids.push(sel.value);
+      }
+    });
+    if (ids.length === 0) return;
+    // Create TXT file and download
+    const blob = new Blob([ids.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'selected-ids.txt';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  };
 }
