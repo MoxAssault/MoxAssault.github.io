@@ -185,9 +185,9 @@ async function searchById() {
     'pupPackFiles',
     'mediaPackFiles'
   ];
-/*   const card = document.createElement('div');
+  const card = document.createElement('div');
   card.className = 'game-card';
-  // Left : Cover Image
+  /* // Left : Cover Image
   const leftCol = document.createElement('div');
   leftCol.className = 'card-left';
   let coverUrl = record.imgUrl ||
