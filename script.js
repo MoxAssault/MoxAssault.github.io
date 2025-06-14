@@ -269,20 +269,18 @@ async function searchById() {
     placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
-    // Make select full width for non-table/b2s
+    ////// Edit non-Table/B2S Dropdown : Make Full Width
     if (group !== 'tableFiles' && group !== 'b2sFiles') {
       select.classList.add('fullwidth-select');
     }
-    // Option creation -- robust "broken" check
+    ////// Option creation -- robust "broken" check
     items.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.id;
-      // Detect "broken" at any level (top or nested in urls)
+      ////// Multi-level Detection for "broken" Options (top or nested in urls)
       let isBroken = false;
-      // Check Top level
       if (item.broken === true || item.broken === "true") isBroken = true;
-      // Check all Nested under "urls" (array or object)
       if (!isBroken && item.urls) {
         if (Array.isArray(item.urls)) {
           isBroken = item.urls.some(
@@ -294,15 +292,15 @@ async function searchById() {
           );
         }
       }
-      // If broken, mark option as disabled and add "(Broken)" text
+      ////// If Broken, Mark Option as Disabled and Add "(Broken)"
       if (isBroken) {
         opt.disabled = true;
         opt.textContent += ' (❌Broken)';
         opt.className = 'broken-option';
       }
+    ////// Add select to container
       select.appendChild(opt);
     });
-    // Add select to container
     container.appendChild(select);
 
     //=== Details Panel (with thumbnail image) ===//
@@ -310,19 +308,19 @@ async function searchById() {
     if (group === 'tableFiles' || group === 'b2sFiles') {
       const thumbWrap = document.createElement('span');
       thumbWrap.className = 'thumbnail-wrapper';
-      // small thumb
+      ////// Small Thumb
       thumb = document.createElement('img');
       thumb.className = 'thumb-small';
       thumb.alt = '';
       thumbWrap.appendChild(thumb);
-      // hidden preview
+      ////// Hidden Preview
       preview = document.createElement('img');
       preview.className = 'thumb-preview';
       preview.alt = '';
       thumbWrap.appendChild(preview);
       container.appendChild(thumbWrap);
     }
-    // Details panel (no full-size image)
+    ////// Details Panel (no full-size image)
     const display = document.createElement('div');
     display.className = 'item-display';
     container.appendChild(display);
@@ -332,12 +330,12 @@ async function searchById() {
       display.innerHTML = '';
       const item = items.find(i => i.id === select.value);
       if (!item) return;
-      // update thumbnail & preview
+      ////// Update Thumbnail & Preview
       if (thumb)   thumb.src   = item.imgUrl || '';
       if (preview) preview.src = item.imgUrl || '';
-      // metadata list
+      ////// Metadata List
       const dl = document.createElement('dl');
-      // Date row
+      ////// Date Row
       const dateRow = document.createElement('div');
       dateRow.style.display = 'flex';
       dateRow.style.justifyContent = 'space-between';
