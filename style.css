@@ -181,7 +181,7 @@ h1 {
   box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 1.5px 8px rgba(0,0,0,0.28);
   z-index: 999 !important;
 }
-.container, .game-card {
+.container, .game-card, .category-container, .item-display {
   overflow: visible !important;
 }
 .card-imgcol:hover .main-thumb-preview,
@@ -378,7 +378,7 @@ h1 {
   border: 1.5px solid #0077cc;
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.32);
-  z-index: 10001 !important;
+  z-index: 10020 !important;
   padding: 0.6em 0.8em;
   white-space: normal;
 }
@@ -471,4 +471,32 @@ h1 {
   display: inline-block; background: #444; border-radius: 4px;
   padding: 2px 6px; margin-right: 4px; font-size: .8rem;
   color: #CCCCCC;
+}
+
+.meta-boxes {
+  display: flex;
+  gap: 1rem;
+  margin: 0.2rem 0 0.9rem 0;
+  flex-wrap: wrap;
+}
+.meta-box {
+  background: #222c3d;
+  color: #eee;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 6px 16px;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.16);
+  border: 1px solid #274572;
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .meta-boxes {
+    gap: 0.6rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .meta-box { width: 100%; }
 }

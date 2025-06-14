@@ -216,16 +216,36 @@ async function searchById() {
   const title = document.createElement('h2');
   title.textContent = record.name || rawID;
   info.appendChild(title);
-  ////// Meta line
-  const meta = document.createElement('p');
+  ////// Meta Box Container
+  const metaBoxes = document.createElement('div');
+  metaBoxes.className = 'meta-boxes';
+  //////////// Manufacturer (Year)
+  const manufBox = document.createElement('div');
+  manufBox.className = 'meta-box';
+  let manufacturer = record.manufacturer || '';
+  let year = record.year ? ` (${record.year})` : '';
+  manufBox.textContent = `${manufacturer}${year}`;
+  //////////// Updated
+  const updatedBox = document.createElement('div');
+  updatedBox.className = 'meta-box';
+  const updatedAt = record.updatedAt
+    ? (new Date(record.updatedAt)).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
+    : '';
+  updatedBox.textContent = updatedAt ? `Updated: ${updatedAt}` : '';
+  //////////// VPS ID
+  const idBox = document.createElement('div');
+  idBox.className = 'meta-box';
+  idBox.textContent = record.id || '';
+  ////// Add to container
+  metaBoxes.appendChild(manufBox);
+  metaBoxes.appendChild(updatedBox);
+  metaBoxes.appendChild(idBox);
+  info.appendChild(metaBoxes);
+
+  /* const meta = document.createElement('p');
   meta.className = 'meta';
   meta.textContent = `${record.manufacturer} (${record.year})`;
-  /* meta.textContent = [
-    record.type && `Type: ${record.type}`,
-    record.year && `Year: ${record.year}`,
-    record.manufacturer && `Manufacturer: ${record.manufacturer}`
-  ].filter(Boolean).join(' | '); */
-  info.appendChild(meta);
+  info.appendChild(meta); */
   ////// Theme tags
   if (Array.isArray(record.theme)) {
     const tagsDiv = document.createElement('div');
