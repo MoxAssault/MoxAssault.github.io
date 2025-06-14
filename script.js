@@ -217,11 +217,12 @@ async function searchById() {
   ////// Meta line
   const meta = document.createElement('p');
   meta.className = 'meta';
-  meta.textContent = [
+  meta.textContent = `${record.manufacturer} (${record.year})`;
+  /* meta.textContent = [
     record.type && `Type: ${record.type}`,
     record.year && `Year: ${record.year}`,
     record.manufacturer && `Manufacturer: ${record.manufacturer}`
-  ].filter(Boolean).join(' | ');
+  ].filter(Boolean).join(' | '); */
   info.appendChild(meta);
   ////// Theme tags
   if (Array.isArray(record.theme)) {
