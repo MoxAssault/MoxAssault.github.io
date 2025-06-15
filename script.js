@@ -1,4 +1,4 @@
-//import { addYMLFieldInput } from './modalHelper.js';
+import { addYMLFieldInput } from './modalHelper.js';
 
 const API_URLS = [
   'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json',
