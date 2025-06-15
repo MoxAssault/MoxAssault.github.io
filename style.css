@@ -1,7 +1,5 @@
-/* === Basic Reset === */
-* { box-sizing: border-box; margin:0; padding:0; }
-
 /* === Body === */
+* { box-sizing: border-box; margin:0; padding:0; }
 body {
   background: #000;
   color: #CCCCCC;
@@ -17,12 +15,15 @@ body {
   padding: 20px;
   border-radius: 8px;
 }
-.top-spacer { text-align: center; margin-top: 9.5rem; }
+.top-spacer {
+  text-align: center;
+  margin-top: 9.5rem;
+}
 
 /* === Floating Search Bar === */
 .search-float-container {
   position: fixed;
-  top: 40px; /* adjust as needed */
+  top: 40px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
