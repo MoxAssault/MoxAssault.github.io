@@ -300,11 +300,10 @@ async function searchById() {
   // Right : Compile Button
   const btnCol = document.createElement('div');
   btnCol.className = 'card-btncol';
-
   const compileBtn = document.createElement('button');
   compileBtn.id = 'compileBtn';
   compileBtn.className = 'compile-btn';
-  compileBtn.textContent = 'LFG, Build\nMy YML!';
+  compileBtn.textContent = 'LFG!!';
   compileBtn.disabled = true;
   btnCol.appendChild(compileBtn);
 
