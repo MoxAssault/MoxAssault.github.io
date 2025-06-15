@@ -3,7 +3,47 @@ const API_URLS = [
   'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
 ];
 
-let vpsCache = null; // cache for all records
+const YML_FIELDS = [
+  {name: 'applyFixes',                type: 'array'},
+  {name: 'backglassAuthorsOverride',  type: 'array'},
+  {name: 'backglassBundled',          type: 'bool'},
+  {name: 'backglassChecksum',         type: 'str'},
+  {name: 'backglassImageOverride',    type: 'str'},
+  {name: 'backglassNotes',            type: 'str'},
+  {name: 'backglassUrlOverride',      type: 'str'},
+  {name: 'backglassVPSId',            type: 'str'},
+  {name: 'coloredROMBundled',         type: 'bool'},
+  {name: 'coloredROMChecksum',        type: 'str'},
+  {name: 'coloredROMNotes',           type: 'str'},
+  {name: 'coloredROMUrlOverride',     type: 'str'},
+  {name: 'coloredROMVersionOverride', type: 'str'},
+  {name: 'coloredROMVPSId',           type: 'str'},
+  {name: 'enabled',                   type: 'bool'},
+  {name: 'fps',                       type: 'int'},
+  {name: 'mainNotes',                 type: 'str', multiline: true},
+  {name: 'pupArchiveFormat',          type: 'str'},
+  {name: 'pupArchiveRoot',            type: 'str'},
+  {name: 'pupChecksum',               type: 'str'},
+  {name: 'pupFileUrl',                type: 'str'},
+  {name: 'pupNotes',                  type: 'str'},
+  {name: 'pupRequired',               type: 'bool'},
+  {name: 'pupVersion',                type: 'str'},
+  {name: 'romBundled',                type: 'bool'},
+  {name: 'romChecksum',               type: 'str'},
+  {name: 'romNotes',                  type: 'str'},
+  {name: 'romUrlOverride',            type: 'str'},
+  {name: 'romVersionOverride',        type: 'str'},
+  {name: 'romVPSId',                  type: 'str'},
+  {name: 'tableNameOverride',         type: 'str'},
+  {name: 'tableNotes',                type: 'str'},
+  {name: 'tableVPSId',                type: 'str'},
+  {name: 'tagline',                   type: 'str', multiline: true},
+  {name: 'testers',                   type: 'array'},
+  {name: 'vpxChecksum',               type: 'str'},
+  {name: 'vpxVPSId',                  type: 'str'},
+];
+
+let vpsCache = null;
 let lastSuggestions = [];
 let activeSuggestionIndex = -1;
 
