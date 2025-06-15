@@ -3,6 +3,8 @@
 	"version": "1.0.0",
 	"main": "index.html",
 	"scripts": {
+		"minify": "npm run clean && npm run min:js && npm run min:css",
+		"clean": "del /s /q css.min && del /s /q js.min",
 		"min:js": "node minify-JS.js",
 		"min:css": "cleancss css.src/*.css !css.src/*.min.css -o css.min/style.min.css"
 	},
