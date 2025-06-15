@@ -1,0 +1,22 @@
+const API_URLS = [
+  'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json',
+  'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
+];
+let vpsCache = null;
+async function fetchVPSDB() {
+  if (vpsCache) return vpsCache;
+  for (const url of API_URLS) {
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        vpsCache = await resp.json();
+        return vpsCache;
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch from ${url}: ${e}`);
+    }
+  }
+  throw new Error('Failed to load VPS DB JSON');
+}
+
+window.fetchVPSDB = fetchVPSDB;

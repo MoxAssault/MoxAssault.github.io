@@ -56,4 +56,50 @@ function addYMLFieldInput(field, grid) {
   grid.appendChild(fieldWrap);
 }
 
+function showModal(fields, onSubmit) {
+  const overlay = document.getElementById('modalOverlay');
+  const fieldsDiv = document.getElementById('modalFields');
+  fieldsDiv.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'modal-fields-grid';
+  fields.forEach(field => addYMLFieldInput(field, grid));
+  fieldsDiv.appendChild(grid);
+  overlay.style.display = 'flex';
+  document.getElementById('modalClose').onclick = () => {
+    overlay.style.display = 'none';
+  };
+  overlay.onclick = (evt) => {
+    if (evt.target === overlay) overlay.style.display = 'none';
+  };
+  const modalForm = document.getElementById('modalForm');
+  modalForm.onsubmit = (evt) => {
+    evt.preventDefault();
+    let result = {};
+    grid.querySelectorAll('[name]').forEach(el => {
+      const name = el.name;
+      let val;
+      if (el.type === "checkbox") {
+        val = el.checked ? true : false;
+      } else if (el.type === "number") {
+        val = el.value.trim();
+        if (val !== "") val = parseInt(val);
+        else val = undefined;
+      } else if (el.classList.contains('modal-input-array')) {
+        val = el.value.trim();
+        if (val) {
+          val = val.split('\n').map(v=>v.trim()).filter(Boolean);
+        } else {
+          val = [];
+        }
+      } else {
+        val = el.value;
+      }
+      result[name] = val;
+    });
+    onSubmit(result);
+    overlay.style.display = 'none';
+  };
+}
+
 window.addYMLFieldInput = addYMLFieldInput;
+window.showModal = showModal;
