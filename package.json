@@ -1,0 +1,13 @@
+{
+	"name": "vpxs-yml-creator",
+	"version": "1.0.0",
+	"main": "index.html",
+	"scripts": {
+		"min:js": "node minify-JS.js",
+		"min:css": "cleancss css.src/*.css !css.src/*.min.css -o css.min/style.min.css"
+	},
+	"keywords": [],
+	"author": "Mox",
+	"license": "ISC",
+	"description": ""
+}

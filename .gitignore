@@ -1,2 +1,8 @@
 .qodo
+node_modules
 _archived
+css.src
+js.src
+
+
+minify-JS.js
