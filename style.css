@@ -557,8 +557,8 @@ h1 {
   box-shadow: 0 8px 48px rgba(0,0,0,0.32);
   font-size: 1.05em;
   text-align: left;
-  overflow-y: auto;
   max-height: 94vh;
+  overflow-y: auto;
 }
 .modal-close-btn {
   position: absolute;
@@ -635,4 +635,11 @@ h1 {
     grid-template-columns: 1fr;
     gap: 0.5em 0.6em;
   }
+}
+.modal-section-header {
+  font-size: 1.15em;
+  font-weight: bold;
+  color: #47cfff;
+  margin: 0.6em 0 0.1em 0;
+  letter-spacing: 0.5px;
 }

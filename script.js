@@ -1,3 +1,5 @@
+import { addYMLFieldInput } from './modalHelper.js';
+
 const API_URLS = [
   'https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@master/db/vpsdb.json',
   'https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/master/db/vpsdb.json'
@@ -42,6 +44,61 @@ const YML_FIELDS = [
   {name: 'vpxChecksum',               type: 'str'},
   {name: 'vpxVPSId',                  type: 'str'},
 ];
+// MANDATORY, BUNDLE, and FIELD GROUP ARRAYS
+const YML_MANDATORY_FIELDS = [
+  {name: 'applyFixes', type: 'array'},
+  {name: 'enabled',    type: 'bool'},
+  {name: 'fps',        type: 'int'},
+  {name: 'mainNotes',  type: 'str', multiline: true},
+  {name: 'tagline',    type: 'str', multiline: true},
+  {name: 'testers',    type: 'array'}
+];
+const YML_BUNDLE_FIELDS = [
+  {name: 'backglassBundled', type: 'bool'},
+  {name: 'romBundled',       type: 'bool'},
+  {name: 'coloredROMBundled',type: 'bool'}
+];
+const TABLE_FIELDS = [
+  {name: 'tableVPSId',        type: 'str'},
+  {name: 'tableNotes',        type: 'str'},
+  {name: 'tableNameOverride', type: 'str'}
+];
+const VPX_FIELDS = [
+  {name: 'vpxVPSId',   type: 'str'},
+  {name: 'vpxChecksum',type: 'str'}
+];
+const B2S_FIELDS = [
+  {name: 'backglassVPSId',         type: 'str'},
+  {name: 'backglassChecksum',      type: 'str'},
+  {name: 'backglassNotes',         type: 'str'},
+  {name: 'backglassAuthorsOverride',type:'array'},
+  {name: 'backglassImageOverride', type: 'str'},
+  {name: 'backglassUrlOverride',   type: 'str'}
+];
+const ROM_FIELDS = [
+  {name: 'romVPSId',         type: 'str'},
+  {name: 'romChecksum',      type: 'str'},
+  {name: 'romNotes',         type: 'str'},
+  {name: 'romUrlOverride',   type: 'str'},
+  {name: 'romVersionOverride',type:'str'}
+];
+const COLOR_ROM_FIELDS = [
+  {name: 'coloredROMVPSId',         type: 'str'},
+  {name: 'coloredROMChecksum',      type: 'str'},
+  {name: 'coloredROMNotes',         type: 'str'},
+  {name: 'coloredROMUrlOverride',   type: 'str'},
+  {name: 'coloredROMVersionOverride',type:'str'}
+];
+const PUP_FIELDS = [
+  {name: 'pupRequired',     type: 'bool'},
+  {name: 'pupVersion',      type: 'str'},
+  {name: 'pupChecksum',     type: 'str'},
+  {name: 'pupNotes',        type: 'str'},
+  {name: 'pupFileUrl',      type: 'str'},
+  {name: 'pupArchiveFormat',type: 'str'},
+  {name: 'pupArchiveRoot',  type: 'str'}
+];
+
 
 let vpsCache = null;
 let lastSuggestions = [];
@@ -544,133 +601,136 @@ async function searchById() {
   // --- MODAL LOGIC FOR SUBMIT --- //
   compileBtn.onclick = (e) => {
     e.preventDefault();
-    // 1. Gather selected values and available categories
-    const selects = categoryGrid.querySelectorAll('select');
-    // (Optional: use selected values to pre-fill certain YML fields)
+    // 1. Gather selected values
+  const selects = categoryGrid.querySelectorAll('select');
+  let selectedGroups = {}; // eg: {tableFiles: <id>, b2sFiles: <id>, ...}
+  selects.forEach(sel => {
+    if (
+      sel.value &&
+      sel.selectedIndex > 0 &&
+      !sel.options[sel.selectedIndex].disabled
+    ) {
+      const container = sel.closest('.category-container');
+      const label = container ? container.querySelector('.category-label')?.textContent : '';
+      const group = (label || '').toLowerCase().replace(/\s+/g,'');
+      selectedGroups[group] = sel.value;
+    }
+  });
 
-    // 2. Open modal and render dynamic form
-    const overlay = document.getElementById('modalOverlay');
-    const fieldsDiv = document.getElementById('modalFields');
-    fieldsDiv.innerHTML = '';
-    const grid = document.createElement('div');
-    grid.className = 'modal-fields-grid';
+  // 2. Open modal and render
+  const overlay = document.getElementById('modalOverlay');
+  const fieldsDiv = document.getElementById('modalFields');
+  fieldsDiv.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'modal-fields-grid';
 
+  // --- Helper function to add a section header
+  const addHeader = txt => {
+    const hdr = document.createElement('div');
+    hdr.textContent = txt;
+    hdr.className = 'modal-section-header';
+    hdr.style.gridColumn = '1/-1';
+    hdr.style.margin = '0.7em 0 0.25em 0';
+    hdr.style.fontWeight = 'bold';
+    hdr.style.fontSize = '1.12em';
+    hdr.style.color = '#47cfff';
+    grid.appendChild(hdr);
+  };
 
-    YML_FIELDS.forEach(field => {
-      const label = document.createElement('label');
-      label.className = 'modal-field-label tight';
-      label.textContent = field.name;
-      label.setAttribute('for', 'modal-input-' + field.name);
+  // --- Add mandatory fields
+  addHeader('Mandatory Fields');
+  YML_MANDATORY_FIELDS.forEach(field => addYMLFieldInput(field, grid));
 
-      let input;
-      if (field.type === 'bool') {
-        input = document.createElement('input');
-        input.type = 'checkbox';
-        input.className = 'modal-input modal-input-bool';
-        input.id = 'modal-input-' + field.name;
-        input.name = field.name;
-        input.style.width = "18px";
-        input.style.height = "18px";
-        input.style.margin = "0 5px 0 0";
-        const boolWrap = document.createElement('div');
-        boolWrap.style.display = "flex";
-        boolWrap.style.alignItems = "center";
-        boolWrap.appendChild(input);
-        boolWrap.appendChild(label);
-        grid.appendChild(boolWrap);
-        return;
-      } else if (field.type === 'array') {
-        input = document.createElement('textarea');
-        input.className = 'modal-input modal-input-array';
-        input.rows = 2;
-        input.placeholder = "One item per line";
-        input.id = 'modal-input-' + field.name;
-        input.name = field.name;
-      } else if (field.type === 'int') {
-        input = document.createElement('input');
-        input.type = 'number';
-        input.className = 'modal-input modal-input-int';
-        input.id = 'modal-input-' + field.name;
-        input.name = field.name;
-        input.style.width = "70px";
-      } else if (field.type === 'str' && field.multiline) {
-        input = document.createElement('textarea');
-        input.className = 'modal-input modal-input-multiline';
-        input.rows = 2;
-        input.id = 'modal-input-' + field.name;
-        input.name = field.name;
-      } else {
-        input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'modal-input';
-        input.id = 'modal-input-' + field.name;
-        input.name = field.name;
-      }
+  // --- Add Bundles
+  addHeader('Bundles');
+  YML_BUNDLE_FIELDS.forEach(field => addYMLFieldInput(field, grid));
 
-      const fieldWrap = document.createElement('div');
-      fieldWrap.className = 'modal-field-wrap';
-      fieldWrap.appendChild(label);
-      fieldWrap.appendChild(input);
-      grid.appendChild(fieldWrap);
-    });
+  // --- TABLE FIELDS (always shown, filled with the original searched ID)
+  addHeader('Table Fields');
+  TABLE_FIELDS.forEach(field => addYMLFieldInput(field, grid));
 
-    fieldsDiv.appendChild(grid);
+  // --- VPX (Table File) if selected
+  if (selectedGroups.tablefiles) {
+    addHeader('VPX File Fields');
+    VPX_FIELDS.forEach(field => addYMLFieldInput(field, grid));
+  }
+  // --- B2S (Backglass) if selected
+  if (selectedGroups.b2sfiles) {
+    addHeader('Backglass (B2S) Fields');
+    B2S_FIELDS.forEach(field => addYMLFieldInput(field, grid));
+  }
+  // --- ROM if selected
+  if (selectedGroups.romfiles) {
+    addHeader('ROM Fields');
+    ROM_FIELDS.forEach(field => addYMLFieldInput(field, grid));
+  }
+  // --- COLORED ROM if selected
+  if (selectedGroups.altcolorfiles) {
+    addHeader('Colored ROM Fields');
+    COLOR_ROM_FIELDS.forEach(field => addYMLFieldInput(field, grid));
+  }
+  // --- PUP if selected
+  if (selectedGroups.puppackfiles) {
+    addHeader('PUP Pack Fields');
+    PUP_FIELDS.forEach(field => addYMLFieldInput(field, grid));
+  }
 
-    overlay.style.display = 'flex';
+  fieldsDiv.appendChild(grid);
 
-    // Modal close logic
-    document.getElementById('modalClose').onclick = () => {
-      overlay.style.display = 'none';
-    };
-    overlay.onclick = (evt) => {
-      if (evt.target === overlay) overlay.style.display = 'none';
-    };
+  overlay.style.display = 'flex';
 
-    // On submit, output YML
-    const modalForm = document.getElementById('modalForm');
-    modalForm.onsubmit = (evt) => {
-      evt.preventDefault();
-      let yml = "---\n";
-      YML_FIELDS.forEach(field => {
-        const el = grid.querySelector(`[name="${field.name}"]`);
-        if (!el) return;
-        let val;
-        if (field.type === 'bool') {
-          val = el.checked ? true : false;
-          yml += `${field.name}: ${val}\n`;
-        } else if (field.type === 'int') {
-          val = el.value.trim();
-          if (val !== "") yml += `${field.name}: ${parseInt(val)}\n`;
-        } else if (field.type === 'array') {
-          val = el.value.trim();
-          if (val) {
-            const arr = val.split('\n').map(v=>v.trim()).filter(Boolean);
-            if (arr.length > 0) {
-              yml += `${field.name}:\n`;
-              arr.forEach(item => yml += `  - '${item.replace(/'/g, "''")}'\n`);
-            }
-          }
-        } else {
-          val = el.value;
-          if (val && val.indexOf('\n') >= 0) {
-            yml += `${field.name}: |-\n  ${val.replace(/\n/g,"\n  ").replace(/'/g,"''")}\n`;
-          } else if (val) {
-            yml += `${field.name}: '${val.replace(/'/g,"''")}'\n`;
+  document.getElementById('modalClose').onclick = () => {
+    overlay.style.display = 'none';
+  };
+  overlay.onclick = (evt) => {
+    if (evt.target === overlay) overlay.style.display = 'none';
+  };
+
+  // --- On submit, output as YML
+  const modalForm = document.getElementById('modalForm');
+  modalForm.onsubmit = (evt) => {
+    evt.preventDefault();
+    let yml = "---\n";
+    // Gather all inputs, in display order
+    grid.querySelectorAll('[name]').forEach(el => {
+      const name = el.name;
+      let val;
+      if (el.type === "checkbox") {
+        val = el.checked ? true : false;
+        yml += `${name}: ${val}\n`;
+      } else if (el.type === "number") {
+        val = el.value.trim();
+        if (val !== "") yml += `${name}: ${parseInt(val)}\n`;
+      } else if (el.classList.contains('modal-input-array')) {
+        val = el.value.trim();
+        if (val) {
+          const arr = val.split('\n').map(v=>v.trim()).filter(Boolean);
+          if (arr.length > 0) {
+            yml += `${name}:\n`;
+            arr.forEach(item => yml += `  - '${item.replace(/'/g, "''")}'\n`);
           }
         }
-      });
-      const blob = new Blob([yml], { type: 'text/yaml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'table-config.yml';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-      overlay.style.display = 'none';
-    };
+      } else {
+        val = el.value;
+        if (val && val.indexOf('\n') >= 0) {
+          yml += `${name}: |-\n  ${val.replace(/\n/g,"\n  ").replace(/'/g,"''")}\n`;
+        } else if (val) {
+          yml += `${name}: '${val.replace(/'/g,"''")}'\n`;
+        }
+      }
+    });
+    const blob = new Blob([yml], { type: 'text/yaml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'table-config.yml';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    overlay.style.display = 'none';
   };
+};
 }
