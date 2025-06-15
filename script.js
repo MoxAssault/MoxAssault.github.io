@@ -248,7 +248,6 @@ async function searchById() {
   }
   card.appendChild(leftCol);
 
-
   // Middle : Info Panel
   const info = document.createElement('div');
   info.className = 'game-info';
@@ -279,17 +278,12 @@ async function searchById() {
   idBox.classList.add('meta-box');
   idBox.classList.add('meta-right');
   idBox.textContent = record.id || '';
-  ////// Add to container
+  ////// Add to Container
   metaBoxes.appendChild(manufBox);
   metaBoxes.appendChild(updatedBox);
   metaBoxes.appendChild(idBox);
   info.appendChild(metaBoxes);
-
-  /* const meta = document.createElement('p');
-  meta.className = 'meta';
-  meta.textContent = `${record.manufacturer} (${record.year})`;
-  info.appendChild(meta); */
-  ////// Theme tags
+  ////// Meta Tags
   if (Array.isArray(record.theme)) {
     const tagsDiv = document.createElement('div');
     tagsDiv.className = 'tags';
