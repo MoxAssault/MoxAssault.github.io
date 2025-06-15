@@ -1,16 +1,19 @@
-let lastSuggestions = [];
-let activeSuggestionIndex = -1;
+window.searchState = {
+  lastSuggestions: [],
+  activeSuggestionIndex: -1
+};
+
 function filterSuggestions(data, val) {
   return data.filter(
     r => r.id?.toLowerCase().includes(val) || r.name?.toLowerCase().includes(val)
   ).slice(0, 8);
 }
-function updateSuggestionsUI(suggestions, input, searchFn) {
-  const suggestionsEl = document.getElementById('suggestions');
+
+function updateSuggestionsUI(suggestionsEl, input, searchFn) {
   suggestionsEl.innerHTML = '';
-  lastSuggestions.forEach((s, i) => {
+  window.searchState.lastSuggestions.forEach((s, i) => {
     const div = document.createElement('div');
-    div.className = 'suggestion-item' + (i === activeSuggestionIndex ? ' active' : '');
+    div.className = 'suggestion-item' + (i === window.searchState.activeSuggestionIndex ? ' active' : '');
     div.textContent = `${s.name || '[No Name]'} (${s.id})`;
     div.addEventListener('mousedown', (e) => {
       input.value = s.id;
@@ -21,14 +24,13 @@ function updateSuggestionsUI(suggestions, input, searchFn) {
     suggestionsEl.appendChild(div);
   });
 }
+
 function resetSuggestions() {
-  lastSuggestions = [];
-  activeSuggestionIndex = -1;
+  window.searchState.lastSuggestions = [];
+  window.searchState.activeSuggestionIndex = -1;
   document.getElementById('suggestions').innerHTML = '';
 }
 
 window.filterSuggestions = filterSuggestions;
 window.updateSuggestionsUI = updateSuggestionsUI;
 window.resetSuggestions = resetSuggestions;
-window.lastSuggestions = lastSuggestions;
-window.activeSuggestionIndex = activeSuggestionIndex;

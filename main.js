@@ -10,8 +10,8 @@ window.addEventListener('DOMContentLoaded', () => {
   btn.addEventListener('click', () => searchById(input, gameCardContainer, categoryGrid));
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
-      if (window.activeSuggestionIndex >= 0 && window.lastSuggestions.length) {
-        input.value = window.lastSuggestions[window.activeSuggestionIndex].id;
+      if (window.searchState.activeSuggestionIndex >= 0 && window.searchState.lastSuggestions.length) {
+        input.value = window.searchState.lastSuggestions[window.searchState.activeSuggestionIndex].id;
         suggestions.classList.remove('active');
         searchById(input, gameCardContainer, categoryGrid);
         e.preventDefault();
@@ -19,12 +19,12 @@ window.addEventListener('DOMContentLoaded', () => {
         searchById(input, gameCardContainer, categoryGrid);
       }
     }
-    if (["ArrowDown", "ArrowUp"].includes(e.key) && window.lastSuggestions.length) {
+    if (["ArrowDown", "ArrowUp"].includes(e.key) && window.searchState.lastSuggestions.length) {
       e.preventDefault();
       if (e.key === 'ArrowDown') {
-        window.activeSuggestionIndex = Math.min(window.activeSuggestionIndex + 1, window.lastSuggestions.length - 1);
+        window.searchState.activeSuggestionIndex = Math.min(window.searchState.activeSuggestionIndex + 1, window.searchState.lastSuggestions.length - 1);
       } else {
-        window.activeSuggestionIndex = Math.max(window.activeSuggestionIndex - 1, 0);
+        window.searchState.activeSuggestionIndex = Math.max(window.searchState.activeSuggestionIndex - 1, 0);
       }
       window.updateSuggestionsUI(suggestions, input, () => searchById(input, gameCardContainer, categoryGrid));
     }
@@ -40,8 +40,8 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const data = await window.fetchVPSDB();
-    window.lastSuggestions = window.filterSuggestions(data, val);
-    if (window.lastSuggestions.length) {
+    window.searchState.lastSuggestions = window.filterSuggestions(data, val);
+    if (window.searchState.lastSuggestions.length) {
       suggestions.classList.add('active');
       window.updateSuggestionsUI(suggestions, input, () => searchById(input, gameCardContainer, categoryGrid));
     } else {
