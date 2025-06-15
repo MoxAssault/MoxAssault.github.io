@@ -19,7 +19,7 @@ window.addEventListener('DOMContentLoaded', () => {
         searchById(input, gameCardContainer, categoryGrid);
       }
     }
-    if (['ArrowDown', 'ArrowUp'].includes(e.key) && window.lastSuggestions.length) {
+    if (["ArrowDown", "ArrowUp"].includes(e.key) && window.lastSuggestions.length) {
       e.preventDefault();
       if (e.key === 'ArrowDown') {
         window.activeSuggestionIndex = Math.min(window.activeSuggestionIndex + 1, window.lastSuggestions.length - 1);
@@ -101,22 +101,188 @@ async function searchById(input, gameCardContainer, categoryGrid) {
   gameCardContainer.innerHTML = '';
   gameCardContainer.appendChild(card);
 
-  // Modal logic: wire up the compile button to open the modal with fields and handle YML download
+  // === CATEGORY GRID LOGIC ===
+  const groupKeys = [
+    'tableFiles',
+    'b2sFiles',
+    'romFiles',
+    'altColorFiles',
+    'pupPackFiles',
+    'mediaPackFiles'
+  ];
+  const present = groupKeys.filter(g => Array.isArray(record[g]) && record[g].length);
+  present.forEach(group => {
+    const items = record[group];
+    const container = document.createElement('div');
+    container.className = 'category-container';
+    const lbl = document.createElement('label');
+    lbl.className = 'category-label';
+    lbl.textContent = window.humanize(group);
+    container.appendChild(lbl);
+    const select = document.createElement('select');
+    const placeholder = document.createElement('option');
+    placeholder.textContent = `Select a ${window.humanize(group).slice(0,-1)}`;
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+    if (group !== 'tableFiles' && group !== 'b2sFiles') {
+      select.classList.add('fullwidth-select');
+    }
+    items.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.id;
+      let isBroken = false;
+      if (item.broken === true || item.broken === "true") isBroken = true;
+      if (!isBroken && item.urls) {
+        if (Array.isArray(item.urls)) {
+          isBroken = item.urls.some(u => (u && (u.broken === true || u.broken === "true")));
+        } else if (typeof item.urls === 'object') {
+          isBroken = Object.values(item.urls).some(u => (u && (u.broken === true || u.broken === "true")));
+        }
+      }
+      if (isBroken) {
+        opt.disabled = true;
+        opt.textContent += ' (❌Broken)';
+        opt.className = 'broken-option';
+      }
+      select.appendChild(opt);
+    });
+    container.appendChild(select);
+    let thumb, preview;
+    if (group === 'tableFiles' || group === 'b2sFiles') {
+      const thumbWrap = document.createElement('span');
+      thumbWrap.className = 'thumbnail-wrapper';
+      thumb = document.createElement('img');
+      thumb.className = 'thumb-small';
+      thumb.alt = '';
+      thumbWrap.appendChild(thumb);
+      preview = document.createElement('img');
+      preview.className = 'thumb-preview';
+      preview.alt = '';
+      thumbWrap.appendChild(preview);
+      container.appendChild(thumbWrap);
+    }
+    const display = document.createElement('div');
+    display.className = 'item-display';
+    container.appendChild(display);
+    select.addEventListener('change', () => {
+      display.innerHTML = '';
+      const item = items.find(i => i.id === select.value);
+      if (!item) return;
+      if (thumb)   thumb.src   = item.imgUrl || '';
+      if (preview) preview.src = item.imgUrl || '';
+      const dl = document.createElement('dl');
+      const dateRow = document.createElement('div');
+      dateRow.className = 'date';
+      ['createdAt','updatedAt'].forEach(key => {
+        if (item[key]) {
+          const w = document.createElement('div');
+          const dt = document.createElement('dt');
+          dt.textContent = `${window.humanize(key.replace(/At$/, ''))}:  ${formatDate(item[key])}`;
+          w.appendChild(dt);
+          dateRow.appendChild(w);
+        }
+      });
+      display.appendChild(dateRow);
+      const appendField = (k, v) => {
+        if (["authors","features","tableFormat","version"].includes(k)) {
+          const dt = document.createElement('dt');
+          dt.textContent = window.humanize(k);
+          dl.appendChild(dt);
+          const wrap = document.createElement('div');
+          wrap.className = 'bubble-group';
+          const arr = Array.isArray(v) ? v : [v];
+          if (arr.length <= 4) {
+            arr.forEach(val => {
+              const b = document.createElement('span');
+              b.className = 'bubble';
+              b.textContent = val;
+              wrap.appendChild(b);
+            });
+          } else {
+            arr.slice(0,3).forEach(val => {
+              const b = document.createElement('span');
+              b.className = 'bubble';
+              b.textContent = val;
+              wrap.appendChild(b);
+            });
+            const moreBubble = document.createElement('span');
+            moreBubble.className = 'bubble bubble-more';
+            moreBubble.textContent = `+${arr.length-3} More`;
+            moreBubble.tabIndex = 0;
+            const popout = document.createElement('div');
+            popout.className = 'bubble-popout';
+            arr.slice(3).forEach(val => {
+              const li = document.createElement('div');
+              li.className = 'bubble';
+              li.textContent = val;
+              popout.appendChild(li);
+            });
+            moreBubble.appendChild(popout);
+            moreBubble.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const isVisible = popout.style.display === 'block';
+              document.querySelectorAll('.bubble-popout').forEach(p => p.style.display = 'none');
+              popout.style.display = isVisible ? 'none' : 'block';
+            });
+            moreBubble.addEventListener('mouseleave', () => {
+              popout.style.display = 'none';
+            });
+            moreBubble.addEventListener('blur', () => {
+              popout.style.display = 'none';
+            });
+            document.body.addEventListener('click', () => {
+              popout.style.display = 'none';
+            });
+            wrap.appendChild(moreBubble);
+          }
+          const dd = document.createElement('dd');
+          dd.appendChild(wrap);
+          dl.appendChild(dd);
+          return;
+        }
+        if (["game","urls","imgUrl","createdAt","updatedAt"].includes(k)) return;
+        const dt = document.createElement('dt');
+        dt.textContent = window.humanize(k);
+        const dd = document.createElement('dd');
+        dd.textContent = Array.isArray(v) ? v.join(', ') : v;
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      };
+      ["authors","features","tableFormat","version"].forEach(k => {
+        if (item[k]) appendField(k, item[k]);
+      });
+      Object.keys(item)
+        .filter(k => !["id","_group","game","urls","imgUrl","createdAt","updatedAt","authors","features","tableFormat","version","comment"].includes(k))
+        .sort()
+        .forEach(k => appendField(k, item[k]));
+      display.appendChild(dl);
+      if (item.comment) {
+        const commentLabel = document.createElement('div');
+        commentLabel.className = 'comment-label';
+        commentLabel.textContent = 'Comments';
+        display.appendChild(commentLabel);
+        const commentDiv = document.createElement('div');
+        commentDiv.className = 'comment-box';
+        commentDiv.textContent = item.comment;
+        display.appendChild(commentDiv);
+      }
+    });
+    categoryGrid.appendChild(container);
+  });
+  function formatDate(ts) {
+    try {
+      return new Date(ts).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'});
+    } catch { return ts; }
+  }
+  // === Modal logic omitted for brevity, same as previous ===
   const compileBtn = document.getElementById('compileBtn');
   if (compileBtn) {
     compileBtn.disabled = false;
     compileBtn.onclick = (e) => {
       e.preventDefault();
-      // EXAMPLE: You would build up your field definitions dynamically from record or selection
-      // Here we pass a static example; update as needed
-      const fields = [
-        {name: 'applyFixes', type: 'array'},
-        {name: 'enabled', type: 'bool'},
-        {name: 'fps', type: 'int'},
-        {name: 'mainNotes', type: 'str', multiline: true},
-        {name: 'tagline', type: 'str', multiline: true},
-        {name: 'testers', type: 'array'}
-      ];
+      const fields = window.YML_MANDATORY_FIELDS.concat(window.YML_BUNDLE_FIELDS);
       window.showModal(fields, function(formData) {
         let yml = '---\n';
         for (const [name, val] of Object.entries(formData)) {
