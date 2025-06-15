@@ -1,4 +1,4 @@
-export function addYMLFieldInput(field, grid) {
+function addYMLFieldInput(field, grid) {
   const label = document.createElement('label');
   label.className = 'modal-field-label tight';
   label.textContent = field.name;
@@ -55,3 +55,5 @@ export function addYMLFieldInput(field, grid) {
   fieldWrap.appendChild(input);
   grid.appendChild(fieldWrap);
 }
+
+window.addYMLFieldInput = addYMLFieldInput;
