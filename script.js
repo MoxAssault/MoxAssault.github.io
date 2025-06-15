@@ -306,7 +306,6 @@ async function searchById() {
   compileBtn.textContent = 'LFG!!';
   compileBtn.disabled = true;
   btnCol.appendChild(compileBtn);
-
   card.appendChild(btnCol);
   // Clear and Insert New Card
   gameCardContainer.innerHTML = '';
@@ -415,10 +414,7 @@ async function searchById() {
           const w = document.createElement('div');
           const dt = document.createElement('dt');
           dt.textContent = `${humanize(key.replace(/At$/, ''))}:  ${formatDate(item[key])}`;
-          // const dd = document.createElement('dd');
-          // dd.textContent = formatDate(item[key]);
           w.appendChild(dt);
-          // w.appendChild(dd);
           dateRow.appendChild(w);
         }
       });
