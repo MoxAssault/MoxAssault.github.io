@@ -541,156 +541,129 @@ async function searchById() {
     });
   });
 
-  // Compile and Download logic
+  // --- MODAL LOGIC FOR SUBMIT --- //
   compileBtn.onclick = (e) => {
     e.preventDefault();
     // 1. Gather selected values and available categories
     const selects = categoryGrid.querySelectorAll('select');
-    const chosen = [];
-    selects.forEach(sel => {
-      if (
-        sel.value &&
-        sel.selectedIndex > 0 &&
-        !sel.options[sel.selectedIndex].disabled
-      ) {
-        const container = sel.closest('.category-container');
-        const label = container ? container.querySelector('.category-label')?.textContent : '';
-        chosen.push({
-          category: label,
-          id: sel.value
-        });
-      }
-    });
-    if (chosen.length === 0) return;
+    // (Optional: use selected values to pre-fill certain YML fields)
+
     // 2. Open modal and render dynamic form
     const overlay = document.getElementById('modalOverlay');
     const fieldsDiv = document.getElementById('modalFields');
     fieldsDiv.innerHTML = '';
-    // ---- DEFAULT FIELDS ----
-    // applyFixes (str, textarea)
-    let label = document.createElement('label');
-    label.className = 'modal-field-label';
-    label.textContent = 'Apply Fixes';
-    label.setAttribute('for', 'modal-input-applyFixes');
-    fieldsDiv.appendChild(label);
-    let textarea = document.createElement('textarea');
-    textarea.className = 'modal-input';
-    textarea.id = 'modal-input-applyFixes';
-    textarea.name = 'applyFixes';
-    textarea.rows = 3;
-    fieldsDiv.appendChild(textarea);
-    // enabled (boolean, checkbox)
-    label = document.createElement('label');
-    label.className = 'modal-field-label';
-    label.textContent = 'Enabled';
-    label.setAttribute('for', 'modal-input-enabled');
-    fieldsDiv.appendChild(label);
-    let enabledDiv = document.createElement('div');
-    enabledDiv.style.marginBottom = "1em";
-    let checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = 'modal-input-enabled';
-    checkbox.name = 'enabled';
-    checkbox.style.transform = "scale(1.3)";
-    checkbox.style.marginRight = "0.5em";
-    enabledDiv.appendChild(checkbox);
-    let cbLabel = document.createElement('label');
-    cbLabel.textContent = "Yes";
-    cbLabel.setAttribute('for', 'modal-input-enabled');
-    enabledDiv.appendChild(cbLabel);
-    fieldsDiv.appendChild(enabledDiv);
-    // fps (int)
-    label = document.createElement('label');
-    label.className = 'modal-field-label';
-    label.textContent = 'FPS';
-    label.setAttribute('for', 'modal-input-fps');
-    fieldsDiv.appendChild(label);
-    let intInput = document.createElement('input');
-    intInput.type = 'number';
-    intInput.className = 'modal-input';
-    intInput.id = 'modal-input-fps';
-    intInput.name = 'fps';
-    intInput.min = "0";
-    intInput.step = "1";
-    fieldsDiv.appendChild(intInput);
-    // mainNotes (str, textarea)
-    label = document.createElement('label');
-    label.className = 'modal-field-label';
-    label.textContent = 'Main Notes';
-    label.setAttribute('for', 'modal-input-mainNotes');
-    fieldsDiv.appendChild(label);
-    textarea = document.createElement('textarea');
-    textarea.className = 'modal-input';
-    textarea.id = 'modal-input-mainNotes';
-    textarea.name = 'mainNotes';
-    textarea.rows = 3;
-    fieldsDiv.appendChild(textarea);
-    // tagline (str, textarea)
-    label = document.createElement('label');
-    label.className = 'modal-field-label';
-    label.textContent = 'Tagline';
-    label.setAttribute('for', 'modal-input-tagline');
-    fieldsDiv.appendChild(label);
-    textarea = document.createElement('textarea');
-    textarea.className = 'modal-input';
-    textarea.id = 'modal-input-tagline';
-    textarea.name = 'tagline';
-    textarea.rows = 2;
-    fieldsDiv.appendChild(textarea);
-    // testers (str, textarea)
-    label = document.createElement('label');
-    label.className = 'modal-field-label';
-    label.textContent = 'Testers';
-    label.setAttribute('for', 'modal-input-testers');
-    fieldsDiv.appendChild(label);
-    textarea = document.createElement('textarea');
-    textarea.className = 'modal-input';
-    textarea.id = 'modal-input-testers';
-    textarea.name = 'testers';
-    textarea.rows = 2;
-    fieldsDiv.appendChild(textarea);
-    // ---- CATEGORY ID FIELDS (from dropdowns) ----
-    chosen.forEach(item => {
+    const grid = document.createElement('div');
+    grid.className = 'modal-fields-grid';
+
+
+    YML_FIELDS.forEach(field => {
       const label = document.createElement('label');
-      label.className = 'modal-field-label';
-      label.textContent = `${item.category} ID`;
-      label.setAttribute('for', `modal-input-${item.category}`);
-      const input = document.createElement('input');
-      input.className = 'modal-input';
-      input.type = 'text';
-      input.id = `modal-input-${item.category}`;
-      input.name = item.category;
-      input.value = item.id;
-      fieldsDiv.appendChild(label);
-      fieldsDiv.appendChild(input);
+      label.className = 'modal-field-label tight';
+      label.textContent = field.name;
+      label.setAttribute('for', 'modal-input-' + field.name);
+
+      let input;
+      if (field.type === 'bool') {
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'modal-input modal-input-bool';
+        input.id = 'modal-input-' + field.name;
+        input.name = field.name;
+        input.style.width = "18px";
+        input.style.height = "18px";
+        input.style.margin = "0 5px 0 0";
+        const boolWrap = document.createElement('div');
+        boolWrap.style.display = "flex";
+        boolWrap.style.alignItems = "center";
+        boolWrap.appendChild(input);
+        boolWrap.appendChild(label);
+        grid.appendChild(boolWrap);
+        return;
+      } else if (field.type === 'array') {
+        input = document.createElement('textarea');
+        input.className = 'modal-input modal-input-array';
+        input.rows = 2;
+        input.placeholder = "One item per line";
+        input.id = 'modal-input-' + field.name;
+        input.name = field.name;
+      } else if (field.type === 'int') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'modal-input modal-input-int';
+        input.id = 'modal-input-' + field.name;
+        input.name = field.name;
+        input.style.width = "70px";
+      } else if (field.type === 'str' && field.multiline) {
+        input = document.createElement('textarea');
+        input.className = 'modal-input modal-input-multiline';
+        input.rows = 2;
+        input.id = 'modal-input-' + field.name;
+        input.name = field.name;
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'modal-input';
+        input.id = 'modal-input-' + field.name;
+        input.name = field.name;
+      }
+
+      const fieldWrap = document.createElement('div');
+      fieldWrap.className = 'modal-field-wrap';
+      fieldWrap.appendChild(label);
+      fieldWrap.appendChild(input);
+      grid.appendChild(fieldWrap);
     });
+
+    fieldsDiv.appendChild(grid);
+
     overlay.style.display = 'flex';
-    // 3. Modal close logic
+
+    // Modal close logic
     document.getElementById('modalClose').onclick = () => {
       overlay.style.display = 'none';
     };
     overlay.onclick = (evt) => {
       if (evt.target === overlay) overlay.style.display = 'none';
     };
-    // 4. Handle form submission (download .txt of all values)
+
+    // On submit, output YML
     const modalForm = document.getElementById('modalForm');
     modalForm.onsubmit = (evt) => {
       evt.preventDefault();
-      const ids = [];
-      // Collect all input/textarea values
-      fieldsDiv.querySelectorAll('input, textarea').forEach(input => {
-        if (input.type === "checkbox") {
-          ids.push(`${input.name}: ${input.checked}`);
+      let yml = "---\n";
+      YML_FIELDS.forEach(field => {
+        const el = grid.querySelector(`[name="${field.name}"]`);
+        if (!el) return;
+        let val;
+        if (field.type === 'bool') {
+          val = el.checked ? true : false;
+          yml += `${field.name}: ${val}\n`;
+        } else if (field.type === 'int') {
+          val = el.value.trim();
+          if (val !== "") yml += `${field.name}: ${parseInt(val)}\n`;
+        } else if (field.type === 'array') {
+          val = el.value.trim();
+          if (val) {
+            const arr = val.split('\n').map(v=>v.trim()).filter(Boolean);
+            if (arr.length > 0) {
+              yml += `${field.name}:\n`;
+              arr.forEach(item => yml += `  - '${item.replace(/'/g, "''")}'\n`);
+            }
+          }
         } else {
-          ids.push(`${input.name}: ${input.value}`);
+          val = el.value;
+          if (val && val.indexOf('\n') >= 0) {
+            yml += `${field.name}: |-\n  ${val.replace(/\n/g,"\n  ").replace(/'/g,"''")}\n`;
+          } else if (val) {
+            yml += `${field.name}: '${val.replace(/'/g,"''")}'\n`;
+          }
         }
       });
-      if (ids.length === 0) return;
-      const blob = new Blob([ids.join('\n')], { type: 'text/plain' });
+      const blob = new Blob([yml], { type: 'text/yaml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'selected-ids.txt';
+      a.download = 'table-config.yml';
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
