@@ -1,35 +1,218 @@
+<!-- submissionForm.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VPXS YML Creator</title>
-  <link rel="stylesheet" href="css.min/style.min.css">
+  <title>Dynamic Submission Form</title>
+  <style>
+    .hidden { display: none; }
+    .section { margin-bottom: 2rem; border: 1px solid #ccc; padding: 1rem; border-radius: 6px; }
+    .section h2 { margin-top: 0; font-size: 1.25rem; }
+    .field-wrap { margin-bottom: 0.75rem; }
+    label { display: block; font-weight: bold; margin-bottom: 0.25rem; }
+    input[type="text"], input[type="number"] { width: 300px; padding: 0.4em; border: 1px solid #aaa; border-radius: 4px; }
+    textarea { width: 300px; padding: 0.4em; border: 1px solid #aaa; border-radius: 4px; }
+    button { padding: 0.5em 1em; border: none; border-radius: 4px; background: #007BFF; color: #fff; cursor: pointer; }
+    button:disabled { background: #888; cursor: not-allowed; }
+  </style>
 </head>
 <body>
-  <table>
-    <tbody>
-      <tr>
-        <td><center><input type="checkbox" value="b2s" name="b2sOverride" />Backglass</center></td>
-        <td><center><input type="checkbox" value="rom" name="romOverride" />ROM</center></td>
-        <td><center><input type="checkbox" value="colrom" name="colromOverride" />Colored ROM</center></td>
-      </tr>
-      <tr>
-        <td><input type="text" value="" placeholder="FPS" size="3"/></td>
-        <td><input type="text" value="" placeholder="Enter Value" size="20"/></td>
-        <td><input type="text" value="" placeholder="Enter Value" size="20"/></td>
-      </tr>
-      <tr>
-        <td><input type="text" value="" placeholder="FPS" size="3"/></td>
-        <td><input type="text" value="" placeholder="Enter Value" size="20"/></td>
-        <td><input type="text" value="" placeholder="Enter Value" size="20"/></td>
-      </tr>
-      <tr>
-        <td><input type="text" value="" placeholder="FPS" size="3"/></td>
-        <td><input type="text" value="" placeholder="Enter Value" size="20"/></td>
-        <td><input type="text" value="" placeholder="Enter Value" size="20"/></td>
-      </tr>
-    </tbody>
-  </table>
+  <form id="submissionForm">
+
+    <!-- Testing Fields -->
+    <div class="section" id="testingSection">
+      <h2>Test IDs</h2>
+      <div class="field-wrap">
+        <label for="testTableId">Table ID</label>
+        <input type="text" id="testTableId" name="testTableId">
+      </div>
+      <div class="field-wrap">
+        <label for="testB2sId">B2S ID</label>
+        <input type="text" id="testB2sId" name="testB2sId">
+      </div>
+      <div class="field-wrap">
+        <label for="testRomId">ROM ID</label>
+        <input type="text" id="testRomId" name="testRomId">
+      </div>
+      <div class="field-wrap">
+        <label for="testColoredRomId">Colored ROM ID</label>
+        <input type="text" id="testColoredRomId" name="testColoredRomId">
+      </div>
+      <div class="field-wrap">
+        <label for="testPupId">PUP ID</label>
+        <input type="text" id="testPupId" name="testPupId">
+      </div>
+      <button type="button" id="submitTestIds">Submit Test IDs</button>
+    </div>
+
+    <!-- Mandatory Fields -->
+    <div class="section" id="mandatorySection">
+      <h2>Basic Settings</h2>
+    </div>
+
+    <!-- Table Override -->
+    <div class="section" id="tableOverrideSection">
+      <h2>Table Details</h2>
+      <div class="field-wrap">
+        <label for="tableVPSId">VPS Table ID</label>
+        <input type="text" id="tableVPSId" name="tableVPSId">
+      </div>
+      <div class="field-wrap">
+        <label><input type="checkbox" id="tableNameOverrideToggle"> Override Table Name</label>
+      </div>
+      <div id="tableNameOverrideField" class="field-wrap hidden">
+        <label for="tableNameOverride">Custom Table Name</label>
+        <input type="text" id="tableNameOverride" name="tableNameOverride">
+      </div>
+    </div>
+
+    <!-- Bundle Toggles -->
+    <div class="section" id="bundleToggles">
+      <h2>Bundled Components</h2>
+    </div>
+
+    <!-- Bundle Sections -->
+    <div id="bundleSections">
+      <!-- injected -> grouped sections -->
+    </div>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    // Field definitions
+    const MANDATORY = [
+      { name: 'applyFixes', type: 'array', label: 'Apply Fixes' },
+      { name: 'enabled',    type: 'bool',  label: 'Enabled' },
+      { name: 'fps',        type: 'int',   label: 'Frames Per Second' },
+      { name: 'mainNotes',  type: 'str',   multiline: true, label: 'Main Notes' },
+      { name: 'tagline',    type: 'str',   multiline: true, label: 'Tagline' },
+      { name: 'testers',    type: 'array', label: 'Testers' }
+    ];
+    const BUNDLES = {
+      backglass: {
+        toggleLabel: 'Backglass Data',
+        sectionLabel: 'Backglass Details',
+        fields: [
+          { name: 'backglassVPSId',          type: 'str',   label: 'Backglass VPS ID' },
+          { name: 'backglassChecksum',       type: 'str',   label: 'Checksum' },
+          { name: 'backglassNotes',          type: 'str',   multiline: true, label: 'Notes' },
+          { name: 'backglassAuthorsOverride',type: 'array', label: 'Authors Override' },
+          { name: 'backglassImageOverride',  type: 'str',   label: 'Image URL Override' },
+          { name: 'backglassUrlOverride',    type: 'str',   label: 'Backglass URL Override' }
+        ]
+      },
+      rom: {
+        toggleLabel: 'ROM Data',
+        sectionLabel: 'ROM Details',
+        fields: [
+          { name: 'romVPSId',          type: 'str', label: 'ROM VPS ID' },
+          { name: 'romChecksum',       type: 'str', label: 'Checksum' },
+          { name: 'romNotes',          type: 'str', multiline: true, label: 'Notes' },
+          { name: 'romUrlOverride',    type: 'str', label: 'URL Override' },
+          { name: 'romVersionOverride',type: 'str', label: 'Version Override' }
+        ]
+      },
+      coloredROM: {
+        toggleLabel: 'Colored ROM Data',
+        sectionLabel: 'Colored ROM Details',
+        fields: [
+          { name: 'coloredROMVPSId',          type: 'str', label: 'Colored ROM VPS ID' },
+          { name: 'coloredROMChecksum',       type: 'str', label: 'Checksum' },
+          { name: 'coloredROMNotes',          type: 'str', multiline: true, label: 'Notes' },
+          { name: 'coloredROMUrlOverride',    type: 'str', label: 'URL Override' },
+          { name: 'coloredROMVersionOverride',type: 'str', label: 'Version Override' }
+        ]
+      },
+      pup: {
+        toggleLabel: 'PUP Pack Data',
+        sectionLabel: 'PUP Details',
+        fields: [
+          { name: 'pupRequired',     type: 'bool', label: 'Required' },
+          { name: 'pupVersion',      type: 'str',  label: 'Version' },
+          { name: 'pupVPSId',        type: 'str',  label: 'PUP VPS ID' },
+          { name: 'pupChecksum',     type: 'str',  label: 'Checksum' },
+          { name: 'pupNotes',        type: 'str',  multiline: true, label: 'Notes' },
+          { name: 'pupFileUrl',      type: 'str',  label: 'File URL' },
+          { name: 'pupArchiveFormat',type: 'str',  label: 'Archive Format' },
+          { name: 'pupArchiveRoot',  type: 'str',  label: 'Archive Root' }
+        ]
+      }
+    };
+
+    // Helper to create inputs
+    function createInput(f) {
+      const wrap = document.createElement('div'); wrap.className = 'field-wrap';
+      if (f.type === 'bool') {
+        const chk = document.createElement('input'); chk.type = 'checkbox'; chk.id = f.name; chk.name = f.name;
+        const lbl = document.createElement('label'); lbl.htmlFor = f.name; lbl.textContent = ' ' + (f.label || f.name);
+        wrap.appendChild(chk); wrap.appendChild(lbl);
+      } else if (f.type === 'int' || (f.type === 'str' && !f.multiline)) {
+        const lbl = document.createElement('label'); lbl.htmlFor = f.name; lbl.textContent = f.label || f.name;
+        const inp = document.createElement('input'); inp.type = f.type === 'int' ? 'number' : 'text'; inp.id = f.name; inp.name = f.name;
+        wrap.appendChild(lbl); wrap.appendChild(inp);
+      } else if (f.type === 'array' || (f.type === 'str' && f.multiline)) {
+        const lbl = document.createElement('label'); lbl.htmlFor = f.name; lbl.textContent = f.label || f.name;
+        const ta = document.createElement('textarea'); ta.id = f.name; ta.name = f.name; ta.rows = 4;
+        if (f.type === 'array') ta.placeholder = 'One item per line';
+        wrap.appendChild(lbl); wrap.appendChild(ta);
+      }
+      return wrap;
+    }
+
+    // Build mandatory inputs
+    const mandEl = document.getElementById('mandatorySection');
+    MANDATORY.forEach(f => mandEl.appendChild(createInput(f)));
+
+    // Table name override toggle logic
+    document.getElementById('tableNameOverrideToggle')
+      .addEventListener('change', e => document.getElementById('tableNameOverrideField')
+        .classList.toggle('hidden', !e.target.checked));
+
+    // Build bundle toggles and sections
+    const togglesEl = document.getElementById('bundleToggles');
+    const sectionsEl = document.getElementById('bundleSections');
+    Object.entries(BUNDLES).forEach(([key, cfg]) => {
+      // Toggle
+      const wrap = document.createElement('div'); wrap.className = 'field-wrap';
+      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.id = key + 'Toggle'; chk.name = key + 'Toggle';
+      const lbl = document.createElement('label'); lbl.htmlFor = chk.id; lbl.textContent = ' ' + cfg.toggleLabel;
+      wrap.appendChild(chk); wrap.appendChild(lbl); togglesEl.appendChild(wrap);
+
+      // Section
+      const sec = document.createElement('div'); sec.id = key + 'Section'; sec.className = 'section hidden';
+      const hdr = document.createElement('h2'); hdr.textContent = cfg.sectionLabel; sec.appendChild(hdr);
+      cfg.fields.forEach(f => sec.appendChild(createInput(f)));
+      sectionsEl.appendChild(sec);
+
+      chk.addEventListener('change', e => sec.classList.toggle('hidden', !e.target.checked));
+    });
+
+    // Test IDs submit handler
+    document.getElementById('submitTestIds').addEventListener('click', () => {
+      const testData = {
+        tableId: document.getElementById('testTableId').value,
+        b2sId: document.getElementById('testB2sId').value,
+        romId: document.getElementById('testRomId').value,
+        coloredRomId: document.getElementById('testColoredRomId').value,
+        pupId: document.getElementById('testPupId').value
+      };
+      console.log('Test IDs submitted:', testData);
+      alert('Test IDs submitted:\n' + JSON.stringify(testData, null, 2));
+    });
+
+    // Main form submit handler
+    document.getElementById('submissionForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const data = {};
+      new FormData(e.target).forEach((val, key) => {
+        if (data[key] === undefined) data[key] = val;
+        else data[key] = [].concat(data[key], val);
+      });
+      console.log('Form data:', data);
+      // TODO: handle form data
+    });
+  </script>
 </body>
 </html>
