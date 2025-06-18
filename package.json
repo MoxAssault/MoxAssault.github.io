@@ -11,5 +11,39 @@
 	"keywords": [],
 	"author": "Mox",
 	"license": "ISC",
-	"description": ""
+	"description": "",
+	"devDependencies": {
+		"@rollup/plugin-commonjs": "^28.0.6",
+		"@rollup/plugin-node-resolve": "^16.0.1",
+		"@rollup/plugin-wasm": "^6.2.2",
+		"rollup": "^4.43.0"
+	},
+	"dependencies": {
+		"7z-wasm": "^1.1.0",
+		"commondir": "^1.0.1",
+		"deepmerge": "^4.3.1",
+		"estree-walker": "^2.0.2",
+		"fdir": "^6.4.6",
+		"function-bind": "^1.1.2",
+		"hasown": "^2.0.2",
+		"is-core-module": "^2.16.1",
+		"is-module": "^1.0.0",
+		"is-reference": "^1.2.1",
+		"jszip": "^3.10.1",
+		"magic-string": "^0.30.17",
+		"path-parse": "^1.0.7",
+		"picomatch": "^4.0.2",
+		"resolve": "^1.22.10",
+		"supports-preserve-symlinks-flag": "^1.0.0",
+		"unrar-js": "^0.2.3"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/MoxAssault/MoxAssault.github.io.git"
+	},
+	"type": "commonjs",
+	"bugs": {
+		"url": "https://github.com/MoxAssault/MoxAssault.github.io/issues"
+	},
+	"homepage": "https://github.com/MoxAssault/MoxAssault.github.io#readme"
 }
