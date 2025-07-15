@@ -1,9 +1,10 @@
-.qodo
-node_modules
-_archived
-css.src
-js.src
-.test
-docker
+# Directories
+.qodo/
+node_modules/
+_archived/
+css.src/
+js.src/
+docker/
 
+# Files
 minify-JS.js
