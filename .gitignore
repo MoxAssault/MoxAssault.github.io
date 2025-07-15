@@ -3,6 +3,7 @@ node_modules
 _archived
 css.src
 js.src
+.test
 
 
 minify-JS.js
