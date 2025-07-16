@@ -187,7 +187,13 @@
               </div>
               <input tabindex="37" type="text" name="pupFileUrl" class="pup" maxlength="250" placeholder="PUP File URL" autocomplete="off">
               <input tabindex="38" type="text" name="pupVersion" class="pup" maxlength="250" placeholder="PUP Version" autocomplete="off">
-              <input tabindex="39" type="text" name="pupArchiveFormat" class="pup" maxlength="250" placeholder="PUP Archive Format" autocomplete="off">
+              <!-- <input tabindex="39" type="text" name="pupArchiveFormat" class="pup" maxlength="250" placeholder="PUP Archive Format" autocomplete="off"> -->
+              <select tabindex="39" id="pupSel" name="pupArchiveFormat" class="pup placeholder" maxlength="250">
+                <option value="">PUP Archive Format</option>
+                <option value="zip">ZIP </option>
+                <option value="rar">RAR </option>
+                <option value="7z">7Z </option>
+              </select>
               <input tabindex="40" type="text" name="pupArchiveRoot" class="pup" maxlength="250" placeholder="PUP Archive Root" autocomplete="off">
               <label class="nonOverrideCheckbox pupRequired">
                 <input tabindex="41" type="checkbox" name="pupRequired"><span>PUP Pack Required</span>
