@@ -3,13 +3,13 @@
   Stage 1: Shared wizard group renderer
 */
 
-import { FIELD_TYPES } from "./fields.js";
+import { FIELD_TYPES } from "./fields.js?v=20260709-2";
 import {
   createElement,
   evaluateGroupState,
   getGroupStateLabel,
   humanize
-} from "./uiHelper.js";
+} from "./uiHelper.js?v=20260709-2";
 
 function toArrayInputValue(value) {
   if (Array.isArray(value)) {
