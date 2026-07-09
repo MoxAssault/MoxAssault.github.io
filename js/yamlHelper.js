@@ -6,7 +6,7 @@
   files instead of pulling in a framework or parser dependency.
 */
 
-import { FIELD_TYPES, YML_FIELD_GROUPS, getFieldByName } from "./fields.js?v=20260709-2";
+import { FIELD_TYPES, YML_FIELD_GROUPS, getFieldByName } from "./fields.js?v=20260709-3";
 
 const LINE_LENGTH_LIMIT = 120;
 const INDENT = "  ";
@@ -208,7 +208,7 @@ export function parseYml(text = "") {
     const line = lines[index];
     const trimmed = line.trim();
 
-    if (!trimmed || trimmed.startsWith("#")) {
+    if (!trimmed || trimmed.startsWith("#") || trimmed === "---" || trimmed === "...") {
       index += 1;
       continue;
     }
