@@ -39,6 +39,58 @@
 .search-suggestions {
   max-height: min(22rem, 60vh);
   overflow: auto;
+  padding: var(--space-xs);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface-raised) 96%, var(--color-primary-soft)), var(--color-surface-raised));
+  box-shadow: 0 1.25rem 3rem color-mix(in srgb, #000 45%, transparent);
+}
+
+.search-suggestion {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 0.95rem 0.8rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-bg-soft) 68%, transparent);
+}
+
+.search-suggestion::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.25rem;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: transparent;
+}
+
+.search-suggestion:hover,
+.search-suggestion.is-active,
+.search-suggestion:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 70%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary-soft) 68%, var(--color-surface-raised));
+  transform: translateY(-1px);
+}
+
+.search-suggestion:hover::before,
+.search-suggestion.is-active::before,
+.search-suggestion:focus-visible::before {
+  background: var(--color-primary);
+}
+
+.search-suggestion__title {
+  color: var(--color-text-soft);
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.search-suggestion__meta {
+  color: color-mix(in srgb, var(--color-text-muted) 76%, var(--color-primary));
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.25;
 }
 
 .file-picker-grid {
