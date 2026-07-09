@@ -3,7 +3,7 @@
   Stage 3: VPS search/autocomplete helper
 */
 
-import { getRecordId, getRecordManufacturer, getRecordName, getRecordYear } from "./apiHelper.js?v=20260709-2";
+import { getRecordId, getRecordManufacturer, getRecordName, getRecordYear } from "./apiHelper.js?v=20260709-3";
 
 const MAX_SUGGESTIONS = 8;
 
