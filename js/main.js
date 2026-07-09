@@ -126,8 +126,34 @@ function coerceFieldValue(fieldName, value) {
   return value ?? "";
 }
 
-function updateFormData(fieldName, value) {
+function syncRenderedField(fieldName, value) {
+  const field = getFieldByName(fieldName);
+  const controls = elements.wizard.querySelectorAll(`[name="${fieldName}"]`);
+
+  if (!field || controls.length === 0) return;
+
+  controls.forEach((control) => {
+    if (field.type === FIELD_TYPES.BOOLEAN && control.type === "checkbox") {
+      control.checked = value === true;
+      return;
+    }
+
+    if (field.type === FIELD_TYPES.ARRAY && control.type === "checkbox") {
+      control.checked = Array.isArray(value) && value.includes(control.value);
+      return;
+    }
+
+    control.value = Array.isArray(value) ? value.join(", ") : value ?? "";
+  });
+}
+
+function updateFormData(fieldName, value, { syncField = true } = {}) {
   state.formData[fieldName] = coerceFieldValue(fieldName, value);
+
+  if (syncField) {
+    syncRenderedField(fieldName, state.formData[fieldName]);
+  }
+
   previewPane.renderDebounced(state.formData);
 }
 
@@ -349,7 +375,7 @@ async function initBuilder() {
   });
 
   elements.wizard.addEventListener("wizard-field-change", (event) => {
-    updateFormData(event.detail.fieldName, event.detail.value);
+    updateFormData(event.detail.fieldName, event.detail.value, { syncField: false });
   });
 
   elements.downloadButton.addEventListener("click", () => {
