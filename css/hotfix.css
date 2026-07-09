@@ -82,9 +82,17 @@
   box-shadow: var(--focus-ring);
 }
 
-.builder-layout {
+.builder-layout,
+.editor-layout {
   grid-template-columns: minmax(0, 1fr);
   max-width: 100%;
+}
+
+.editor-layout {
+  display: grid;
+  gap: var(--space-lg);
+  align-items: start;
+  margin-top: var(--space-xl);
 }
 
 .builder-side {
@@ -111,7 +119,8 @@
 
 .search-suggestions[hidden],
 .error-log[hidden],
-.result-panel[hidden] {
+.result-panel[hidden],
+[data-mode-panel][hidden] {
   display: none !important;
 }
 
@@ -189,6 +198,66 @@
   font-size: clamp(1.2rem, 3vw, 1.65rem);
 }
 
+.editor-panel {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.editor-dropzone {
+  display: grid;
+  gap: 0.35rem;
+  place-items: center;
+  min-height: 9rem;
+  padding: var(--space-lg);
+  border: 1px dashed #6587B5;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-soft);
+  background: rgba(136, 188, 236, 0.07);
+  text-align: center;
+  cursor: pointer;
+}
+
+.editor-dropzone.is-dragging {
+  border-color: #88BCEC;
+  background: rgba(136, 188, 236, 0.14);
+}
+
+.editor-dropzone input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.editor-dropzone__title {
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.editor-dropzone__copy,
+.editor-source-label {
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.editor-source {
+  width: 100%;
+  min-height: 14rem;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-soft);
+  background: #17141A;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.editor-parse-button {
+  width: fit-content;
+}
+
 .file-picker-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
@@ -200,7 +269,8 @@
 @media (max-width: 640px) {
   .builder-search,
   .result-panel,
-  .preview-panel {
+  .preview-panel,
+  .editor-panel {
     padding: var(--space-md);
   }
 
@@ -214,7 +284,8 @@
 
   .download-fab,
   .search-form button,
-  .theme-switch {
+  .theme-switch,
+  .editor-parse-button {
     width: 100%;
     min-width: 0;
     max-width: none;
