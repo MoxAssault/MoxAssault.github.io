@@ -1,0 +1,71 @@
+/*
+  VPXS YML Creator Redesign
+  Hotfix: stabilize the Stage 3 Builder layout without rewriting components.css.
+*/
+
+.builder-layout {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 100%;
+}
+
+.builder-side {
+  position: static;
+}
+
+.builder-search__header,
+.preview-panel__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.preview-panel__header {
+  grid-template-columns: 1fr;
+}
+
+.preview-output {
+  min-height: 14rem;
+  max-height: 32rem;
+  color: var(--color-text-soft);
+  background: var(--color-bg-soft);
+}
+
+.search-suggestions[hidden],
+.error-log[hidden],
+.result-panel[hidden] {
+  display: none !important;
+}
+
+.search-suggestions {
+  max-height: min(22rem, 60vh);
+  overflow: auto;
+}
+
+.file-picker-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.wizard-group-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+}
+
+@media (max-width: 640px) {
+  .builder-search,
+  .result-panel,
+  .preview-panel {
+    padding: var(--space-md);
+  }
+
+  .builder-search__header,
+  .preview-panel__header,
+  .search-form__row,
+  .result-card {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .download-fab,
+  .search-form button {
+    width: 100%;
+  }
+}
