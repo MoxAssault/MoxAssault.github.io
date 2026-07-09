@@ -1,55 +1,26 @@
 /*
   VPXS YML Creator Redesign
-  Stage 0: Theme controller
+  Theme controller
 
-  Cycles system -> light -> dark, persists the selected mode, and keeps the
-  applied theme in sync with OS preference while in system mode.
+  Uses a switch-style control for light/dark mode and persists the user's choice.
 */
 
 const THEME_STORAGE_KEY = "vpxs-theme-mode";
-const THEME_SEQUENCE = ["system", "light", "dark"];
-
 const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
 
 function normalizeThemeMode(mode) {
-  return THEME_SEQUENCE.includes(mode) ? mode : "system";
+  return mode === "light" || mode === "dark" ? mode : null;
 }
 
-function getStoredThemeMode() {
+function getInitialThemeMode() {
   try {
-    return normalizeThemeMode(localStorage.getItem(THEME_STORAGE_KEY));
+    const stored = normalizeThemeMode(localStorage.getItem(THEME_STORAGE_KEY));
+    if (stored) return stored;
   } catch {
-    return "system";
-  }
-}
-
-function getResolvedTheme(mode) {
-  if (mode === "system") {
-    return prefersDark.matches ? "dark" : "light";
+    // Storage can fail in private browsing or locked-down web views.
   }
 
-  return mode;
-}
-
-function applyTheme(mode) {
-  const normalizedMode = normalizeThemeMode(mode);
-  const resolvedTheme = getResolvedTheme(normalizedMode);
-  const root = document.documentElement;
-
-  root.dataset.themeMode = normalizedMode;
-  root.dataset.theme = resolvedTheme;
-
-  const toggle = document.querySelector("[data-theme-toggle]");
-  const modeLabel = document.querySelector("[data-theme-mode-label]");
-
-  if (toggle) {
-    toggle.setAttribute("aria-label", `Theme: ${normalizedMode}. Activate to switch theme.`);
-    toggle.title = `Theme: ${normalizedMode}`;
-  }
-
-  if (modeLabel) {
-    modeLabel.textContent = normalizedMode;
-  }
+  return prefersDark.matches ? "dark" : "light";
 }
 
 function storeThemeMode(mode) {
@@ -60,25 +31,39 @@ function storeThemeMode(mode) {
   }
 }
 
-function cycleThemeMode() {
-  const currentMode = normalizeThemeMode(document.documentElement.dataset.themeMode);
-  const currentIndex = THEME_SEQUENCE.indexOf(currentMode);
-  const nextMode = THEME_SEQUENCE[(currentIndex + 1) % THEME_SEQUENCE.length];
+function applyTheme(mode) {
+  const normalizedMode = normalizeThemeMode(mode) ?? "dark";
+  const root = document.documentElement;
+  const isDark = normalizedMode === "dark";
+
+  root.dataset.themeMode = normalizedMode;
+  root.dataset.theme = normalizedMode;
+
+  const toggle = document.querySelector("[data-theme-toggle]");
+  const modeLabel = document.querySelector("[data-theme-mode-label]");
+
+  if (toggle) {
+    toggle.setAttribute("aria-checked", String(isDark));
+    toggle.setAttribute("aria-label", `${isDark ? "Dark" : "Light"} mode. Activate to switch color mode.`);
+    toggle.title = `${isDark ? "Dark" : "Light"} mode`;
+  }
+
+  if (modeLabel) {
+    modeLabel.textContent = isDark ? "Dark" : "Light";
+  }
+}
+
+function toggleThemeMode() {
+  const currentMode = normalizeThemeMode(document.documentElement.dataset.themeMode) ?? getInitialThemeMode();
+  const nextMode = currentMode === "dark" ? "light" : "dark";
 
   storeThemeMode(nextMode);
   applyTheme(nextMode);
 }
 
 function initThemeToggle() {
-  applyTheme(getStoredThemeMode());
-
-  document.querySelector("[data-theme-toggle]")?.addEventListener("click", cycleThemeMode);
-
-  prefersDark.addEventListener("change", () => {
-    if (document.documentElement.dataset.themeMode === "system") {
-      applyTheme("system");
-    }
-  });
+  applyTheme(getInitialThemeMode());
+  document.querySelector("[data-theme-toggle]")?.addEventListener("click", toggleThemeMode);
 }
 
 initThemeToggle();
