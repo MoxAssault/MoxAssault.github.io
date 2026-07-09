@@ -3,12 +3,12 @@
   Stage 4: Editor mode wiring
 */
 
-import { YML_FIELD_GROUPS, getFieldByName, FIELD_TYPES } from "./fields.js?v=20260709-2";
-import { readTextFile, isLikelyYmlFile, getEditorDownloadName } from "./fileHelper.js?v=20260709-2";
-import { createErrorLog } from "./errorLog.js?v=20260709-2";
-import { createPreviewPane } from "./previewPane.js?v=20260709-2";
-import { downloadYml, parseYml } from "./yamlHelper.js?v=20260709-2";
-import { renderWizardGroups } from "./wizardModule.js?v=20260709-2";
+import { YML_FIELD_GROUPS, getFieldByName, FIELD_TYPES } from "./fields.js?v=20260709-3";
+import { readTextFile, isLikelyYmlFile, getEditorDownloadName } from "./fileHelper.js?v=20260709-3";
+import { createErrorLog } from "./errorLog.js?v=20260709-3";
+import { createPreviewPane } from "./previewPane.js?v=20260709-3";
+import { downloadYml, parseYml } from "./yamlHelper.js?v=20260709-3";
+import { renderWizardGroups } from "./wizardModule.js?v=20260709-3";
 
 const elements = {
   modeTabs: Array.from(document.querySelectorAll("[data-mode]")),
