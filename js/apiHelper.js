@@ -21,11 +21,34 @@ async function fetchJson(url) {
   return response.json();
 }
 
+function withRecordId(record, fallbackId = "") {
+  if (!record || typeof record !== "object") {
+    return record;
+  }
+
+  return {
+    ...record,
+    id: record.id ?? record.tableVPSId ?? record.vpsId ?? record.vpsID ?? fallbackId
+  };
+}
+
+function normalizeVpsCollection(collection) {
+  if (Array.isArray(collection)) {
+    return collection.map((record) => withRecordId(record));
+  }
+
+  if (collection && typeof collection === "object") {
+    return Object.entries(collection).map(([id, record]) => withRecordId(record, id));
+  }
+
+  return [];
+}
+
 function normalizeVpsPayload(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.tables)) return payload.tables;
-  if (payload && typeof payload === "object") return Object.values(payload);
+  if (Array.isArray(payload)) return normalizeVpsCollection(payload);
+  if (payload?.items) return normalizeVpsCollection(payload.items);
+  if (payload?.tables) return normalizeVpsCollection(payload.tables);
+  if (payload && typeof payload === "object") return normalizeVpsCollection(payload);
   return [];
 }
 
