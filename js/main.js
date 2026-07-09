@@ -11,14 +11,14 @@ import {
   getRecordName,
   getRecordUpdated,
   getRecordYear
-} from "./apiHelper.js?v=20260709-2";
-import { YML_FIELD_GROUPS, getFieldByName, FIELD_TYPES } from "./fields.js?v=20260709-2";
-import { createErrorLog } from "./errorLog.js?v=20260709-2";
-import { createPreviewPane } from "./previewPane.js?v=20260709-2";
-import { createSearchController } from "./searchHelper.js?v=20260709-2";
-import { formatDate } from "./uiHelper.js?v=20260709-2";
-import { downloadYml, normalizeYmlData } from "./yamlHelper.js?v=20260709-2";
-import { renderWizardGroups } from "./wizardModule.js?v=20260709-2";
+} from "./apiHelper.js?v=20260709-3";
+import { YML_FIELD_GROUPS, getFieldByName, FIELD_TYPES } from "./fields.js?v=20260709-3";
+import { createErrorLog } from "./errorLog.js?v=20260709-3";
+import { createPreviewPane } from "./previewPane.js?v=20260709-3";
+import { createSearchController } from "./searchHelper.js?v=20260709-3";
+import { formatDate } from "./uiHelper.js?v=20260709-3";
+import { downloadYml, normalizeYmlData } from "./yamlHelper.js?v=20260709-3";
+import { renderWizardGroups } from "./wizardModule.js?v=20260709-3";
 
 const CATEGORY_CONFIG = Object.freeze([
   {
