@@ -28,11 +28,14 @@ export function findVpsMatches(records, query, limit = MAX_SUGGESTIONS) {
     .slice(0, limit);
 }
 
-function renderSuggestion(record) {
+function renderSuggestion(record, index) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "search-suggestion";
   button.dataset.vpsId = getRecordId(record);
+  button.dataset.index = String(index);
+  button.setAttribute("role", "option");
+  button.setAttribute("aria-selected", "false");
 
   const title = document.createElement("span");
   title.className = "search-suggestion__title";
@@ -85,17 +88,30 @@ export function createSearchController({ input, suggestions, records = [], onSel
     }
 
     currentMatches.forEach((record, index) => {
-      const button = renderSuggestion(record);
-      button.setAttribute("role", "option");
-      button.setAttribute("aria-selected", "false");
-      button.addEventListener("click", () => selectRecord(record));
-      suggestions.appendChild(button);
-
-      if (index === 0) setActive(0);
+      suggestions.appendChild(renderSuggestion(record, index));
     });
 
+    setActive(0);
     suggestions.hidden = false;
   }
+
+  suggestions.addEventListener("pointerdown", (event) => {
+    const button = event.target.closest(".search-suggestion");
+    if (!button || !suggestions.contains(button)) return;
+
+    event.preventDefault();
+    const index = Number(button.dataset.index);
+    selectRecord(currentMatches[index]);
+  });
+
+  suggestions.addEventListener("click", (event) => {
+    const button = event.target.closest(".search-suggestion");
+    if (!button || !suggestions.contains(button)) return;
+
+    event.preventDefault();
+    const index = Number(button.dataset.index);
+    selectRecord(currentMatches[index]);
+  });
 
   input.addEventListener("input", () => render(input.value));
   input.addEventListener("focus", () => render(input.value));
