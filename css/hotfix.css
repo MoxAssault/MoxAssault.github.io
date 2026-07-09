@@ -1,7 +1,86 @@
 /*
   VPXS YML Creator Redesign
-  Hotfix: stabilize the Stage 3 Builder layout without rewriting components.css.
+  Hotfix: stabilize the Stage 3 Builder layout and apply muted dark palette.
+
+  Palette reference:
+  #7F879C  #AF031D  #17141A  #343C4E  #5B7397  #6587B5  #88BCEC
 */
+
+[data-theme="dark"] {
+  --color-bg: #17141A;
+  --color-bg-soft: #1E2634;
+  --color-surface: #232C3B;
+  --color-surface-muted: #283345;
+  --color-surface-raised: #343C4E;
+  --color-border: #4A5870;
+  --color-border-strong: #6587B5;
+  --color-primary: #88BCEC;
+  --color-primary-soft: rgba(136, 188, 236, 0.14);
+  --color-text: #F3F6FA;
+  --color-text-soft: #E3EBF5;
+  --color-text-muted: #AAB6C6;
+  --focus-ring: 0 0 0 3px rgba(136, 188, 236, 0.28);
+}
+
+.theme-switch {
+  width: 9.75rem;
+  min-width: 9.75rem;
+  max-width: 9.75rem;
+  flex: 0 0 9.75rem;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-soft);
+  background: var(--color-surface-muted);
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.theme-switch__label {
+  min-width: 2.6rem;
+  text-align: left;
+}
+
+.theme-switch__track {
+  width: 3.05rem;
+  height: 1.55rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: #7F879C;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+}
+
+.theme-switch__thumb {
+  width: 1.18rem;
+  height: 1.18rem;
+  position: absolute;
+  left: 0.22rem;
+  border-radius: 50%;
+  background: #F3F6FA;
+  box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.35);
+  transition: transform var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+}
+
+.theme-switch[aria-checked="true"] .theme-switch__track {
+  background: #5B7397;
+}
+
+.theme-switch[aria-checked="true"] .theme-switch__thumb {
+  transform: translateX(1.48rem);
+  background: #88BCEC;
+}
+
+.theme-switch:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
 
 .builder-layout {
   grid-template-columns: minmax(0, 1fr);
@@ -27,7 +106,7 @@
   min-height: 14rem;
   max-height: 32rem;
   color: var(--color-text-soft);
-  background: var(--color-bg-soft);
+  background: #17141A;
 }
 
 .search-suggestions[hidden],
@@ -40,9 +119,9 @@
   max-height: min(22rem, 60vh);
   overflow: auto;
   padding: 0.5rem;
-  border: 1px solid #33445f;
+  border: 1px solid #5B7397;
   border-radius: var(--radius-lg);
-  background: #111827;
+  background: #17141A;
   box-shadow: 0 1.1rem 2.4rem rgba(0, 0, 0, 0.45);
 }
 
@@ -52,10 +131,10 @@
   gap: 0.22rem;
   width: 100%;
   padding: 0.85rem 0.95rem;
-  border: 1px solid #29364c;
+  border: 1px solid #343C4E;
   border-radius: var(--radius-md);
-  color: #eef4ff;
-  background: #162033;
+  color: #F3F6FA;
+  background: #343C4E;
 }
 
 .search-suggestion + .search-suggestion {
@@ -69,21 +148,21 @@
 .search-suggestion:hover,
 .search-suggestion.is-active,
 .search-suggestion:focus-visible {
-  border-color: #6f86a6;
-  color: #ffffff;
-  background: #22314a;
-  box-shadow: 0 0 0 1px rgba(160, 180, 215, 0.16) inset;
+  border-color: #88BCEC;
+  color: #FFFFFF;
+  background: #5B7397;
+  box-shadow: 0 0 0 1px rgba(136, 188, 236, 0.16) inset;
   transform: none;
 }
 
 .search-suggestion__title {
-  color: #ffffff;
+  color: #FFFFFF;
   font-weight: 850;
   line-height: 1.2;
 }
 
 .search-suggestion__meta {
-  color: #a9b9d2;
+  color: #C2CFDE;
   font-family: var(--font-mono);
   font-size: 0.78rem;
   line-height: 1.25;
@@ -92,7 +171,7 @@
 .search-suggestion:hover .search-suggestion__meta,
 .search-suggestion.is-active .search-suggestion__meta,
 .search-suggestion:focus-visible .search-suggestion__meta {
-  color: #cbd6e8;
+  color: #E7F2FF;
 }
 
 .section-heading {
@@ -134,7 +213,10 @@
   }
 
   .download-fab,
-  .search-form button {
+  .search-form button,
+  .theme-switch {
     width: 100%;
+    min-width: 0;
+    max-width: none;
   }
 }
