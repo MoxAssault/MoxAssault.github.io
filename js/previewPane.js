@@ -3,7 +3,7 @@
   Stage 2: Live YML preview pane
 */
 
-import { serializeYml } from "./yamlHelper.js";
+import { serializeYml } from "./yamlHelper.js?v=20260709-2";
 
 function debounce(fn, delay = 140) {
   let timer = null;
