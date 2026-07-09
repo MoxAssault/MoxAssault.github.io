@@ -89,6 +89,10 @@ const previewPane = createPreviewPane({
   errorLog
 });
 
+function normalize(value) {
+  return String(value ?? "").toLowerCase().trim();
+}
+
 function setStatus(message) {
   if (elements.builderStatus) {
     elements.builderStatus.textContent = message;
@@ -294,19 +298,38 @@ function renderWizard(data) {
   });
 }
 
+function findRecordByVpsId(vpsId) {
+  const id = normalize(vpsId);
+  if (!id) return null;
+  return state.records.find((record) => normalize(getRecordId(record)) === id) ?? null;
+}
+
 function selectRecord(record) {
-  errorLog.clear();
-  state.currentRecord = record;
-  state.formData = buildInitialData(record);
+  if (!record) {
+    errorLog.error("Unable to select that VPS record.");
+    setStatus("Search result could not be selected.");
+    return;
+  }
 
-  renderResultCard(record);
-  renderFileSelectors(record);
-  renderWizard(state.formData);
-  previewPane.render(state.formData);
+  try {
+    errorLog.clear();
+    state.currentRecord = record;
+    state.formData = buildInitialData(record);
 
-  elements.resultPanel.hidden = false;
-  elements.downloadButton.disabled = false;
-  setStatus(`Loaded ${getRecordName(record)}.`);
+    elements.resultPanel.hidden = false;
+    elements.downloadButton.disabled = false;
+
+    renderResultCard(record);
+    renderFileSelectors(record);
+    renderWizard(state.formData);
+    previewPane.render(state.formData);
+
+    setStatus(`Loaded ${getRecordName(record)}.`);
+  } catch (error) {
+    console.error(error);
+    errorLog.error(error);
+    setStatus("Selection failed while rendering Builder fields.");
+  }
 }
 
 function validateFormData(data) {
@@ -368,6 +391,20 @@ async function initBuilder() {
     records: [],
     onSelect: selectRecord
   });
+
+  document.addEventListener("pointerdown", (event) => {
+    const button = event.target.closest?.(".search-suggestion");
+    if (!button || !elements.suggestions.contains(button)) return;
+
+    const record = findRecordByVpsId(button.dataset.vpsId);
+    if (!record) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    elements.searchInput.value = getRecordId(record);
+    searchController.clear();
+    selectRecord(record);
+  }, true);
 
   elements.searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
