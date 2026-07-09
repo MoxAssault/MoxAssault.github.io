@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme-mode="system" data-theme="dark">
+<html lang="en" data-theme-mode="dark" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +8,9 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/hotfix.css">
-  <script src="js/theme.js" defer></script>
-  <script type="module" src="js/main.js"></script>
+  <link rel="stylesheet" href="css/hotfix.css?v=20260709-2">
+  <script src="js/theme.js?v=20260709-2" defer></script>
+  <script type="module" src="js/main.js?v=20260709-2"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -28,8 +28,11 @@
 
         <div class="topbar__actions">
           <button class="icon-button" type="button" aria-label="Open help" title="Help">?</button>
-          <button class="theme-toggle" type="button" data-theme-toggle>
-            Theme: <span class="theme-toggle__mode" data-theme-mode-label>system</span>
+          <button class="theme-switch" type="button" role="switch" aria-checked="true" data-theme-toggle>
+            <span class="theme-switch__label" data-theme-mode-label>Dark</span>
+            <span class="theme-switch__track" aria-hidden="true">
+              <span class="theme-switch__thumb"></span>
+            </span>
           </button>
         </div>
       </div>
