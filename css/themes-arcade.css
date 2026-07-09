@@ -1,0 +1,72 @@
+/*
+  VPXS YML Creator Redesign
+  Stage 5: Retro-arcade accent layer
+
+  This file is intentionally isolated. Removing this stylesheet should remove
+  the arcade accents without breaking layout, Builder, Editor, or theme logic.
+*/
+
+:root {
+  --arcade-scanline-opacity: 0.035;
+  --arcade-grid-opacity: 0.05;
+  --arcade-glow: rgba(136, 188, 236, 0.16);
+  --arcade-red: #AF031D;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, var(--arcade-scanline-opacity)) 50%, transparent 50%),
+    linear-gradient(90deg, rgba(136, 188, 236, var(--arcade-grid-opacity)) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(136, 188, 236, var(--arcade-grid-opacity)) 1px, transparent 1px);
+  background-size: 100% 4px, 72px 72px, 72px 72px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 72%);
+}
+
+.brand__eyebrow,
+.kicker,
+.mode-tab[aria-selected="true"],
+.wizard-card__badge {
+  text-shadow: 0 0 0.7rem var(--arcade-glow);
+}
+
+.panel,
+.wizard-card,
+.result-panel,
+.search-suggestions,
+.preview-output {
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 1px rgba(136, 188, 236, 0.04),
+    0 0 1.8rem rgba(136, 188, 236, 0.035);
+}
+
+.download-fab,
+.search-form button {
+  box-shadow: 0 0.65rem 1.4rem rgba(136, 188, 236, 0.16);
+}
+
+.download-fab:hover,
+.search-form button:hover,
+.theme-switch:hover {
+  filter: brightness(1.04);
+}
+
+.error-log__item--error {
+  box-shadow: 0 0 0 1px rgba(175, 3, 29, 0.28), 0 0 1.2rem rgba(175, 3, 29, 0.12);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wizard-card:hover,
+  .panel:hover {
+    transition: transform var(--duration-med) var(--ease-standard), border-color var(--duration-med) var(--ease-standard), box-shadow var(--duration-med) var(--ease-standard);
+  }
+
+  .wizard-card:hover {
+    transform: translateY(-1px);
+  }
+}
