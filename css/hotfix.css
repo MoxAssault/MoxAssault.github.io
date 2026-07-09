@@ -95,6 +95,21 @@
   color: #cbd6e8;
 }
 
+.section-heading {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: var(--space-md);
+}
+
+.section-heading h2,
+.section-heading p {
+  margin: 0;
+}
+
+.section-heading h2 {
+  font-size: clamp(1.2rem, 3vw, 1.65rem);
+}
+
 .file-picker-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
