@@ -1,0 +1,259 @@
+/*
+  VPXS YML Creator Redesign
+  Stage 1: Shared wizard components
+*/
+
+.wizard-board {
+  display: grid;
+  gap: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+
+.wizard-board__header {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.wizard-board__header h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.wizard-board__header p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.wizard-group-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.wizard-card {
+  border: var(--line-thin) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  box-shadow: var(--shadow-card);
+  overflow: clip;
+  transition:
+    border-color var(--duration-med) var(--ease-standard),
+    box-shadow var(--duration-med) var(--ease-standard),
+    opacity var(--duration-med) var(--ease-standard),
+    transform var(--duration-med) var(--ease-standard);
+}
+
+.wizard-card:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+.wizard-card.is-dimmed {
+  opacity: 0.68;
+  background: color-mix(in srgb, var(--color-surface-muted) 72%, transparent);
+}
+
+.wizard-card.is-dimmed:hover,
+.wizard-card.is-dimmed:focus-within {
+  opacity: 1;
+}
+
+.wizard-card__header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-md);
+  border: 0;
+  color: var(--color-text);
+  background: transparent;
+  text-align: left;
+}
+
+.wizard-card__icon {
+  width: 2rem;
+  height: 2rem;
+  display: inline-grid;
+  place-items: center;
+  border: var(--line-thin) solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.wizard-card__title-wrap {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.wizard-card__title {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.wizard-card__description {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.wizard-card__badge {
+  justify-self: end;
+  padding: 0.35rem 0.6rem;
+  border: var(--line-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.wizard-card__summary {
+  margin: 0 var(--space-md) var(--space-md);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: var(--color-bg-soft);
+  font-size: 0.82rem;
+  font-weight: 800;
+  width: fit-content;
+}
+
+.wizard-card__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  padding: 0 var(--space-md) var(--space-md);
+  transition:
+    grid-template-rows var(--duration-med) var(--ease-standard),
+    opacity var(--duration-med) var(--ease-standard),
+    padding var(--duration-med) var(--ease-standard);
+}
+
+.wizard-card.is-collapsed .wizard-card__body {
+  grid-template-rows: 0fr;
+  padding-block-end: 0;
+  opacity: 0;
+}
+
+.wizard-fields {
+  min-height: 0;
+  display: grid;
+  gap: var(--space-md);
+  overflow: hidden;
+}
+
+.wizard-field {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.wizard-field__label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  color: var(--color-text-soft);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.wizard-field__help {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.wizard-field input[type="text"],
+.wizard-field input[type="number"],
+.wizard-field input[type="url"],
+.wizard-field select,
+.wizard-field textarea {
+  width: 100%;
+  border: var(--line-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: var(--color-bg-soft);
+  padding: 0.75rem 0.85rem;
+}
+
+.wizard-field textarea {
+  resize: vertical;
+  min-height: 6.5rem;
+}
+
+.wizard-field input:disabled,
+.wizard-field textarea:disabled,
+.wizard-field select:disabled {
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-bg-soft) 64%, transparent);
+  opacity: 0.7;
+}
+
+.wizard-check,
+.wizard-pill-check,
+.wizard-field__toggle {
+  display: inline-flex;
+  gap: var(--space-xs);
+  align-items: center;
+  width: fit-content;
+}
+
+.wizard-check,
+.wizard-pill-check {
+  padding: 0.55rem 0.75rem;
+  border: var(--line-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-soft);
+  background: var(--color-bg-soft);
+  font-weight: 850;
+}
+
+.wizard-field__toggle {
+  padding: 0.22rem 0.5rem;
+  border: var(--line-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wizard-array-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.wizard-pill-check:has(input:checked),
+.wizard-check:has(input:checked) {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+  background: var(--color-primary-soft);
+}
+
+@media (max-width: 900px) {
+  .wizard-group-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .wizard-card__header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .wizard-card__badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

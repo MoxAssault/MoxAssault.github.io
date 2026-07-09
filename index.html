@@ -7,7 +7,9 @@
   <title>VPXS YML Creator</title>
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
   <script src="js/theme.js" defer></script>
+  <script type="module" src="js/stage1Demo.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -35,46 +37,50 @@
     <main>
       <section class="hero" aria-labelledby="page-title">
         <article class="panel panel--intro">
-          <p class="kicker">Stage 0 foundation</p>
-          <h2 class="page-title" id="page-title">Clean rebuild, same mission.</h2>
+          <p class="kicker">Stage 1 shared modules</p>
+          <h2 class="page-title" id="page-title">One wizard system for Builder and Editor.</h2>
           <p class="page-copy">
-            This branch starts the VPXS YML Creator redesign from a clean shell: new files,
-            new theme system, new layout primitives, and no reused modal or minified legacy app code.
+            The redesign now has a clean reusable renderer for YML field groups. Builder mode and Editor mode
+            will both use this same system so the form behavior and YAML output cannot drift apart later.
           </p>
         </article>
 
         <aside class="panel panel--status" aria-label="Stage status">
           <div class="status-card">
-            <h2>Foundation checklist</h2>
+            <h2>Stage 1 checklist</h2>
             <div class="status-grid">
               <div class="status-item">
-                <span>Theme system</span>
-                <strong>System / Light / Dark</strong>
+                <span>Fields</span>
+                <strong>Grouped YML schema</strong>
               </div>
               <div class="status-item">
-                <span>Mode shell</span>
-                <strong>Builder + Editor tabs</strong>
+                <span>Renderer</span>
+                <strong>Shared wizard cards</strong>
+              </div>
+              <div class="status-item">
+                <span>Theme button</span>
+                <strong>Fixed size at all breakpoints</strong>
               </div>
               <div class="status-item">
                 <span>Next stage</span>
-                <strong>Shared wizard modules</strong>
+                <strong>YML read/write engine</strong>
               </div>
             </div>
           </div>
         </aside>
       </section>
 
-      <section class="placeholder-region" aria-labelledby="workspace-title">
-        <h2 id="workspace-title">Workspace placeholder</h2>
-        <p>
-          Builder and Editor functionality will be wired in later stages. For now, this shell validates
-          the new file structure, layout baseline, and persistent theme toggle.
-        </p>
-        <ul class="stage-list" aria-label="Stage 0 deliverables">
-          <li><span class="stage-dot" aria-hidden="true"></span><span><strong>tokens.css</strong> defines the shared design system values.</span></li>
-          <li><span class="stage-dot" aria-hidden="true"></span><span><strong>base.css</strong> defines reset, typography, and shell layout.</span></li>
-          <li><span class="stage-dot" aria-hidden="true"></span><span><strong>theme.js</strong> handles the persistent theme cycle.</span></li>
-        </ul>
+      <section class="wizard-board" aria-labelledby="workspace-title">
+        <div class="wizard-board__header">
+          <h2 id="workspace-title">Shared wizard module preview</h2>
+          <p>
+            This is temporary Stage 1 sample data. Populated groups open by default. Empty groups stay dimmed
+            with a plus icon and can be expanded inline.
+          </p>
+          <p class="kicker" data-stage-one-status>Ready for Stage 1 validation</p>
+        </div>
+
+        <div class="wizard-group-grid" data-stage-one-wizard></div>
       </section>
     </main>
   </div>
