@@ -1,6 +1,6 @@
 /*
   VPXS YML Creator Redesign
-  Stage 0: Reset, typography, and page-shell layout primitives.
+  Stage 0/1: Reset, typography, and page-shell layout primitives.
 */
 
 *,
@@ -127,6 +127,8 @@ button:disabled {
   display: inline-flex;
   gap: var(--space-xs);
   align-items: center;
+  justify-content: flex-end;
+  min-width: max-content;
 }
 
 .icon-button,
@@ -140,13 +142,23 @@ button:disabled {
 
 .icon-button {
   width: 2.5rem;
+  flex: 0 0 2.5rem;
   display: inline-grid;
   place-items: center;
 }
 
 .theme-toggle {
-  padding: 0 var(--space-md);
+  width: 9.75rem;
+  min-width: 9.75rem;
+  max-width: 9.75rem;
+  flex: 0 0 9.75rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 var(--space-sm);
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .theme-toggle__mode {
@@ -307,14 +319,16 @@ main {
     align-items: stretch;
   }
 
-  .mode-tabs,
-  .topbar__actions {
+  .mode-tabs {
     justify-content: stretch;
   }
 
-  .mode-tab,
-  .theme-toggle {
+  .mode-tab {
     flex: 1;
+  }
+
+  .topbar__actions {
+    justify-content: flex-start;
   }
 
   .hero {
@@ -334,7 +348,7 @@ main {
   }
 
   .topbar__actions {
-    display: grid;
-    grid-template-columns: auto 1fr;
+    display: inline-flex;
+    justify-content: flex-start;
   }
 }
