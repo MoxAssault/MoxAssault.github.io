@@ -3,13 +3,13 @@
   Stage 1: Shared wizard group renderer
 */
 
-import { FIELD_TYPES } from "./fields.js?v=20260709-2";
+import { FIELD_TYPES } from "./fields.js?v=20260709-3";
 import {
   createElement,
   evaluateGroupState,
   getGroupStateLabel,
   humanize
-} from "./uiHelper.js?v=20260709-2";
+} from "./uiHelper.js?v=20260709-3";
 
 function toArrayInputValue(value) {
   if (Array.isArray(value)) {
@@ -21,6 +21,10 @@ function toArrayInputValue(value) {
 
 function isCheckedValue(value) {
   return value === true || value === "true";
+}
+
+function appendOptional(parent, child) {
+  if (child) parent.appendChild(child);
 }
 
 function emitFieldChange(card, fieldName, value) {
@@ -110,7 +114,7 @@ function createArrayOptionsField(card, field, value) {
   });
 
   wrapper.appendChild(optionGroup);
-  wrapper.appendChild(createHelpText(field));
+  appendOptional(wrapper, createHelpText(field));
   return wrapper;
 }
 
