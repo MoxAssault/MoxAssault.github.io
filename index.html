@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/hotfix.css?v=20260709-2">
   <script src="js/theme.js?v=20260709-2" defer></script>
   <script type="module" src="js/main.js?v=20260709-2"></script>
+  <script type="module" src="js/editorMode.js?v=20260709-2"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -23,7 +24,7 @@
 
         <nav class="mode-tabs" aria-label="Mode selector">
           <button class="mode-tab" type="button" aria-selected="true" data-mode="builder">Builder</button>
-          <button class="mode-tab" type="button" aria-selected="false" data-mode="editor" disabled>Editor</button>
+          <button class="mode-tab" type="button" aria-selected="false" data-mode="editor">Editor</button>
         </nav>
 
         <div class="topbar__actions">
@@ -41,11 +42,11 @@
     <main>
       <section class="hero" aria-labelledby="page-title">
         <article class="panel panel--intro">
-          <p class="kicker">Stages 2 + 3</p>
-          <h2 class="page-title" id="page-title">Build, preview, download.</h2>
+          <p class="kicker">Stages 2–4</p>
+          <h2 class="page-title" id="page-title">Build, edit, preview, download.</h2>
           <p class="page-copy">
-            Builder mode now uses the clean shared wizard system with VPS search, file selectors,
-            live YML preview, validation, and one-click download wiring.
+            Builder mode creates new VPXS table config files. Editor mode loads an existing YML file,
+            maps it into the same wizard cards, previews changes, and downloads an updated copy.
           </p>
         </article>
 
@@ -62,7 +63,7 @@
                 <strong data-preview-status>Waiting for table data</strong>
               </div>
               <div class="status-item">
-                <span>Next stage</span>
+                <span>Current stage</span>
                 <strong>Editor mode</strong>
               </div>
             </div>
@@ -70,7 +71,7 @@
         </aside>
       </section>
 
-      <section class="builder-layout" aria-labelledby="builder-title">
+      <section class="builder-layout" aria-labelledby="builder-title" data-mode-panel="builder">
         <div class="builder-main">
           <section class="panel builder-search" aria-labelledby="builder-title">
             <div class="builder-search__header">
@@ -122,6 +123,50 @@
           </section>
 
           <section class="error-log" data-error-log hidden aria-label="Error log"></section>
+        </aside>
+      </section>
+
+      <section class="editor-layout" data-mode-panel="editor" hidden aria-labelledby="editor-title">
+        <div class="builder-main">
+          <section class="panel editor-panel" aria-labelledby="editor-title">
+            <div class="builder-search__header">
+              <div>
+                <p class="kicker">Editor mode</p>
+                <h2 id="editor-title">Load existing YML</h2>
+              </div>
+              <button class="download-fab" type="button" data-editor-download disabled>Download Edited YML</button>
+            </div>
+
+            <label class="editor-dropzone" data-editor-dropzone>
+              <span class="editor-dropzone__title">Drop a .yml file here</span>
+              <span class="editor-dropzone__copy">or choose a file from your computer</span>
+              <input type="file" accept=".yml,.yaml,text/yaml" data-editor-file>
+            </label>
+
+            <label class="editor-source-label" for="editor-source">YML source</label>
+            <textarea id="editor-source" class="editor-source" spellcheck="false" placeholder="Paste existing YML here…" data-editor-source></textarea>
+            <button class="download-fab editor-parse-button" type="button" data-editor-parse>Parse YML</button>
+          </section>
+
+          <section class="wizard-board" aria-labelledby="editor-wizard-title">
+            <div class="wizard-board__header">
+              <h2 id="editor-wizard-title">Editor fields</h2>
+              <p>Parsed YML appears here using the same shared wizard cards as Builder mode.</p>
+            </div>
+            <div class="wizard-group-grid" data-editor-wizard></div>
+          </section>
+        </div>
+
+        <aside class="builder-side" aria-label="Editor preview and errors">
+          <section class="panel preview-panel">
+            <div class="preview-panel__header">
+              <h2>Edited YML Preview</h2>
+              <p data-editor-preview-status>Waiting for YML input.</p>
+            </div>
+            <pre class="preview-output"><code data-editor-preview-output># Load or paste YML to begin.</code></pre>
+          </section>
+
+          <section class="error-log" data-editor-error-log hidden aria-label="Editor error log"></section>
         </aside>
       </section>
     </main>
