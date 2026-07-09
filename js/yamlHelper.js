@@ -6,7 +6,7 @@
   files instead of pulling in a framework or parser dependency.
 */
 
-import { FIELD_TYPES, YML_FIELD_GROUPS, getFieldByName } from "./fields.js";
+import { FIELD_TYPES, YML_FIELD_GROUPS, getFieldByName } from "./fields.js?v=20260709-2";
 
 const LINE_LENGTH_LIMIT = 120;
 const INDENT = "  ";
@@ -37,8 +37,6 @@ const URL_FIELD_NAMES = new Set(
     .map((field) => field.name)
 );
 
-// Preserved from the original tool's output behavior. PUP selections can help
-// the UI, but these two values should not be emitted into generated YML.
 const OUTPUT_EXCLUDED_FIELDS = new Set(["pupBundled", "pupVPSId"]);
 
 function stripQuotes(value) {
