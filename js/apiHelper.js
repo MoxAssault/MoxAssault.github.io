@@ -4,7 +4,8 @@
 */
 
 const API_URLS = Object.freeze([
-  "https://cdn.jsdelivr.net/gh/VirtualPinballSpreadsheet/vps-db@gh-pages/db/vpsdb.json",
+  "https://virtualpinballspreadsheet.github.io/vps-db/db/vpsdb.json",
+  "https://virtualpinballspreadsheet.github.io/vps-db/lastUpdated.json",
   "https://raw.githubusercontent.com/VirtualPinballSpreadsheet/vps-db/gh-pages/db/vpsdb.json"
 ]);
 
@@ -15,7 +16,7 @@ async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(`VPS DB request failed: ${response.status} ${response.statusText}`);
+    throw new Error(`${url} failed: ${response.status} ${response.statusText}`);
   }
 
   return response.json();
@@ -48,6 +49,7 @@ function normalizeVpsPayload(payload) {
   if (Array.isArray(payload)) return normalizeVpsCollection(payload);
   if (payload?.items) return normalizeVpsCollection(payload.items);
   if (payload?.tables) return normalizeVpsCollection(payload.tables);
+  if (payload?.version && !payload?.items && !payload?.tables) return [];
   if (payload && typeof payload === "object") return normalizeVpsCollection(payload);
   return [];
 }
@@ -61,11 +63,16 @@ export async function fetchVPSDB({ forceRefresh = false } = {}) {
 
     for (const url of API_URLS) {
       try {
+        if (url.endsWith("lastUpdated.json")) {
+          await fetchJson(url);
+          continue;
+        }
+
         const payload = await fetchJson(url);
         const records = normalizeVpsPayload(payload).filter(Boolean);
 
         if (records.length === 0) {
-          throw new Error("VPS DB returned no records.");
+          throw new Error(`${url} returned no records.`);
         }
 
         vpsCache = records;
