@@ -83,6 +83,17 @@ export function getGroupStateLabel(groupState) {
   return `${groupState.populatedCount} populated`;
 }
 
+function appendChildSafely(element, child) {
+  if (child === null || child === undefined || child === false) return;
+
+  if (child instanceof Node) {
+    element.appendChild(child);
+    return;
+  }
+
+  element.appendChild(document.createTextNode(String(child)));
+}
+
 export function createElement(tagName, options = {}) {
   const element = document.createElement(tagName);
   const {
@@ -106,9 +117,8 @@ export function createElement(tagName, options = {}) {
     element.dataset[name] = String(value);
   });
 
-  children.forEach((child) => {
-    if (child) element.appendChild(child);
-  });
+  const childList = Array.isArray(children) ? children : [children];
+  childList.forEach((child) => appendChildSafely(element, child));
 
   return element;
 }
