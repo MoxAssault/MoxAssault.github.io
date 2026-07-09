@@ -9,9 +9,12 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/hotfix.css?v=20260709-4">
+  <link rel="stylesheet" href="css/themes-arcade.css?v=20260709-5">
+  <link rel="stylesheet" href="css/help.css?v=20260709-5">
   <script src="js/theme.js?v=20260709-3" defer></script>
   <script type="module" src="js/main.js?v=20260709-3"></script>
   <script type="module" src="js/editorMode.js?v=20260709-3"></script>
+  <script type="module" src="js/helpModal.js?v=20260709-5"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -28,7 +31,7 @@
         </nav>
 
         <div class="topbar__actions">
-          <button class="icon-button" type="button" aria-label="Open help" title="Help">?</button>
+          <button class="icon-button" type="button" aria-label="Open help" title="Help" data-help-open>?</button>
           <button class="theme-switch" type="button" role="switch" aria-checked="true" data-theme-toggle>
             <span class="theme-switch__label" data-theme-mode-label>Dark</span>
             <span class="theme-switch__track" aria-hidden="true">
@@ -42,7 +45,7 @@
     <main>
       <section class="hero" aria-labelledby="page-title">
         <article class="panel panel--intro">
-          <p class="kicker">Stages 2–4</p>
+          <p class="kicker">Stages 2–6</p>
           <h2 class="page-title" id="page-title">Build, edit, preview, download.</h2>
           <p class="page-copy">
             Builder mode creates new VPXS table config files. Editor mode loads an existing YML file,
@@ -63,8 +66,8 @@
                 <strong data-preview-status>Waiting for table data</strong>
               </div>
               <div class="status-item">
-                <span>Current stage</span>
-                <strong>Editor mode</strong>
+                <span>Checklist</span>
+                <strong>Stages complete</strong>
               </div>
             </div>
           </div>
@@ -171,5 +174,25 @@
       </section>
     </main>
   </div>
+
+  <dialog class="help-dialog" data-help-dialog aria-labelledby="help-title">
+    <div class="help-dialog__shell">
+      <header class="help-dialog__header">
+        <div>
+          <p class="kicker">VPXS Wizard Help</p>
+          <h2 id="help-title">Using the YML Creator</h2>
+        </div>
+        <button class="help-dialog__close" type="button" aria-label="Close help" data-help-close>×</button>
+      </header>
+      <div class="help-dialog__body" data-help-body>
+        <div class="help-grid">
+          <article class="help-card">
+            <h3>Loading help…</h3>
+            <p>Help content is being prepared.</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </dialog>
 </body>
 </html>
