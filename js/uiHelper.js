@@ -83,10 +83,19 @@ export function getGroupStateLabel(groupState) {
   return `${groupState.populatedCount} populated`;
 }
 
+function isDomNode(value) {
+  return value && typeof value === "object" && typeof value.nodeType === "number" && typeof value.nodeName === "string";
+}
+
 function appendChildSafely(element, child) {
   if (child === null || child === undefined || child === false) return;
 
-  if (child instanceof Node) {
+  if (Array.isArray(child)) {
+    child.forEach((nestedChild) => appendChildSafely(element, nestedChild));
+    return;
+  }
+
+  if (isDomNode(child)) {
     element.appendChild(child);
     return;
   }
@@ -117,8 +126,7 @@ export function createElement(tagName, options = {}) {
     element.dataset[name] = String(value);
   });
 
-  const childList = Array.isArray(children) ? children : [children];
-  childList.forEach((child) => appendChildSafely(element, child));
+  appendChildSafely(element, children);
 
   return element;
 }
