@@ -17,6 +17,7 @@ const ARRAY_FIELD_NAMES = new Set(
     .filter((field) => field.type === FIELD_TYPES.ARRAY)
     .map((field) => field.name)
 );
+const ALWAYS_ARRAY_FIELD_NAMES = new Set(["applyFixes", "backglassAuthorsOverride", "testers"]);
 const NUMBER_FIELD_NAMES = new Set(
   YML_FIELD_GROUPS
     .flatMap((group) => group.fields)
@@ -133,7 +134,7 @@ function serializeScalarLine(fieldName, value) {
 function serializeArray(fieldName, values) {
   if (values.length === 0) return "";
 
-  const forceArray = ARRAY_FIELD_NAMES.has(fieldName);
+  const forceArray = ALWAYS_ARRAY_FIELD_NAMES.has(fieldName);
 
   if (!forceArray && values.length === 1) {
     return serializeScalarLine(fieldName, values[0]);
