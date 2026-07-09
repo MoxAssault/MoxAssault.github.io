@@ -1,6 +1,6 @@
 /*
   VPXS YML Creator Redesign
-  Hotfix: stabilize the Stage 3 Builder layout and apply muted dark palette.
+  Hotfix: stabilize Builder/Editor layout and apply muted dark palette.
 
   Palette reference:
   #7F879C  #AF031D  #17141A  #343C4E  #5B7397  #6587B5  #88BCEC
@@ -198,6 +198,113 @@
   font-size: clamp(1.2rem, 3vw, 1.65rem);
 }
 
+/* Compact masonry-style wizard layout. CSS columns let shorter cards move up
+   into available vertical space instead of being locked to row heights. */
+.wizard-group-grid {
+  display: block;
+  column-count: 2;
+  column-gap: var(--space-md);
+}
+
+.wizard-card {
+  width: 100%;
+  display: inline-block;
+  break-inside: avoid;
+  margin: 0 0 var(--space-md);
+  border-radius: var(--radius-lg);
+}
+
+.wizard-card__header {
+  grid-template-columns: 1.7rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 0.65rem;
+}
+
+.wizard-card__icon {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.wizard-card__title {
+  font-size: 1rem;
+}
+
+.wizard-card__description {
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.wizard-card__badge {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.7rem;
+}
+
+.wizard-card__summary {
+  margin: 0 1rem 0.75rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.76rem;
+}
+
+.wizard-card__body {
+  padding: 0 1rem 1rem;
+}
+
+.wizard-card.is-collapsed .wizard-card__body {
+  display: none;
+}
+
+.wizard-fields {
+  gap: 0.8rem;
+}
+
+.wizard-field {
+  gap: 0.4rem;
+}
+
+.wizard-field__label {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.wizard-field__help {
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.wizard-field input[type="text"],
+.wizard-field input[type="number"],
+.wizard-field input[type="url"],
+.wizard-field select,
+.wizard-field textarea,
+.file-picker select,
+.search-form input,
+.search-form button {
+  min-height: 2.45rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.8rem;
+  font-size: 0.95rem;
+}
+
+.wizard-field textarea {
+  min-height: 4.8rem;
+  line-height: 1.35;
+}
+
+.wizard-check,
+.wizard-pill-check {
+  padding: 0.42rem 0.65rem;
+  font-size: 0.82rem;
+}
+
+.wizard-field__toggle {
+  padding: 0.17rem 0.42rem;
+  font-size: 0.68rem;
+}
+
+.wizard-array-options {
+  gap: 0.4rem;
+}
+
 .editor-panel {
   display: grid;
   gap: var(--space-md);
@@ -262,8 +369,10 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
 
-.wizard-group-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+@media (max-width: 1050px) {
+  .wizard-group-grid {
+    column-count: 1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -289,5 +398,14 @@
     width: 100%;
     min-width: 0;
     max-width: none;
+  }
+
+  .wizard-card__header {
+    grid-template-columns: 1.7rem minmax(0, 1fr);
+  }
+
+  .wizard-card__badge {
+    grid-column: 2;
+    justify-self: start;
   }
 }
