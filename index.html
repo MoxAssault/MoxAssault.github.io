@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/hotfix.css?v=20260709-4">
-  <link rel="stylesheet" href="css/dashboard.css?v=20260709-9">
+  <link rel="stylesheet" href="css/dashboard.css?v=20260711-1">
   <link rel="stylesheet" href="css/help.css?v=20260709-5">
   <script src="js/theme.js?v=20260709-4" defer></script>
   <script type="module" src="js/main.js?v=20260709-3"></script>
@@ -43,51 +43,40 @@
     </header>
 
     <main>
-      <section class="builder-layout tool-layout" aria-labelledby="builder-title" data-mode-panel="builder">
-        <div class="tool-main">
-          <section class="panel mode-control-panel" aria-labelledby="builder-title">
-            <div class="mode-control-panel__header">
-              <div class="mode-title-row">
-                <p class="kicker">Builder Mode</p>
-                <h2 id="builder-title">VPS Search</h2>
-              </div>
+      <section class="mode-workspace mode-workspace--builder" data-mode-panel="builder" aria-labelledby="builder-title">
+        <section class="panel mode-panel" aria-labelledby="builder-title">
+          <div class="mode-panel__title-row">
+            <p class="kicker">Builder Mode</p>
+            <h2 id="builder-title">VPS Search</h2>
+          </div>
+
+          <p class="mode-panel__brief">Search the VPS database, select the table files, then complete the wizard fields below.</p>
+
+          <form class="search-form mode-search" data-search-form>
+            <div class="search-form__row">
+              <input
+                id="vps-search"
+                type="search"
+                autocomplete="off"
+                aria-label="Table name or VPS ID"
+                placeholder="Search by table name, manufacturer, or VPS ID…"
+                data-search-input
+              >
+              <button type="submit">Search</button>
             </div>
+            <div class="search-suggestions" role="listbox" data-search-suggestions hidden></div>
+          </form>
+        </section>
 
-            <p class="mode-brief">Search the VPS database, select the table files, then complete the wizard fields below.</p>
-
-            <form class="search-form compact-search" data-search-form>
-              <div class="search-form__row">
-                <input id="vps-search" type="search" autocomplete="off" aria-label="Table name or VPS ID" placeholder="Search by table name, manufacturer, or VPS ID…" data-search-input>
-                <button type="submit">Search</button>
-              </div>
-              <div class="search-suggestions" role="listbox" data-search-suggestions hidden></div>
-            </form>
+        <aside class="mode-sidebar" aria-label="Builder load information, preview, and errors">
+          <section class="panel load-info-panel">
+            <p class="load-info-line">
+              <span class="load-info-label">VPSDB LOAD INFO:</span>
+              <strong data-builder-status>Preparing search…</strong>
+            </p>
           </section>
 
-          <section class="panel result-panel" data-result-panel hidden>
-            <div class="section-heading">
-              <p class="kicker">Selected table</p>
-              <h2>Table files</h2>
-            </div>
-            <div class="result-card" data-result-card></div>
-            <div class="file-picker-grid" data-file-selectors></div>
-          </section>
-
-          <section class="wizard-board" aria-labelledby="wizard-title">
-            <div class="wizard-board__header">
-              <h2 id="wizard-title">Wizard fields</h2>
-              <p>Select files above, then fill in checksums, notes, overrides, and required metadata.</p>
-            </div>
-            <div class="wizard-group-grid" data-builder-wizard></div>
-          </section>
-        </div>
-
-        <aside class="tool-side" aria-label="Builder status, preview, and errors">
-          <section class="panel vps-load-panel">
-            <p class="load-status-line load-status-inline"><span>VPSDB LOAD INFO:</span> <strong data-builder-status>Preparing search…</strong></p>
-          </section>
-
-          <section class="panel preview-panel compact-preview">
+          <section class="panel preview-panel mode-preview">
             <div class="preview-panel__header">
               <h2>YML Preview</h2>
               <button class="download-fab preview-download" type="button" data-download-yml disabled>Download</button>
@@ -95,55 +84,65 @@
             <pre class="preview-output preview-output--empty"><code data-preview-output># Preview will appear after data is entered.</code></pre>
           </section>
 
-          <section class="error-log" data-error-log hidden aria-label="Error log"></section>
+          <section class="error-log" data-error-log hidden aria-label="Builder error log"></section>
         </aside>
+
+        <section class="panel result-panel" data-result-panel hidden>
+          <div class="section-heading">
+            <p class="kicker">Selected Table</p>
+            <h2>Table Files</h2>
+          </div>
+          <div class="result-card" data-result-card></div>
+          <div class="file-picker-grid" data-file-selectors></div>
+        </section>
+
+        <section class="wizard-board" aria-labelledby="wizard-title">
+          <div class="wizard-board__header">
+            <h2 id="wizard-title">Wizard Fields</h2>
+            <p>Select files above, then fill in checksums, notes, overrides, and required metadata.</p>
+          </div>
+          <div class="wizard-group-grid" data-builder-wizard></div>
+        </section>
       </section>
 
-      <section class="editor-layout tool-layout" data-mode-panel="editor" hidden aria-labelledby="editor-title">
-        <div class="tool-main">
-          <section class="panel mode-control-panel editor-panel" aria-labelledby="editor-title">
-            <div class="mode-control-panel__header">
-              <div class="mode-title-row">
-                <p class="kicker">Editor Mode</p>
-                <h2 id="editor-title">YML Load</h2>
-              </div>
-            </div>
+      <section class="mode-workspace mode-workspace--editor" data-mode-panel="editor" hidden aria-labelledby="editor-title">
+        <section class="panel mode-panel" aria-labelledby="editor-title">
+          <div class="mode-panel__title-row">
+            <p class="kicker">Editor Mode</p>
+            <h2 id="editor-title">YML Load</h2>
+          </div>
 
-            <p class="mode-brief">Drop, choose, or paste an existing YML file, then parse it into editable wizard fields.</p>
+          <p class="mode-panel__brief">Drop, choose, or paste an existing YML file, then parse it into editable wizard fields.</p>
 
-            <div class="editor-load-grid compact-editor-load">
-              <label class="editor-dropzone" data-editor-dropzone>
-                <span class="editor-dropzone__title">Drop .yml</span>
-                <span class="editor-dropzone__copy">or choose file</span>
-                <input type="file" accept=".yml,.yaml,text/yaml" data-editor-file>
-              </label>
+          <div class="editor-control-grid">
+            <label class="editor-dropzone" data-editor-dropzone>
+              <span class="editor-dropzone__title">Drop .yml</span>
+              <span class="editor-dropzone__copy">or choose a file</span>
+              <input type="file" accept=".yml,.yaml,text/yaml" data-editor-file>
+            </label>
 
-              <div>
-                <label class="sr-only" for="editor-source">YML source</label>
-                <textarea id="editor-source" class="editor-source" spellcheck="false" placeholder="Paste existing YML here…" data-editor-source></textarea>
-              </div>
+            <textarea
+              id="editor-source"
+              class="editor-source"
+              spellcheck="false"
+              aria-label="YML source"
+              placeholder="Paste existing YML here…"
+              data-editor-source
+            ></textarea>
 
-              <div class="editor-action-buttons">
-                <button class="download-fab editor-parse-button" type="button" data-editor-parse>Parse</button>
-              </div>
-            </div>
+            <button class="download-fab editor-parse-button" type="button" data-editor-parse>Parse</button>
+          </div>
+        </section>
+
+        <aside class="mode-sidebar" aria-label="Editor load information, preview, and errors">
+          <section class="panel load-info-panel">
+            <p class="load-info-line">
+              <span class="load-info-label">YML LOAD INFO:</span>
+              <strong data-editor-preview-status>Load or paste a file to begin.</strong>
+            </p>
           </section>
 
-          <section class="wizard-board" aria-labelledby="editor-wizard-title">
-            <div class="wizard-board__header">
-              <h2 id="editor-wizard-title">Editor fields</h2>
-              <p>Parsed YML appears here using the same shared wizard cards as Builder mode.</p>
-            </div>
-            <div class="wizard-group-grid" data-editor-wizard></div>
-          </section>
-        </div>
-
-        <aside class="tool-side" aria-label="Editor preview and errors">
-          <section class="panel vps-load-panel">
-            <p class="load-status-line load-status-inline"><span>YML LOAD INFO:</span> Load or paste a file to begin.</p>
-          </section>
-
-          <section class="panel preview-panel compact-preview">
+          <section class="panel preview-panel mode-preview">
             <div class="preview-panel__header">
               <h2>YML Preview</h2>
               <button class="download-fab preview-download" type="button" data-editor-download disabled>Download</button>
@@ -153,6 +152,14 @@
 
           <section class="error-log" data-editor-error-log hidden aria-label="Editor error log"></section>
         </aside>
+
+        <section class="wizard-board" aria-labelledby="editor-wizard-title">
+          <div class="wizard-board__header">
+            <h2 id="editor-wizard-title">Editor Fields</h2>
+            <p>Parsed YML appears here using the same modular wizard cards as Builder mode.</p>
+          </div>
+          <div class="wizard-group-grid" data-editor-wizard></div>
+        </section>
       </section>
     </main>
   </div>
