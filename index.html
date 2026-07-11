@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/hotfix.css?v=20260709-4">
-  <link rel="stylesheet" href="css/dashboard.css?v=20260709-8">
+  <link rel="stylesheet" href="css/dashboard.css?v=20260709-9">
   <link rel="stylesheet" href="css/help.css?v=20260709-5">
   <script src="js/theme.js?v=20260709-4" defer></script>
   <script type="module" src="js/main.js?v=20260709-3"></script>
@@ -47,7 +47,7 @@
         <div class="tool-main">
           <section class="panel mode-control-panel" aria-labelledby="builder-title">
             <div class="mode-control-panel__header">
-              <div>
+              <div class="mode-title-row">
                 <p class="kicker">Builder Mode</p>
                 <h2 id="builder-title">VPS Search</h2>
               </div>
@@ -56,9 +56,8 @@
             <p class="mode-brief">Search the VPS database, select the table files, then complete the wizard fields below.</p>
 
             <form class="search-form compact-search" data-search-form>
-              <label class="sr-only" for="vps-search">Table name or VPS ID</label>
               <div class="search-form__row">
-                <input id="vps-search" type="search" autocomplete="off" placeholder="Search by table name, year, manufacturer, or VPS ID…" data-search-input>
+                <input id="vps-search" type="search" autocomplete="off" aria-label="Table name or VPS ID" placeholder="Search by table name, manufacturer, or VPS ID…" data-search-input>
                 <button type="submit">Search</button>
               </div>
               <div class="search-suggestions" role="listbox" data-search-suggestions hidden></div>
@@ -85,16 +84,13 @@
 
         <aside class="tool-side" aria-label="Builder status, preview, and errors">
           <section class="panel vps-load-panel">
-            <div class="section-heading">
-              <p class="kicker">VPSDB Load Info</p>
-            </div>
-            <p class="load-status-line"><strong data-builder-status>Preparing search…</strong></p>
+            <p class="load-status-line load-status-inline"><span>VPSDB LOAD INFO:</span> <strong data-builder-status>Preparing search…</strong></p>
           </section>
 
           <section class="panel preview-panel compact-preview">
             <div class="preview-panel__header">
               <h2>YML Preview</h2>
-              <button class="download-fab preview-download" type="button" data-download-yml disabled>LFG!</button>
+              <button class="download-fab preview-download" type="button" data-download-yml disabled>Download</button>
             </div>
             <pre class="preview-output preview-output--empty"><code data-preview-output># Preview will appear after data is entered.</code></pre>
           </section>
@@ -107,7 +103,7 @@
         <div class="tool-main">
           <section class="panel mode-control-panel editor-panel" aria-labelledby="editor-title">
             <div class="mode-control-panel__header">
-              <div>
+              <div class="mode-title-row">
                 <p class="kicker">Editor Mode</p>
                 <h2 id="editor-title">YML Load</h2>
               </div>
@@ -144,10 +140,7 @@
 
         <aside class="tool-side" aria-label="Editor preview and errors">
           <section class="panel vps-load-panel">
-            <div class="section-heading">
-              <p class="kicker">YML Load Info</p>
-            </div>
-            <p class="load-status-line">Load or paste a file to begin.</p>
+            <p class="load-status-line load-status-inline"><span>YML LOAD INFO:</span> Load or paste a file to begin.</p>
           </section>
 
           <section class="panel preview-panel compact-preview">
