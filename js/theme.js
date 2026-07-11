@@ -2,7 +2,7 @@
   VPXS YML Creator Redesign
   Theme controller
 
-  Uses a switch-style control for light/dark mode and persists the user's choice.
+  Uses a compact light/dark control and persists the user's choice.
 */
 
 const THEME_STORAGE_KEY = "vpxs-theme-mode";
@@ -49,7 +49,7 @@ function applyTheme(mode) {
   }
 
   if (modeLabel) {
-    modeLabel.textContent = isDark ? "Dark" : "Light";
+    modeLabel.textContent = isDark ? "☾" : "☀";
   }
 }
 
