@@ -41,7 +41,7 @@ main {
   position: sticky;
   top: calc(var(--topbar-height) + var(--space-md));
   display: grid;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   min-width: 0;
 }
 
@@ -52,9 +52,9 @@ main {
 }
 
 .mode-control-panel {
-  min-height: 12.25rem;
+  min-height: auto;
   display: grid;
-  gap: var(--space-sm);
+  gap: 0.7rem;
   align-content: start;
 }
 
@@ -63,25 +63,31 @@ main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-sm);
-  align-items: start;
+  align-items: center;
 }
 
 .mode-control-panel__header h2,
 .preview-panel__header h2,
 .vps-load-panel h2 {
-  margin: 0.1rem 0 0;
+  margin: 0.05rem 0 0;
   font-size: clamp(1.15rem, 2.5vw, 1.55rem);
   line-height: 1;
+}
+
+.mode-control-panel .kicker,
+.vps-load-panel .kicker {
+  margin-bottom: 0.2rem;
 }
 
 .mode-brief,
 .load-status-line {
   margin: 0;
   color: var(--color-text-muted);
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
-.mode-download {
+.mode-download,
+.preview-download {
   min-width: 5.4rem;
   min-height: 2.25rem;
   padding-inline: 0.8rem;
@@ -101,25 +107,32 @@ main {
 }
 
 .vps-load-panel {
-  min-height: 6.2rem;
+  min-height: auto;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
 }
 
 .vps-load-panel .section-heading {
-  margin-bottom: var(--space-xs);
+  margin-bottom: 0;
 }
 
 .compact-preview {
   display: grid;
-  gap: var(--space-sm);
+  gap: 0.65rem;
+}
+
+.compact-preview .preview-panel__header {
+  margin-bottom: 0;
 }
 
 .compact-preview .preview-output {
-  min-height: 8rem;
-  max-height: calc(100vh - var(--topbar-height) - 14rem);
+  min-height: 7rem;
+  max-height: calc(100vh - var(--topbar-height) - 13rem);
 }
 
 .compact-preview .preview-output--empty {
-  min-height: 6.25rem;
+  min-height: 5.6rem;
 }
 
 .result-panel {
@@ -254,6 +267,7 @@ main {
   }
 
   .mode-download,
+  .preview-download,
   .editor-action-buttons,
   .compact-editor-load .editor-parse-button,
   .compact-editor-load .download-fab {
