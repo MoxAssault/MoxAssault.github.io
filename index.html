@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/hotfix.css?v=20260709-4">
-  <link rel="stylesheet" href="css/dashboard.css?v=20260709-7">
+  <link rel="stylesheet" href="css/dashboard.css?v=20260709-8">
   <link rel="stylesheet" href="css/help.css?v=20260709-5">
   <script src="js/theme.js?v=20260709-4" defer></script>
   <script type="module" src="js/main.js?v=20260709-3"></script>
@@ -51,7 +51,6 @@
                 <p class="kicker">Builder Mode</p>
                 <h2 id="builder-title">VPS Search</h2>
               </div>
-              <button class="download-fab mode-download" type="button" data-download-yml disabled>LFG!</button>
             </div>
 
             <p class="mode-brief">Search the VPS database, select the table files, then complete the wizard fields below.</p>
@@ -88,7 +87,6 @@
           <section class="panel vps-load-panel">
             <div class="section-heading">
               <p class="kicker">VPSDB Load Info</p>
-              <h2>Database</h2>
             </div>
             <p class="load-status-line"><strong data-builder-status>Preparing search…</strong></p>
           </section>
@@ -96,6 +94,7 @@
           <section class="panel preview-panel compact-preview">
             <div class="preview-panel__header">
               <h2>YML Preview</h2>
+              <button class="download-fab preview-download" type="button" data-download-yml disabled>LFG!</button>
             </div>
             <pre class="preview-output preview-output--empty"><code data-preview-output># Preview will appear after data is entered.</code></pre>
           </section>
@@ -112,7 +111,6 @@
                 <p class="kicker">Editor Mode</p>
                 <h2 id="editor-title">YML Load</h2>
               </div>
-              <button class="download-fab mode-download" type="button" data-editor-download disabled>Download</button>
             </div>
 
             <p class="mode-brief">Drop, choose, or paste an existing YML file, then parse it into editable wizard fields.</p>
@@ -148,7 +146,6 @@
           <section class="panel vps-load-panel">
             <div class="section-heading">
               <p class="kicker">YML Load Info</p>
-              <h2>Editor</h2>
             </div>
             <p class="load-status-line">Load or paste a file to begin.</p>
           </section>
@@ -156,6 +153,7 @@
           <section class="panel preview-panel compact-preview">
             <div class="preview-panel__header">
               <h2>YML Preview</h2>
+              <button class="download-fab preview-download" type="button" data-editor-download disabled>Download</button>
             </div>
             <pre class="preview-output preview-output--empty"><code data-editor-preview-output># Load or paste YML to begin.</code></pre>
           </section>
