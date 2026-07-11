@@ -433,7 +433,7 @@ async function initBuilder() {
   try {
     state.records = await fetchVPSDB();
     searchController.setRecords(state.records);
-    setStatus(`Loaded ${state.records.length.toLocaleString()} VPS records. Search by table name or VPS ID.`);
+    setStatus(`Loaded ${state.records.length.toLocaleString()} VPS records.`);
   } catch (error) {
     errorLog.error(error);
     setStatus("Unable to load VPS database.");
