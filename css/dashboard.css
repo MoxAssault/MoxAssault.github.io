@@ -54,7 +54,7 @@ main {
 .mode-control-panel {
   min-height: auto;
   display: grid;
-  gap: 0.7rem;
+  gap: 0.55rem;
   align-content: start;
 }
 
@@ -66,17 +66,24 @@ main {
   align-items: center;
 }
 
-.mode-control-panel__header h2,
-.preview-panel__header h2,
-.vps-load-panel h2 {
-  margin: 0.05rem 0 0;
-  font-size: clamp(1.15rem, 2.5vw, 1.55rem);
-  line-height: 1;
+.mode-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  min-width: 0;
 }
 
-.mode-control-panel .kicker,
-.vps-load-panel .kicker {
-  margin-bottom: 0.2rem;
+.mode-title-row .kicker {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mode-title-row h2,
+.preview-panel__header h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.5vw, 1.55rem);
+  line-height: 1;
 }
 
 .mode-brief,
@@ -109,12 +116,29 @@ main {
 .vps-load-panel {
   min-height: auto;
   display: grid;
-  gap: 0.3rem;
-  align-content: start;
+  gap: 0;
+  align-content: center;
+  padding-block: 0.8rem;
 }
 
-.vps-load-panel .section-heading {
-  margin-bottom: 0;
+.load-status-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.load-status-inline span {
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.load-status-inline strong {
+  color: var(--color-text-soft);
+  font-weight: 850;
 }
 
 .compact-preview {
@@ -264,6 +288,10 @@ main {
   .preview-panel__header,
   .compact-editor-load {
     grid-template-columns: 1fr;
+  }
+
+  .mode-title-row {
+    align-items: baseline;
   }
 
   .mode-download,
