@@ -18,6 +18,20 @@ Hover or keyboard-focus the YAML Preview status dot to see active state counts. 
 
 The VPU Patch ID is informational and never receives field-level validation styling. VPU Patch checksum errors are displayed on the checksum field.
 
+## YML import behavior
+
+The YML editor accepts one `.yml` file at a time and rejects other extensions.
+
+- Maximum imported file size: 2 MB.
+- Existing table data requires confirmation before replacement.
+- The current build is not cleared until the file, table ID, and imported asset IDs have passed initial checks.
+- Parsing and field loading are reported through a top-entry toaster.
+- The parser accepts the flat VPXS document structure, block lists, quoted or plain scalars, booleans, numbers, and folded or literal text blocks.
+- Duplicate keys, unexpected indentation, binary content, unavailable table IDs, unavailable asset IDs, and unsupported nested structures are rejected.
+- Only fields represented by the builder are loaded; unknown fields are skipped and reported.
+- Imported PAL/VNI checksum arrays are split back into the two Color ROM checksum fields.
+- Imported arrays such as testers and Backglass authors are converted into editable comma-separated field values.
+
 ## VPS database updates
 
 When the page opens, the builder immediately checks the Virtual Pinball Spreadsheet `lastUpdated.json` version.
@@ -81,7 +95,9 @@ The application stores the following information in the current browser:
 - Recent completed build snapshots.
 - Last verified VPS database and version metadata.
 
-No sign-in is required. Clearing site data in the browser removes these saved values.
+Imported YML file contents are used to populate the active build. The original file is not retained as a separate browser object after processing.
+
+No sign-in is required. Clearing site data in the browser removes saved values.
 
 ## Project structure
 
@@ -98,6 +114,7 @@ css.src/
   uiEnhancements.css
   v090.css
   v091.css
+  ymlImport.css
 js.src/
   fields.js
   utilities.js
@@ -109,6 +126,7 @@ js.src/
   v090Enhancements.js
   v091Corrections.js
   main.js
+  ymlImport.js
   nativeTooltipCleanup.js
 docs/
   USAGE.md
@@ -120,6 +138,10 @@ fixtures/
 test-runtime.html
 README.md
 CHANGELOG.md
+CONTRIBUTING.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+LICENSE
 ```
 
 ## Main integration points
@@ -134,3 +156,4 @@ CHANGELOG.md
 - `js.src/v090Enhancements.js` manages Help tabs, additional validation, Color ROM behavior, and refined preview status behavior.
 - `js.src/v091Corrections.js` contains follow-up interface corrections and state cleanup.
 - `js.src/main.js` manages application state, validation, drafts, history, keyboard shortcuts, and output actions.
+- `js.src/ymlImport.js` validates, parses, and reloads supported VPXS YML files through the existing interface controls.
