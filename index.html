@@ -48,18 +48,20 @@
         <div id="suggestions" class="suggestions" role="listbox" aria-label="Search suggestions"></div>
       </div>
 
-      <label class="yml-import-drop" id="ymlImportDrop" for="ymlImportInput">
-        <input class="visually-hidden" id="ymlImportInput" type="file" accept=".yml" aria-label="Choose a YML file to edit">
-        <span class="yml-import-icon" aria-hidden="true">⇧</span>
-        <span>Drop YML to Edit</span>
-      </label>
+      <div class="header-side">
+        <label class="yml-import-drop" id="ymlImportDrop" for="ymlImportInput">
+          <input class="visually-hidden" id="ymlImportInput" type="file" accept=".yml" aria-label="Choose a YML file to edit">
+          <span class="yml-import-icon" aria-hidden="true">⇧</span>
+          <span>Drop YML to Edit</span>
+        </label>
 
-      <div class="header-actions">
-        <button class="icon-btn" id="recentBtn" type="button" aria-haspopup="dialog">Recent</button>
-        <button class="icon-btn" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" aria-pressed="false">
-          <span class="theme-knob" id="themeKnob" aria-hidden="true">🌙</span>
-        </button>
+        <div class="header-actions">
+          <button class="icon-btn" id="recentBtn" type="button" aria-haspopup="dialog">Recent</button>
+          <button class="icon-btn" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" aria-pressed="false">
+            <span class="theme-knob" id="themeKnob" aria-hidden="true">🌙</span>
+          </button>
+        </div>
       </div>
     </header>
 
