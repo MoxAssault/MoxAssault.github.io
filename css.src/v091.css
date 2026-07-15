@@ -77,6 +77,8 @@
 }
 .field.has-field-error:hover,
 .field.has-field-error:focus-within,
+.field-main-enabled:hover,
+.field-main-enabled:focus-within,
 .field:has(.field-error-dot:hover),
 .field:has(.field-error-dot:focus-visible),
 .field:has(.control-tooltip):hover,
