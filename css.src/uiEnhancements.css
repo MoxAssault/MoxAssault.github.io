@@ -1,0 +1,166 @@
+/* v0.8.0 interface fixes and build-status enhancements */
+
+/* Keep the selected table artwork inside its 58x58 frame while allowing the hover preview to escape. */
+.table-cover-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.table-cover-frame .table-cover-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* Inset Advanced Config as a contained sub-panel instead of stretching through the panel edges. */
+.compact-advanced {
+  margin: 12px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-raised) 55%, transparent);
+}
+.compact-advanced > summary {
+  min-height: 30px;
+  padding: 0 10px;
+}
+.compact-advanced .advanced-grid {
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--panel-line);
+}
+
+/* Field-level validation marker. */
+.field {
+  position: relative;
+}
+.field.has-field-error > input,
+.field.has-field-error > textarea,
+.field.has-field-error > select,
+.field.has-field-error > .readonly-id,
+.field.has-field-error .responsive-text-control > input,
+.field.has-field-error .responsive-text-control > textarea,
+.field.has-field-error > .checkbox-row {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
+}
+.field-error-dot {
+  position: absolute;
+  z-index: 8;
+  top: -4px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--panel-soft);
+  border-radius: 50%;
+  background: var(--state-red);
+  box-shadow: 0 0 0 3px var(--state-red-soft);
+  cursor: help;
+}
+.field[data-error-count]:not([data-error-count="1"]) .field-error-dot::after {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  min-width: 14px;
+  padding: 1px 3px;
+  border-radius: 999px;
+  background: var(--state-red);
+  color: #fff;
+  content: attr(data-error-count);
+  font: 700 8px/12px "Inter", sans-serif;
+  text-align: center;
+}
+
+/* Combined Assets + Configuration status details for the YAML preview dot. */
+#previewHeading {
+  position: relative;
+}
+.preview-dot {
+  cursor: help;
+}
+.preview-status-breakdown {
+  position: absolute;
+  z-index: 140;
+  top: calc(100% + 10px);
+  left: 0;
+  display: grid;
+  width: max-content;
+  min-width: 190px;
+  max-width: min(280px, calc(100vw - 32px));
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 9px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.preview-dot:hover + .preview-status-breakdown,
+.preview-dot:focus-visible + .preview-status-breakdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.preview-status-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+}
+.preview-status-group + .preview-status-group {
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-line);
+}
+.preview-status-group > strong {
+  grid-column: 1 / -1;
+  color: var(--text-faint);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.preview-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.preview-status-marker {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+.preview-status-item.state-green .preview-status-marker { background: var(--state-green); }
+.preview-status-item.state-yellow .preview-status-marker { background: var(--state-yellow); }
+.preview-status-item.state-orange .preview-status-marker { background: var(--state-orange); }
+.preview-status-item.state-red .preview-status-marker { background: var(--state-red); }
+.preview-status-item.state-neutral .preview-status-marker { background: var(--text-faint); }
+
+@media (max-width: 520px) {
+  .preview-status-breakdown {
+    left: -8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-status-breakdown {
+    transition: none;
+  }
+}
