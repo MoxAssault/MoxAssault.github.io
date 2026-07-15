@@ -35,9 +35,9 @@
     {
       id: 'main', label: 'Main', legend: 'Main Configuration', always: true,
       fields: [
-        { name: 'Game ID', yml_field: 'tableVPSId', type: 'str', readonly: true, wide: true },
+        { name: 'Game VPS ID', yml_field: 'tableVPSId', type: 'str', readonly: true, wide: true },
         { name: 'FPS', yml_field: 'fps', type: 'int', min: 1, max: 99, maxlength: 2 },
-        { name: 'Enable for Wizard', yml_field: 'enabled', type: 'bool' },
+        { name: 'Enable for Wizard', yml_field: 'enabled', type: 'bool', disabled: true, tooltip: 'Disabled by default for VPXS compatibility.' },
         { name: 'Tagline', yml_field: 'tagline', type: 'str', wide: true, responsiveTextarea: true },
         { name: 'Main Notes', yml_field: 'mainNotes', type: 'str', multiline: true, wide: true },
         { name: 'Testers', yml_field: 'testers', type: 'array', multiline: true, wide: true, placeholder: 'name, name, name' },
@@ -83,14 +83,14 @@
           name: 'Color ROM Checksum', yml_field: 'coloredROMChecksum', type: 'str', wide: true,
           checksumExtensionsByFlag: {
             field: 'coloredROMPin2DMD',
-            false: ['.crz'],
-            true: ['.pal']
+            false: ['.crz', '.pal', '.pac'],
+            true: ['.pal', '.vni']
           }
         },
         { name: 'PAL/VNI', yml_field: 'coloredROMPin2DMD', type: 'bool' },
         {
-          name: 'Color ROM VNI Checksum', yml_field: 'coloredROMChecksumSecondary', type: 'str', wide: true,
-          checksumExtensions: ['.vni'], disabledUnless: 'coloredROMPin2DMD', omitFromYaml: true
+          name: 'Color ROM Checksum #2', yml_field: 'coloredROMChecksumSecondary', type: 'str', wide: true,
+          checksumExtensions: ['.pal', '.vni'], disabledUnless: 'coloredROMPin2DMD', omitFromYaml: true, inlineHint: 'ROM name'
         },
         { name: 'Color ROM Notes', yml_field: 'coloredROMNotes', type: 'str', multiline: true, wide: true },
         { name: 'Color ROM URL Override', yml_field: 'coloredROMUrlOverride', type: 'url', wide: true, advanced: true },
