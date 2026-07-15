@@ -1,10 +1,10 @@
 # VPXS YML Builder
 
-**Overview** | [Usage](docs/USAGE.md) | [Reference](docs/REFERENCE.md) | [Troubleshooting](docs/TROUBLESHOOTING.md) | [FAQ](docs/FAQ.md) | [Changelog](CHANGELOG.md)
+**Overview** | [Usage](docs/USAGE.md) | [Reference](docs/REFERENCE.md) | [Troubleshooting](docs/TROUBLESHOOTING.md) | [FAQ](docs/FAQ.md) | [Changelog](CHANGELOG.md) | [Contributing](CONTRIBUTING.md) | [Security](SECURITY.md) | [Conduct](CODE_OF_CONDUCT.md) | [License](LICENSE)
 
-A browser-based workspace for creating, validating, copying, and downloading VPXS table configuration files using data from the Virtual Pinball Spreadsheet database.
+A browser-based workspace for creating, validating, editing, copying, and downloading VPXS table configuration files using data from the Virtual Pinball Spreadsheet database.
 
-The builder is designed for repeat use: search for a table, select the assets that apply, complete the enabled configuration tabs, review the generated YAML, and move directly to the next build.
+The builder is designed for repeat use: search for a table or reopen an existing `.yml` file, select the assets that apply, complete the enabled configuration tabs, review the generated YAML, and move directly to the next build.
 
 ## Live site
 
@@ -12,19 +12,26 @@ The builder is designed for repeat use: search for a table, select the assets th
 
 ## Documentation
 
-The project documentation is split into linked pages so it can be browsed on GitHub like a set of tabs:
+The larger documentation sections are split into linked pages so they can be browsed on GitHub like a set of tabs:
 
-- [Usage Guide](docs/USAGE.md) — instructions, repeat-use workflow, assets, configuration, Color ROM, and PUP Pack workflows.
-- [Reference](docs/REFERENCE.md) — validation, database updates, YAML behavior, shortcuts, saved data, and project structure.
+- [Usage Guide](docs/USAGE.md) — instructions, repeat-use workflow, YML editing, assets, configuration, Color ROM, and PUP Pack workflows.
+- [Reference](docs/REFERENCE.md) — validation, database updates, YAML behavior, shortcuts, saved data, security boundaries, and project structure.
 - [Troubleshooting](docs/TROUBLESHOOTING.md) — common problems and corrective steps.
 - [FAQ](docs/FAQ.md) — frequently asked questions.
 - [Changelog](CHANGELOG.md) — complete descending semantic version history.
 
-Each documentation page includes the same navigation bar at the top for quick movement between sections.
+Project policies and attribution are maintained separately:
+
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Third-Party License Notice](LICENSE)
 
 ## What the builder does
 
 - Searches the Virtual Pinball Spreadsheet database by table name or VPS ID.
+- Opens supported `.yml` files and loads their values back into the editor.
+- Confirms before replacing a currently loaded build.
 - Filters unsupported table formats and unavailable or broken database entries.
 - Supports VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch assets.
 - Generates a live YAML preview while configuration values are entered.
@@ -36,7 +43,7 @@ Each documentation page includes the same navigation bar at the top for quick mo
 
 ## Quick start
 
-1. Search for a table by name or VPS ID.
+1. Search for a table by name or VPS ID, or drop an existing `.yml` file into **Drop YML to Edit**.
 2. Select the assets that apply.
 3. Complete the enabled Configuration Panel tabs.
 4. Drop supported files onto checksum fields or enter valid MD5 values manually.
@@ -46,18 +53,15 @@ Each documentation page includes the same navigation bar at the top for quick mo
 
 ## Current version
 
-### v0.9.2 — Validation display and GitHub documentation
+### v0.10.0 — YML editing and repository policy files
 
-- Changed the Enable tooltip to **“This option is disabled by default.”**
-- Restricted that tooltip to the checkbox and its text.
-- Prevented the informational VPU Patch ID from ever displaying a red error border or error dot, including during Clear Section rerenders.
-- Kept required VPU Patch checksum errors attached to the checksum field.
-- Moved the larger README sections into linked GitHub documentation pages with consistent navigation.
+- Added the compact **Drop YML to Edit** control between search and the header actions.
+- Restricted imports to one `.yml` file at a time.
+- Added confirmation before replacing a loaded build.
+- Added a loading toaster while files are read, parsed, matched to the VPS database, and loaded into the editor.
+- Added safe parsing for the flat VPXS YAML structure, including lists and folded text blocks.
+- Added current-database checks for imported table and asset VPS IDs before clearing the active build.
+- Added `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, and a scoped third-party `LICENSE` notice.
+- Moved attribution and bundled-software information out of the README.
 
 See the [complete changelog](CHANGELOG.md) for every version.
-
-## Credits and bundled software
-
-Table and asset data is provided by the **Virtual Pinball Spreadsheet** project.
-
-Archive browsing uses **libarchive.js** and its WebAssembly worker. The bundled upstream MIT license is included at `vendor/libarchive/LICENSE`.
