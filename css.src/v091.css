@@ -1,4 +1,4 @@
-/* v0.9.1 corrections */
+/* v0.9.2 corrections */
 
 /* Keep the Main-panel VPS ID visually unchanged and reserve copying for the selected-game card. */
 .field-main-id .readonly-code-line {
@@ -66,6 +66,25 @@
 
 /* The ROM-name note now belongs in the second checksum placeholder. */
 .field-color-secondary .checksum-inline-hint { display: none; }
+
+/* Restrict the Enable tooltip trigger to the checkbox and its text only. */
+.field-main-enabled {
+  justify-self: start;
+}
+.field-main-enabled .checkbox-row.has-control-tooltip {
+  width: max-content;
+  max-width: 100%;
+}
+
+/* The VPU Patch ID is informational and must never display field-level validation styling. */
+#config-panel-vpuPatch .field-compact-id.has-field-error > .readonly-id,
+.field-grid-vpuPatch .field-compact-id.has-field-error > .readonly-id {
+  border-color: var(--panel-line) !important;
+}
+#config-panel-vpuPatch .field-compact-id > .field-error-dot,
+.field-grid-vpuPatch .field-compact-id > .field-error-dot {
+  display: none !important;
+}
 
 /* Allow configuration tooltips to paint above neighboring controls and panel edges. */
 .configuration-tabs,
