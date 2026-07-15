@@ -4,6 +4,19 @@
 
 Newest versions are listed first.
 
+## v0.10.0 — YML editing and repository policy files
+
+- Added a compact **Drop YML to Edit** area between search and the header action buttons.
+- Restricted the editor to one `.yml` file at a time with a 2 MB maximum size.
+- Added confirmation before replacing a currently loaded table build.
+- Added a loading toaster while an imported file is read, parsed, matched to the current VPS database, and loaded into the interface.
+- Added safe parsing for flat VPXS YAML documents, including quoted and plain scalars, block lists, booleans, numbers, and folded or literal text blocks.
+- Added rejection for duplicate keys, unexpected indentation, unsupported nested structures, binary content, unavailable table IDs, and unavailable asset IDs.
+- Added imported PAL/VNI list restoration into the two Color ROM checksum fields.
+- Added import guidance to Help, Usage, Reference, Troubleshooting, and FAQ documentation.
+- Added `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, and a scoped third-party `LICENSE` notice.
+- Moved attribution and bundled-software information out of the README and into the appropriate repository files.
+
 ## v0.9.2 — Validation display and GitHub documentation
 
 - Changed the Enable tooltip to **“This option is disabled by default.”**
