@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="css.src/uiEnhancements.css">
   <link rel="stylesheet" href="css.src/v090.css">
   <link rel="stylesheet" href="css.src/v091.css">
+  <link rel="stylesheet" href="css.src/ymlImport.css">
 </head>
 <body>
   <main class="app" id="app">
@@ -46,6 +47,12 @@
         </form>
         <div id="suggestions" class="suggestions" role="listbox" aria-label="Search suggestions"></div>
       </div>
+
+      <label class="yml-import-drop" id="ymlImportDrop" for="ymlImportInput">
+        <input class="visually-hidden" id="ymlImportInput" type="file" accept=".yml" aria-label="Choose a YML file to edit">
+        <span class="yml-import-icon" aria-hidden="true">⇧</span>
+        <span>Drop YML to Edit</span>
+      </label>
 
       <div class="header-actions">
         <button class="icon-btn" id="recentBtn" type="button" aria-haspopup="dialog">Recent</button>
@@ -130,14 +137,14 @@
       </div>
       <section class="help-tab-panel active" id="helpPanelInstructions" role="tabpanel" aria-labelledby="helpTabInstructions" data-help-panel="instructions">
         <ol>
-          <li>Search for a table by name or VPS ID.</li>
+          <li>Search for a table by name or VPS ID, or drop an existing <code>.yml</code> file into the header editor.</li>
           <li>Select the VPX and any optional assets you want included.</li>
           <li>Complete the enabled configuration tabs and correct fields marked with an error dot.</li>
           <li>Validate, then use <strong>Download &amp; Clear</strong> to save the YML and start the next build.</li>
         </ol>
       </section>
       <section class="help-tab-panel" id="helpPanelHelp" role="tabpanel" aria-labelledby="helpTabHelp" data-help-panel="help" hidden>
-        <p>The workspace autosaves the active build. Green asset badges jump directly to their configuration tabs, and the YAML Preview status dot opens the first current error when clicked.</p>
+        <p>The workspace autosaves the active build. Green asset badges jump directly to their configuration tabs, the YAML Preview status dot opens the first current error, and dropped YML files can be reopened for editing.</p>
         <div class="shortcut-grid">
           <span><kbd>/</kbd> Focus search</span>
           <span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Validate</span>
@@ -148,7 +155,7 @@
       <section class="help-tab-panel" id="helpPanelFaq" role="tabpanel" aria-labelledby="helpTabFaq" data-help-panel="faq" hidden>
         <div class="help-faq-list">
           <details><summary>Why is Copy or Download blocked?</summary><p>At least one validation error remains. Warnings are allowed, but errors must be corrected.</p></details>
-          <details><summary>Are dropped files uploaded?</summary><p>No. Checksums and archive folders are processed in your browser.</p></details>
+          <details><summary>Are dropped files uploaded?</summary><p>No. Checksums, archive folders, and imported YML files are processed in your browser.</p></details>
           <details><summary>Why are some configuration tabs disabled?</summary><p>Asset-specific tabs become available after selecting that asset or marking it as bundled.</p></details>
           <details><summary>What does the database popup mean?</summary><p>It verifies that search is using the latest published Virtual Pinball Spreadsheet database.</p></details>
         </div>
@@ -188,6 +195,7 @@
   <script src="js.src/v090Enhancements.js"></script>
   <script src="js.src/v091Corrections.js"></script>
   <script src="js.src/main.js"></script>
+  <script src="js.src/ymlImport.js"></script>
   <script src="js.src/nativeTooltipCleanup.js"></script>
 </body>
 </html>
