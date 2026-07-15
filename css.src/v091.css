@@ -1,0 +1,89 @@
+/* v0.9.1 corrections */
+
+/* Keep the Main-panel VPS ID visually unchanged and reserve copying for the selected-game card. */
+.field-main-id .readonly-code-line {
+  height: 36px;
+  min-height: 36px;
+  padding: 8px 9px;
+  border: 1px dashed var(--panel-line);
+  background: transparent;
+  color: var(--text-faint);
+}
+.field-main-id .readonly-code-value {
+  color: inherit;
+  font: 12px "JetBrains Mono", monospace;
+}
+.field-main-id .readonly-copy-button { display: none; }
+
+/* Compact copy control beside the existing header-card VPS ID. */
+.table-id-copy-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: -2px 0 -2px 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  vertical-align: middle;
+  opacity: 0.72;
+}
+.table-id-copy-button:hover,
+.table-id-copy-button:focus-visible {
+  background: var(--panel-soft);
+  opacity: 1;
+}
+.table-id-copy-button.copied { color: var(--state-green); opacity: 1; }
+.table-id-copy-button svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.table-id-copy-button::after {
+  position: absolute;
+  z-index: 520;
+  right: 0;
+  bottom: calc(100% + 6px);
+  display: none;
+  width: max-content;
+  padding: 5px 7px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 600 10px/1.2 "Inter", sans-serif;
+  white-space: nowrap;
+}
+.table-id-copy-button:hover::after,
+.table-id-copy-button:focus-visible::after { display: block; }
+
+/* The ROM-name note now belongs in the second checksum placeholder. */
+.field-color-secondary .checksum-inline-hint { display: none; }
+
+/* Allow configuration tooltips to paint above neighboring controls and panel edges. */
+.configuration-tabs,
+.config-tab-panel,
+.config-tab-panel > .field-grid,
+.advanced-grid,
+.compact-advanced {
+  overflow: visible;
+}
+.field.has-field-error:hover,
+.field.has-field-error:focus-within,
+.field:has(.field-error-dot:hover),
+.field:has(.field-error-dot:focus-visible),
+.field:has(.control-tooltip):hover,
+.field:has(.control-tooltip):focus-within {
+  z-index: 480;
+}
+.field-error-dot[data-tooltip]::before,
+.control-tooltip {
+  z-index: 500;
+}
