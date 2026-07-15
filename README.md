@@ -1,86 +1,215 @@
-# VPXS YML Builder — Compact Workspace Front End
+# VPXS YML Builder
 
-A modular front end based on the supplied “cabinet, not dashboard” visual prototype, redesigned for users who may create many VPS YML files in repeated sessions.
+A browser-based workspace for creating, validating, copying, and downloading VPXS table configuration files from the Virtual Pinball Spreadsheet database.
 
-The previous step-by-step wizard has been replaced with a compact workspace that keeps the selected table, assets, configuration sections, validation state, and main actions visible without forcing the user through a long linear flow.
+The builder is designed for repeated use: search for a table, select its assets, fill only the configuration fields that apply, review the generated YAML, and move directly to the next build.
 
+## Table of contents
 
-## Round 2 interface updates
+- [Live site](#live-site)
+- [What the builder does](#what-the-builder-does)
+- [Instructions](#instructions)
+- [Fast repeat-use workflow](#fast-repeat-use-workflow)
+- [Asset selection](#asset-selection)
+- [Configuration panel](#configuration-panel)
+- [Validation and status indicators](#validation-and-status-indicators)
+- [VPS database updates](#vps-database-updates)
+- [Checksum and archive tools](#checksum-and-archive-tools)
+- [YAML behavior](#yaml-behavior)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Saved browser data](#saved-browser-data)
+- [Project structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [Version history](#version-history)
+- [Credits and bundled software](#credits-and-bundled-software)
 
-- Table cover artwork now opens a larger hover/focus preview.
-- The asset summary badges now sit in the Assets Available header, while Clear sits in the selected-table strip.
-- Empty asset selectors display **No Files Available**.
-- Required assets use bold uppercase red status styling in both themes.
-- Info buttons are non-interactive until a file is selected.
-- Selected VPX and B2S files can display compact thumbnails with hover/focus previews when their database entries include image URLs.
-- The YAML preview line count is bold for quicker scanning.
+## Live site
 
-## Main workflow
+**VPXS YML Builder:** https://moxassault.github.io/
 
-1. Search by VPS table ID or table name.
-2. Select the VPX file and any optional B2S, ROM, Color ROM, PUP Pack, or VPU Patch entries.
-3. Edit enabled configuration sections using compact tabs. Advanced Config accordions start open.
-4. Validate, copy, or download the generated YAML from the live preview panel.
-5. Use **Download & Clear** to save the file and clear the workspace.
+## What the builder does
 
-## Repeat-use features
+- Searches the Virtual Pinball Spreadsheet database by table name or VPS ID.
+- Filters unsupported table formats and unavailable or broken database entries.
+- Supports VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch assets.
+- Generates a live YAML preview while configuration values are entered.
+- Validates required values, checksums, bundled-asset requirements, override conflicts, and line length.
+- Calculates MD5 checksums from files dropped onto supported checksum fields.
+- Reads ZIP, RAR, and 7Z PUP Pack archives and offers discovered directories as Archive Root choices.
+- Saves unfinished work and recent completed builds in the browser.
+- Works as a static GitHub Pages application with no server-side account or application database.
 
-- Compact selected-table status strip
-- Asset matrix instead of large asset cards
-- Expandable asset metadata
-- Tab-based configuration sections
-- Compact Advanced Config sections open by default
-- Sticky live YAML preview panel
-- Preview actions for Validate, Copy, and Download & Clear
-- Local autosave and draft recovery
-- Reusable values carried into the next build during the current session
-- Recent copied/downloaded build snapshots with Edit, Copy, Download, and Delete actions
-- Keyboard shortcuts
-- Dark and light themes with saved preference
+## Instructions
+
+1. Enter a VPS table ID or part of a table name in the search box.
+2. Choose the correct table from the search suggestions or submit the search.
+3. Select a VPX file. The Configuration Panel becomes available after a VPX is selected.
+4. Select any additional assets that belong with the table.
+5. Open each enabled configuration tab and enter the required information.
+6. Review the YAML Generated Preview and its combined status indicator.
+7. Select **Validate** to review errors and cautions.
+8. Select **Copy** to place valid YAML on the clipboard, or select **Download & Clear** to save the file and begin another build.
+
+Copy and Download are blocked while validation errors remain. Cautions do not block output.
+
+## Fast repeat-use workflow
+
+The workspace is built to minimize repeated navigation and data entry:
+
+1. Search and select a table.
+2. Choose the VPX and related assets from the Assets Panel.
+3. Complete only the enabled configuration tabs.
+4. Drop local files onto checksum fields when an MD5 value is needed.
+5. Validate the build.
+6. Copy the YAML or use **Download & Clear**.
+7. Start typing the next table immediately.
+
+Recent Build History keeps the newest completed snapshot for each table. A snapshot can be restored, copied, downloaded again, or deleted.
+
+## Asset selection
+
+The Assets Panel supports these categories:
+
+- **VPX**
+- **Backglass**
+- **ROM**
+- **Color ROM**
+- **PUP Pack**
+- **VPU Patch**
+
+Each row reports its current state and provides available database entries. Broken entries are disabled. Selected VPX and Backglass entries may include artwork previews.
+
+Bundled controls indicate that an asset is included with another download instead of being supplied through a separate VPS entry. Bundled assets may require checksums and explanatory notes depending on the asset type.
+
+## Configuration panel
+
+Configuration is divided into compact tabs:
+
+- **Main** — table ID, FPS, tagline, notes, testers, and table-level overrides.
+- **VPX** — VPX ID, checksum, and notes.
+- **Backglass** — Backglass ID, checksum, notes, and supported overrides.
+- **ROM** — ROM ID, checksum, notes, URL override, and version override.
+- **Color ROM** — Color ROM ID, checksum, notes, override fields, and PAL/VNI mode.
+- **PUP Pack** — ID, checksum, URL, version, archive format, archive root, notes, and required status.
+- **VPU Patch** — `diff*` fields used by the upstream VPXS schema.
+
+Advanced Config is shown as an inset sub-panel within each applicable tab.
+
+### Color ROM modes
+
+- **Serum mode:** one Color ROM checksum is emitted and `coloredROMPin2DMD` is omitted.
+- **PAL/VNI mode:** `coloredROMPin2DMD: true` is emitted and both `.pal` and `.vni` MD5 checksums are required.
+
+## Validation and status indicators
+
+Validation is based on the current VPXS repository checks and table example conventions.
+
+The interface reports status in several places:
+
+- Asset rows and asset badges show availability and selection state.
+- Configuration tabs show error or warning markers.
+- Individual fields with a current validation error receive a red status-dot overlay.
+- The YAML Preview status dot combines both the Assets Panel and Configuration Panel.
+- Hovering or focusing the YAML Preview dot shows each active status type and its quantity when the count is greater than zero.
+
+Common blocking errors include:
+
+- Missing VPX selection.
+- Missing or invalid VPX checksum.
+- Missing FPS or non-integer FPS.
+- Missing testers.
+- Missing checksums for selected or bundled assets.
+- Invalid MD5 values.
+- Missing notes for bundled Backglass, ROM, or Color ROM assets.
+- ROM VPS ID and ROM URL Override conflicts.
+- Missing ROM Version Override when a ROM URL Override is used.
+- Missing PAL or VNI checksum in PAL/VNI mode.
+- Required PUP Pack without a VPS entry or file URL.
+- Generated YAML lines exceeding the supported yamllint limit.
+
+## VPS database updates
+
+The application verifies the database version with:
+
+`https://virtualpinballspreadsheet.github.io/vps-db/lastUpdated.json`
+
+On page load, a top-center status toast immediately reports that the database is being checked. The toast then reports whether the database is current, was updated, or is using a cached fallback.
+
+Database behavior:
+
+- The latest published version is checked when the site opens.
+- The version is checked again every two hours while the page remains open.
+- Returning to a tab that has been inactive for at least two hours triggers a catch-up check.
+- The full database is downloaded only when the published version changes.
+- Downloaded data is validated before replacing the working cache.
+- The last verified database is stored in IndexedDB and remains available if an update source is temporarily unavailable.
+- A version is confirmed again after download to avoid labeling data with the wrong update timestamp.
+
+For browser diagnostics, the current status is available through:
+
+```js
+window.getVPSDBStatus()
+```
+
+A manual check can be triggered from the browser console with:
+
+```js
+window.checkVPSDBNow()
+```
+
+## Checksum and archive tools
+
+Supported checksum fields accept file drag-and-drop and calculate MD5 in the browser. Hashing runs in a Web Worker when available so the interface remains responsive.
+
+Accepted file types depend on the field, including:
+
+- VPX files
+- DirectB2S files
+- ROM archives
+- Color ROM files
+- PUP Pack ZIP, RAR, and 7Z archives
+- VPU Patch files
+
+When a supported PUP Pack archive is dropped onto the PUP Pack Checksum field, the builder also reads its directory structure. Discovered directories are sorted from top-level paths downward and offered in the PUP Pack Archive Root selector.
+
+Files are processed locally by the browser and are not uploaded by this application.
+
+## YAML behavior
+
+- YAML keys are emitted in alphabetical order.
+- Empty strings and empty arrays are omitted.
+- `enabled: false` is emitted by default.
+- FPS and `tableYearOverride` are emitted as integers.
+- Testers and Backglass author overrides are emitted as YAML arrays.
+- A single checksum is emitted as a string.
+- Multiple checksums are emitted as a YAML list.
+- URL fields that exceed the line-length limit receive the supported yamllint comment.
+- Long non-URL text values use folded YAML blocks.
+- Unsupported UI-only values are excluded from output.
+- VPU Patch values use the upstream `diffVPSId`, `diffChecksum`, `diffUrlOverride`, and `diffVersionOverride` keys.
+- PUP Pack output supports `pupVPSId`, `pupBundled`, `pupChecksum`, `pupFileUrl`, `pupVersion`, `pupArchiveFormat`, `pupArchiveRoot`, `pupRequired`, and `pupNotes` when applicable.
 
 ## Keyboard shortcuts
 
-- `/` focuses the table search
-- `Ctrl + Enter` validates the current build
-- `Ctrl + Shift + Enter` downloads and clears the current build
-- `Escape` closes an open dialog
+| Shortcut | Action |
+|---|---|
+| `/` | Focus and select the table search field |
+| `Ctrl`/`Cmd` + `Enter` | Validate the current build |
+| `Ctrl`/`Cmd` + `Shift` + `Enter` | Download the YAML and clear the workspace |
+| `Escape` | Close an open dialog |
 
-## Data and YAML behavior
+## Saved browser data
 
-The implementation retains the existing VPS database and YAML behavior:
+The application stores the following information in the current browser:
 
-- VPS database CDN with GitHub fallback
-- Search by exact or partial table ID and name
-- Broken database entries are disabled
-- Keys are sorted alphabetically
-- Empty strings and empty arrays are omitted; `enabled: false` is always emitted by default
-- FPS and `tableYearOverride` are emitted as integers
-- Testers and B2S author overrides become YAML arrays
-- Long URL fields receive the yamllint line-length comment
-- Long or multiline strings use folded YAML blocks
-- `pupVPSId` and `pupBundled` are emitted when present
+- Theme preference.
+- Active configuration tab.
+- Current unfinished draft.
+- Recent completed build snapshots.
+- Last verified VPS database and version metadata.
 
-## Local storage
-
-The browser stores the following locally:
-
-- Theme preference
-- Active configuration tab
-- Current draft
-- Complete recent build snapshots, newest-only per table
-
-No server-side account or database is required for these features.
-
-## Run locally
-
-The project has no build step. Serve the folder through a local web server:
-
-```bash
-cd vps-yml-builder-frontend
-python -m http.server 8080
-```
-
-Then open `http://localhost:8080`.
+No sign-in is required. Clearing site data in the browser removes these saved values.
 
 ## Project structure
 
@@ -93,116 +222,179 @@ css.src/
   card.css
   category.css
   modal.css
+  vpsDbToast.css
+  uiEnhancements.css
 js.src/
   fields.js
   utilities.js
   apiHelper.js
+  vpsDbToast.js
   searchHelper.js
   uiHelper.js
+  uiEnhancements.js
   main.js
 vendor/libarchive/
   libarchive.js
   worker-bundle.js
   libarchive.wasm
   LICENSE
+fixtures/
+  pup-test.zip
+  pup-test.7z
+test-runtime.html
+README.md
 ```
 
-## Main integration points
+### Main integration points
 
-- `js.src/fields.js` defines categories, sections, fields, advanced fields, preset-safe values, and YAML exclusions.
-- `js.src/apiHelper.js` loads and caches the VPS database.
-- `js.src/searchHelper.js` scores and filters search suggestions.
-- `js.src/utilities.js` builds, highlights, copies, and downloads YAML.
-- `js.src/uiHelper.js` renders the compact table strip, asset matrix, fields, and configuration tabs.
-- `js.src/main.js` manages application state, validation, autosave, presets, recent builds, shortcuts, and repeat-use flow.
+- `js.src/fields.js` defines categories, configuration tabs, fields, options, YAML exclusions, and reusable values.
+- `js.src/utilities.js` contains YAML generation, formatting, asset-state, checksum, and archive helpers.
+- `js.src/apiHelper.js` verifies, downloads, validates, and caches VPS database data.
+- `js.src/vpsDbToast.js` displays immediate and scheduled database-check status.
+- `js.src/searchHelper.js` filters and ranks table search results.
+- `js.src/uiHelper.js` renders table, asset, field, tab, checksum, and archive controls.
+- `js.src/uiEnhancements.js` contains image containment, field error markers, Advanced Config spacing, and combined preview status behavior.
+- `js.src/main.js` manages application state, validation, drafts, history, keyboard shortcuts, and output actions.
 
-## Validation currently included
+## Troubleshooting
 
-The browser-side validator mirrors the current repository checks used by the GitHub workflow:
+### The site loads without styling or scripts
 
-- VPX ID, VPX checksum, FPS, and Testers are required.
-- Checksum fields must contain valid MD5 values; a single hash is a string and multiple hashes are emitted as a YAML list.
-- Selected or bundled Backglass, ROM, and Color ROM assets require the corresponding checksum; bundled versions also require notes.
-- Selected or linked PUP Packs require a checksum.
-- ROM URL Override conflicts with ROM VPS ID and requires ROM Version Override.
-- Broken or unavailable selected VPS entries block Copy and Download.
-- Selected-plus-bundled conflicts remain cautions and do not block output.
-- Generated YAML is checked against the repository’s 120-character line-length rule.
+Open browser developer tools and check for `404` responses. The repository must preserve the `css.src`, `js.src`, and `vendor` folder names and paths exactly as referenced by `index.html`.
 
-## Testing performed
+### Search reports that the database could not be verified
 
-- JavaScript syntax validation for every source file
-- YAML utility tests for filtering, arrays, integer conversion, fixes, exclusions, and safe filenames
-- Headless Chromium interaction test using a mock VPS database
-- Desktop viewport verification
-- Mobile width and overflow verification
+The builder will use the last verified IndexedDB copy when available. Check the browser console and `window.getVPSDBStatus()` for the active source and state.
 
-## Round 3 updates
+### A checksum drop is rejected
 
-- Keeps selected VPX/B2S thumbnails clipped inside a fixed 34×34 frame while retaining the hover/focus pop-out preview.
-- Moves editable text and textarea field names into placeholders while preserving accessible labels.
-- Excludes VPX entries whose `tableFormat` is `FP`, `FX`, `FX2`, or `FX3`.
-- Treats `tableFiles` entries containing `VPU Patch` in `features`/`Features` as patch entries instead of VPX choices.
-- Filters parent-linked VPU patches so they appear only when their `parentId`, `parentID`, or `parentid` matches the selected VPX file.
-- Clears a selected VPU patch automatically when the user changes to a different VPX parent.
-- Includes expanded runtime fixtures covering excluded formats and parent-linked VPU patches.
+Confirm that the dropped file extension matches the field hint. Each checksum control accepts only the file types appropriate for that asset.
 
+### A PUP archive checksum works but no directories appear
 
+The archive may not contain nested directories, may be damaged, or may use an unsupported archive feature. The checksum can still be used when MD5 calculation succeeds.
 
-## Configuration Tabs Update
+### Copy or Download does nothing
 
-- Replaced the top-level configuration accordions with a compact tab bar: Main, VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch.
-- The Main tab opens first and all tab panels use a consistent fixed minimum height.
-- Text and textarea field names remain inside placeholders; tab description lines have been removed.
-- Main Notes and Testers use compact three-row textareas.
-- Advanced Config remains a slim, left-aligned nested accordion and opens by default whenever a tab is rendered.
-- The sticky YAML preview and the rest of the workspace are unchanged.
+Select **Validate**. Blocking validation errors open the results dialog instead of allowing invalid YAML to be copied or downloaded.
 
+### A previous build reappears after refreshing
 
-## Round 4 Update
+The current draft is intentionally restored from browser storage. Use **Clear** or **Download & Clear** to remove the active draft.
 
-- Renamed Local History to Recent Build History, added confirmed Clear History, and added immediate per-item deletion.
-- Renamed Assets Available to Assets Panel.
-- Asset options now display ID, version, and created date in DD.MM.YYYY format.
-- Added browser-side MD5 drag-and-drop checksum calculation with category-specific file validation.
-- Renamed Configuration to Configuration Panel and removed all preset controls.
-- Replaced orange configuration borders with standard panel borders and a green selected-tab indicator.
-- Main Enable for Wizard is unboxed; Tagline is a text field on desktop; Testers remains a textarea.
-- Asset Info behavior is unchanged for this round.
+## FAQ
 
-### Round 4 follow-up
+### Does the site upload my VPX, ROM, Backglass, or PUP files?
 
-- MD5 hashing now runs in a Web Worker so the rest of the form remains responsive during checksum calculation.
-- Checksum fields show a small sliding loading dot while hashing is in progress.
-- Asset selector dates now use `DD.MM.YYYY`.
+No. Files dropped onto checksum fields are processed locally in the browser.
 
+### Does the site edit the Virtual Pinball Spreadsheet database?
 
-## Round 5 Update
+No. The database is read-only from this application. The builder only uses it to locate tables and available assets.
 
-- Emits `enabled: false` in the YAML preview and generated file by default.
-- Adds fixed-width asset badges and a shared Green / Yellow / Orange / Red state system for badges, row status, and the YAML preview dot.
-- Green asset badges display a “Jump to {tab}” prompt and focus the corresponding configuration tab when clicked.
-- Configuration tabs display error or warning indicators for issues in their section.
-- Adds `diffBundled` behavior to the VPU Patch asset row.
-- Removes tab description paragraphs, all “Enable override” controls, and deprecated BASS/applyFix UI.
-- Opens every Advanced Config accordion by default and reduces its summary height to 24px.
-- Adds `tableManufacturerOverride`, integer `tableYearOverride`, `diffUrlOverride`, and `diffVersionOverride` fields.
-- Corrects the PUP Pack field order and keeps PUP Pack Required unboxed beside Archive Root.
-- Copy and Download & Clear both save a complete recent-build snapshot. Only the newest snapshot per table is kept, with Edit, Copy, Download, and Delete actions.
+### Why does the database toast appear every time the site opens?
 
+It confirms whether the cached database matches the latest published `lastUpdated.json` version. The initial check prevents searches from silently using stale data.
 
-## Round 6 Update
+### Why does the site check again every two hours?
 
-- Reworks light-theme checkbox styling so controls match the rest of the theme.
-- Adds dedicated high-contrast light-theme colors for Green, Yellow, Orange, and Red badges and status dots.
-- Changes asset badges to centered text-only pills at a fixed 80×25px size.
-- Displays the YAML preview line count in uppercase.
-- Adds a browser-side verification system based on the repository’s current validator and `table.yml.example` rules. Errors block Copy and Download; cautions remain allowed.
-- Adds `coloredROMPin2DMD: true` support. PAL/VNI mode enables a second checksum and emits `coloredROMChecksum` as a two-item list; unchecked Serum mode emits one checksum and omits the flag.
-- Renames all VPU Patch YAML fields to the upstream `diff*` keys.
-- Includes `pupVPSId` and `pupBundled` in generated YAML.
-- Makes ID and checksum controls equal width across configuration tabs.
-- Removes the visible PUP Pack Archive Format label while keeping an accessible label and placeholder option.
-- Renames every PUP control with the “PUP Pack” prefix.
-- Dropping a ZIP, RAR, or 7Z PUP archive onto PUP Pack Checksum now calculates MD5 and loads nested archive directories for the PUP Pack Archive Root picker. Directories are ordered from top-level paths down.
-- Bundles `libarchive.js` and its WebAssembly worker locally under `vendor/libarchive/`; no CDN is required for archive browsing. The upstream MIT license is included.
+The VPS database can change while the page remains open. The periodic check compares only the lightweight version file unless a newer database is available.
+
+### Can I continue working if the database host is unavailable?
+
+Yes, after at least one successful load. The last verified database remains in IndexedDB and is used as a fallback.
+
+### Why are some asset choices disabled?
+
+Entries marked as broken or unavailable by the VPS database cannot be selected for a valid build.
+
+### Why are some configuration tabs disabled?
+
+Asset-specific tabs become available only when their asset is selected or marked as bundled.
+
+### Why is Copy or Download blocked?
+
+The generated YAML has at least one validation error. Warnings are allowed, but errors must be corrected first.
+
+### What does the YAML Preview dot represent?
+
+It combines the current Assets Panel states with enabled Configuration Panel states. Hover or keyboard-focus the dot to see the count for every active status type.
+
+### What is stored in Recent Build History?
+
+The newest copied or downloaded snapshot for each table, including its YAML and editable form state. Up to eight recent tables are retained.
+
+## Version history
+
+### v0.8.0 — Interface validation and documentation
+
+- Constrained selected table artwork to its designated thumbnail frame.
+- Restyled Advanced Config as a properly inset sub-panel with balanced spacing.
+- Combined Assets Panel and Configuration Panel states in the YAML Preview status indicator.
+- Added a status breakdown showing each active state and quantity.
+- Added field-level error-dot overlays and invalid-control highlighting.
+- Rebuilt the README with complete instructions, workflow, FAQ, troubleshooting, architecture, and descending semantic version history.
+
+### v0.7.0 — Verified database updates and status toast
+
+- Added `lastUpdated.json` version verification.
+- Added IndexedDB storage for the last verified VPS database.
+- Added safe replacement, validation, source fallbacks, and mid-download version confirmation.
+- Added an immediate top-entry status toast with checking, updating, current, updated, warning, and error states.
+- Added two-hour checks and inactive-tab catch-up checks.
+
+### v0.6.0 — Validation and archive support
+
+- Added browser-side validation based on the upstream validator and table example.
+- Added Color ROM Serum and PAL/VNI checksum behavior.
+- Renamed VPU Patch output fields to the upstream `diff*` keys.
+- Added `pupVPSId` and `pupBundled` output support.
+- Standardized ID and checksum control sizing.
+- Added PUP Pack archive directory browsing for ZIP, RAR, and 7Z files.
+- Bundled libarchive.js and WebAssembly locally.
+- Improved light-theme checkbox and status colors.
+
+### v0.5.0 — Status system and recent builds
+
+- Added the Green, Yellow, Orange, and Red asset-state system.
+- Added fixed-size text asset badges and tab issue indicators.
+- Added `enabled: false` by default.
+- Added complete recent-build snapshots with Edit, Copy, Download, and Delete actions.
+- Added table manufacturer, table year, and VPU Patch override fields.
+- Removed deprecated override toggles and older fix controls.
+
+### v0.4.0 — Checksum workflow and interface cleanup
+
+- Added browser-side MD5 file drag-and-drop.
+- Moved hashing into a Web Worker.
+- Added checksum progress feedback.
+- Renamed interface sections and improved selection metadata.
+- Added Recent Build History management and confirmed history clearing.
+- Removed preset controls.
+
+### v0.3.0 — Asset filtering and patch relationships
+
+- Excluded unsupported Future Pinball and Pinball FX table formats.
+- Detected VPU Patch entries from table-file feature metadata.
+- Filtered VPU Patches by their selected parent VPX.
+- Cleared incompatible patches when the parent VPX changed.
+- Improved thumbnail containment and field labeling.
+
+### v0.2.0 — Tabbed configuration workspace
+
+- Replaced top-level configuration accordions with Main, VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch tabs.
+- Added a fixed-height compact configuration workspace.
+- Opened Advanced Config sections by default.
+- Reduced repeated descriptions and moved field names into placeholders.
+
+### v0.1.0 — Compact workspace foundation
+
+- Replaced the original linear wizard with a repeat-use workspace.
+- Added table search, asset selection, live YAML preview, local drafts, recent builds, keyboard shortcuts, and light/dark themes.
+- Added CDN database loading with a GitHub fallback.
+
+## Credits and bundled software
+
+Table and asset data is provided by the **Virtual Pinball Spreadsheet** project.
+
+Archive browsing uses **libarchive.js** and its WebAssembly worker. The bundled upstream MIT license is included at `vendor/libarchive/LICENSE`.
