@@ -1,0 +1,27 @@
+/* v0.10.3 shared modal positioning */
+
+:root {
+  --app-dialog-start: max(24px, env(safe-area-inset-top));
+}
+
+/* Every application dialog opens from the same upper-page position. */
+.app-dialog {
+  position: fixed;
+  top: var(--app-dialog-start);
+  right: 0;
+  bottom: auto;
+  left: 0;
+  margin: 0 auto;
+}
+
+/* The Help title remains a single line so changing its text does not alter the modal footprint. */
+#helpDialog .dialog-header h2 {
+  min-height: 27px;
+  line-height: 27px;
+}
+
+@media (max-height: 560px) {
+  :root {
+    --app-dialog-start: max(12px, env(safe-area-inset-top));
+  }
+}
