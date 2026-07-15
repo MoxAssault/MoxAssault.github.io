@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="css.src/v091.css">
   <link rel="stylesheet" href="css.src/ymlImport.css">
   <link rel="stylesheet" href="css.src/v0103.css">
+  <link rel="stylesheet" href="css.src/readmeGenerator.css">
 </head>
 <body>
   <main class="app" id="app">
@@ -113,6 +114,10 @@
           <button class="text-btn" id="drawerCopyBtn" type="button">Copy</button>
           <button class="text-btn preview-primary" id="downloadNextBtn" type="button">Download &amp; Clear</button>
         </div>
+        <div class="readme-actions" aria-label="README actions">
+          <button class="text-btn readme-action-btn" id="manualReadmeBtn" type="button">Manual README</button>
+          <button class="text-btn readme-action-btn" id="wizardReadmeBtn" type="button">Wizard README</button>
+        </div>
         <pre id="previewYaml" class="mono" tabindex="0"></pre>
       </aside>
     </section>
@@ -197,6 +202,7 @@
   <script src="js.src/uiEnhancements.js"></script>
   <script src="js.src/v090Enhancements.js"></script>
   <script src="js.src/v091Corrections.js"></script>
+  <script src="js.src/readmeGenerator.js"></script>
   <script src="js.src/main.js"></script>
   <script src="js.src/ymlImport.js"></script>
   <script src="js.src/v0102Fixes.js"></script>
