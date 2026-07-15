@@ -1,8 +1,8 @@
 # VPXS YML Builder
 
-A browser-based workspace for creating, validating, copying, and downloading VPXS table configuration files using data from the Virtual Pinball Spreadsheet database.
+A browser-based workspace for creating, validating, editing, copying, and downloading VPXS table configuration files using data from the Virtual Pinball Spreadsheet database.
 
-The builder is designed for repeat use: search for a table, select the assets that apply, complete the enabled configuration tabs, review the generated YAML, and move directly to the next build.
+The builder is designed for repeat use: search for a table or reopen an existing `.yml` file, select the assets that apply, complete the enabled configuration tabs, review the generated YAML, and move directly to the next build.
 
 ## Table of contents
 
@@ -10,6 +10,7 @@ The builder is designed for repeat use: search for a table, select the assets th
 - [What the builder does](#what-the-builder-does)
 - [Instructions](#instructions)
 - [Fast repeat-use workflow](#fast-repeat-use-workflow)
+- [Edit an existing YML](#edit-an-existing-yml)
 - [Asset selection](#asset-selection)
 - [Configuration panel](#configuration-panel)
 - [Validation and status indicators](#validation-and-status-indicators)
@@ -19,6 +20,7 @@ The builder is designed for repeat use: search for a table, select the assets th
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Saved browser data](#saved-browser-data)
 - [Project structure](#project-structure)
+- [Repository policy files](#repository-policy-files)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
 - [Version history](#version-history)
@@ -31,6 +33,8 @@ The builder is designed for repeat use: search for a table, select the assets th
 ## What the builder does
 
 - Searches the Virtual Pinball Spreadsheet database by table name or VPS ID.
+- Opens supported `.yml` files and loads their values back into the editor.
+- Confirms before replacing a build that is already open.
 - Filters unsupported table formats and unavailable or broken database entries.
 - Supports VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch assets.
 - Generates a live YAML preview while configuration values are entered.
@@ -42,8 +46,8 @@ The builder is designed for repeat use: search for a table, select the assets th
 
 ## Instructions
 
-1. Enter a VPS table ID or part of a table name in the search box.
-2. Choose the correct table from the search results.
+1. Search for a table by VPS table ID or name, or drop an existing `.yml` file into **Drop YML to Edit**.
+2. Choose the correct table from the search results when starting a new build.
 3. Select a VPX file and any additional assets that apply to the build.
 4. Open the enabled Configuration Panel tabs and complete the required fields.
 5. Drop supported files onto checksum fields to calculate MD5 values automatically, or enter valid hashes manually.
@@ -62,6 +66,21 @@ The builder is designed for repeat use: search for a table, select the assets th
 
 The active build autosaves in the current browser. Recent copied and downloaded builds can be reopened from **Recent Build History**.
 
+## Edit an existing YML
+
+Use the compact **Drop YML to Edit** area in the header to reopen a generated VPXS configuration.
+
+- Only one file ending in `.yml` can be opened at a time.
+- Files larger than 2 MB are rejected.
+- The file is read and parsed in the browser; it is not uploaded.
+- When a build is already open, the builder asks for confirmation before replacing it.
+- The imported `tableVPSId` and asset VPS IDs are checked against the current VPS database before the active build is cleared.
+- The importer supports the flat VPXS structure used by this builder, including scalars, booleans, numbers, arrays, and folded or literal text blocks.
+- Unsupported top-level keys are skipped and reported after the import completes.
+- A loading toaster remains visible while the file is parsed, matched to the database, and applied to the form.
+- After loading, the page remains at its current scroll position instead of forcing the Configuration Panel into view.
+- Editing, validation, copying, and downloading continue normally after the import finishes.
+
 ## Asset selection
 
 The Assets Panel lists the available asset categories for the selected table:
@@ -77,18 +96,22 @@ Each asset row shows its current state and available database entries. Broken en
 
 A green asset badge is clickable and jumps to that asset's configuration tab. The Configuration Panel appears whenever at least one asset is selected or marked as bundled; selecting a VPX first is not required to begin entering other asset details.
 
+An optional asset that is merely **Available** does not count as a Preview caution when it is not selected or bundled.
+
 ## Configuration panel
 
 The Configuration Panel contains tabs for Main, VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch settings.
 
 - **Main** contains the Game VPS ID, FPS, tagline, notes, testers, and table metadata overrides.
-- The Game VPS ID uses a compact code-style display with a copy button.
-- **Enable for Wizard** is intentionally fixed off for compatibility.
+- The selected-game header card includes a copy icon beside the Game VPS ID without changing the ID text color.
+- **Enable for Wizard** is intentionally fixed off. Its tooltip appears only while hovering or focusing the checkbox and text.
 - Asset-specific tabs become available when their asset is selected or marked as bundled.
 - Advanced Config sections contain optional metadata and override fields.
 - URL and Version Override fields must be supplied together for ROM, Color ROM, and VPU Patch entries.
 - Backglass URL Override requires Backglass Authors Override and Backglass Image Override.
-- VPU Patch checksum is required whenever the VPU Patch tab is enabled.
+- VPU Patch Checksum is required whenever the VPU Patch tab is enabled.
+- The VPU Patch ID is informational and does not display a field-level error border or error dot.
+- Configuration tooltips are raised above neighboring fields and panel edges.
 
 ## Validation and status indicators
 
@@ -102,7 +125,7 @@ The builder provides several status indicators:
 - Field-level red error dots with custom tooltips.
 - A combined YAML Preview status dot covering both assets and configuration tabs.
 
-Hover or keyboard-focus the YAML Preview status dot to see active state counts. Entries reported only as unavailable are omitted from that tooltip. Click the dot, or press Enter while it is focused, to move to the first current validation error.
+Hover or keyboard-focus the YAML Preview status dot to see active state counts. Unavailable entries and unused optional assets reported only as **Available** are omitted from the breakdown. Click the dot, or press Enter or Space while it is focused, to move to the first current validation error.
 
 ## VPS database updates
 
@@ -131,7 +154,7 @@ Accepted file types depend on the field, including:
 - PUP Pack ZIP, RAR, and 7Z archives
 - VPU Patch files
 
-For PAL/VNI pairs, both checksum fields initially accept either extension. After the first file is dropped, that extension is removed from the other field so the pair cannot contain two files of the same type.
+For PAL/VNI pairs, both checksum fields initially accept either extension. After the first file is dropped, that extension is removed from the other field so the pair cannot contain two files of the same type. Unchecking **PAL/VNI** clears both checksum fields and their dropped-file metadata.
 
 When a supported PUP Pack archive is dropped onto the PUP Pack Checksum field, the builder also reads its directory structure. Discovered directories are sorted from top-level paths downward and offered in the PUP Pack Archive Root selector.
 
@@ -189,6 +212,9 @@ css.src/
   vpsDbToast.css
   uiEnhancements.css
   v090.css
+  v091.css
+  ymlImport.css
+  v0103.css
 js.src/
   fields.js
   utilities.js
@@ -197,9 +223,12 @@ js.src/
   searchHelper.js
   uiHelper.js
   uiEnhancements.js
-  main.js
-  nativeTooltipCleanup.js
   v090Enhancements.js
+  v091Corrections.js
+  main.js
+  ymlImport.js
+  v0102Fixes.js
+  nativeTooltipCleanup.js
 vendor/libarchive/
   libarchive.js
   worker-bundle.js
@@ -210,6 +239,10 @@ fixtures/
   pup-test.7z
 test-runtime.html
 README.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+LICENSE
 ```
 
 ### Main integration points
@@ -221,8 +254,19 @@ README.md
 - `js.src/searchHelper.js` filters and ranks table search results.
 - `js.src/uiHelper.js` renders table, asset, field, tab, checksum, and archive controls.
 - `js.src/uiEnhancements.js` contains image containment, field error markers, Advanced Config spacing, and combined preview status behavior.
+- `js.src/v090Enhancements.js` manages Help tabs, additional validation, Color ROM behavior, clickable asset badges, and refined preview status behavior.
+- `js.src/v091Corrections.js` contains follow-up field, tooltip, and validation-display corrections.
 - `js.src/main.js` manages application state, validation, drafts, history, keyboard shortcuts, and output actions.
-- `js.src/v090Enhancements.js` manages the Help tabs, additional validation markers, and refined preview status behavior.
+- `js.src/ymlImport.js` parses and loads supported `.yml` files into the existing interface.
+- `js.src/v0102Fixes.js` preserves scroll position after imports and removes unused available assets from Preview caution counts.
+- `css.src/v0103.css` standardizes modal placement near the top of the viewport.
+
+## Repository policy files
+
+- `SECURITY.md` explains browser-side processing, dependency boundaries, reporting guidance, and information that should not be submitted publicly.
+- `CODE_OF_CONDUCT.md` defines expected behavior and restrictions against misuse, resale, paywalling, or monetary exploitation of the repository and hosted site.
+- `CONTRIBUTING.md` contains contribution guidance, project credits, and attribution details.
+- `LICENSE` contains the scoped upstream MIT notice for bundled libarchive.js files. It does not automatically relicense the original builder code or project content.
 
 ## Troubleshooting
 
@@ -250,11 +294,23 @@ Select **Validate**. Blocking validation errors open the results dialog instead 
 
 The current draft is intentionally restored from browser storage. Use **Clear** or **Download & Clear** to remove the active draft.
 
+### A YML file is rejected
+
+Confirm that the file ends in `.yml`, is smaller than 2 MB, contains top-level VPXS fields, and includes valid `tableVPSId` and `vpxVPSId` values. Nested custom mappings are not part of the supported import format.
+
+### An imported asset cannot be loaded
+
+The imported asset ID must still be available for the imported table in the current VPS database. Broken, removed, or mismatched entries are rejected before the active build is replaced.
+
+### A VPU Patch tab shows an error after Clear Section
+
+A selected or bundled VPU Patch still requires a valid checksum. The error belongs on **VPU Patch Checksum**; the informational VPU Patch ID should not display a red border or error dot.
+
 ## FAQ
 
-### Does the site upload my VPX, ROM, Backglass, Color ROM, or PUP files?
+### Does the site upload my VPX, ROM, Backglass, Color ROM, PUP, or YML files?
 
-No. Files dropped onto checksum fields are processed in the browser.
+No. Dropped checksum files, archive directory data, and imported YML files are processed in the browser.
 
 ### Does the site edit the Virtual Pinball Spreadsheet database?
 
@@ -276,9 +332,17 @@ Yes, after at least one successful load. The last verified database remains in I
 
 Entries marked as broken or unavailable by the VPS database cannot be selected for a valid build.
 
+### Why does an unused available asset not appear as a caution?
+
+Availability alone does not require action. The Preview breakdown counts assets that are selected, bundled, conflicting, or required; unused optional assets are omitted.
+
 ### Why are some configuration tabs disabled?
 
 Asset-specific tabs become available only when their asset is selected or marked as bundled.
+
+### Why is Enable for Wizard disabled?
+
+That option is intentionally disabled by default in this builder.
 
 ### Why is Copy or Download blocked?
 
@@ -286,21 +350,71 @@ The generated YAML has at least one validation error. Warnings are allowed, but 
 
 ### What does the YAML Preview dot represent?
 
-It combines the current Assets Panel states with enabled Configuration Panel states. Hover or keyboard-focus the dot to see active status counts, or click it to move to the first current error.
+It combines active Assets Panel states with enabled Configuration Panel states. Hover or keyboard-focus the dot to see active status counts, or activate it to move to the first current error.
 
 ### What is stored in Recent Build History?
 
 The newest copied or downloaded snapshot for each table, including its YAML and editable form state. Up to eight recent tables are retained.
 
+### What happens when I open a YML while another build is loaded?
+
+The builder asks for confirmation. It validates and parses the new file before clearing the current build, then loads the imported table, assets, and field values.
+
 ## Version history
+
+Newest versions are listed first.
+
+### v0.10.3 — Modal alignment and consolidated documentation
+
+- Positioned every application dialog at the same upper-page starting point.
+- Moved dialogs closer to the top of the viewport while retaining responsive safe-area handling.
+- Replaced the Help modal title **Fast repeat-use workflow** with **Help**.
+- Preserved the Help modal's existing overall footprint and tab-panel sizing.
+- Updated the consolidated README with all missing changes through v0.10.3.
+
+### v0.10.2 — Import position and Preview caution corrections
+
+- Prevented completed YML imports from forcing the page to scroll to the Configuration Panel.
+- Excluded unused optional assets marked only as **Available** from Preview caution counts.
+- Kept selected, bundled, conflicting, required, and configuration states in the Preview breakdown.
+
+### v0.10.1 — Header alignment and documentation rollback
+
+- Aligned the search area with the right edge of the main game-card/workspace column.
+- Aligned the Drop YML and header-action area with the YAML Preview column.
+- Restored the README to a single consolidated document and removed the split documentation pages.
+
+### v0.10.0 — YML editing and repository policy files
+
+- Added the compact **Drop YML to Edit** control between search and the header actions.
+- Restricted imports to one `.yml` file at a time and added a 2 MB size limit.
+- Added confirmation before replacing an open build.
+- Added loading, success, and error toaster states for YML imports.
+- Added safe parsing for flat VPXS YAML values, arrays, and multiline text.
+- Added current-database validation for imported table and asset VPS IDs.
+- Added `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, and a scoped third-party `LICENSE` notice.
+
+### v0.9.2 — Validation-display corrections
+
+- Changed the Enable tooltip to **This option is disabled by default.**
+- Restricted the tooltip trigger to the checkbox and its text.
+- Prevented the informational VPU Patch ID from displaying a red border or field-level error dot, including during Clear Section rerenders.
+- Kept required VPU Patch checksum errors attached to the checksum field.
+
+### v0.9.1 — Follow-up interface corrections
+
+- Moved the Game VPS ID copy icon to the selected-game header card without changing the existing ID text color.
+- Changed the second Color ROM placeholder to `Color ROM Checksum #2   (ROM name)`.
+- Raised Configuration Panel tooltips above neighboring fields and panel edges.
+- Made unchecking PAL/VNI clear both Color ROM checksum fields and dropped-file metadata.
 
 ### v0.9.0 — Workflow, Color ROM, and Help improvements
 
 - Added slim-line Instructions, Help, and FAQ tabs to the Help dialog.
-- Restyled Game VPS ID as a compact code line with an integrated copy button.
+- Added a compact copy control for the selected table's Game VPS ID.
 - Allowed the Configuration Panel to open when any asset is selected, even without a VPX selection.
 - Made every safe green asset badge clickable.
-- Fixed Enable for Wizard off and added a custom compatibility tooltip.
+- Fixed Enable for Wizard off and added a custom tooltip.
 - Added `.crz`, `.pal`, and `.pac` support for single Color ROM files.
 - Allowed PAL/VNI files to be dropped into either checksum field and dynamically removed duplicate extensions from the remaining field.
 - Reorganized the Color ROM grid and renamed the second checksum field.
@@ -381,4 +495,4 @@ The newest copied or downloaded snapshot for each table, including its YAML and 
 
 Table and asset data is provided by the **Virtual Pinball Spreadsheet** project.
 
-Archive browsing uses **libarchive.js** and its WebAssembly worker. The bundled upstream MIT license is included at `vendor/libarchive/LICENSE`.
+Archive browsing uses **libarchive.js** and its WebAssembly worker. The bundled upstream MIT license is included at `vendor/libarchive/LICENSE`. Additional attribution and contribution details are maintained in `CONTRIBUTING.md`, and the repository-level third-party notice is available in `LICENSE`.
