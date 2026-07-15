@@ -70,8 +70,29 @@
     if (input) input.placeholder = 'Color ROM Checksum #2   (ROM name)';
   }
 
+  function applyEnableTooltipCorrection() {
+    const text = 'This option is disabled by default.';
+    const enabledField = WIZARD_STEPS.find(step => step.id === 'main')?.fields
+      .find(field => field.yml_field === 'enabled');
+    if (enabledField) enabledField.tooltip = text;
+
+    const tooltip = document.querySelector('.field-main-enabled .control-tooltip');
+    if (tooltip && tooltip.textContent !== text) tooltip.textContent = text;
+  }
+
+  function clearIncorrectVpuPatchIdError() {
+    const idField = document.getElementById('field-diffVPSId')?.closest('.field');
+    if (!idField) return;
+
+    idField.querySelectorAll(':scope > .field-error-dot').forEach(dot => dot.remove());
+    idField.classList.remove('has-field-error');
+    idField.removeAttribute('data-error-count');
+  }
+
   function applyCorrections(container = document) {
     applyColorChecksumPlaceholder(container);
+    applyEnableTooltipCorrection();
+    clearIncorrectVpuPatchIdError();
   }
 
   function scheduleCorrections(container = document) {
@@ -125,19 +146,49 @@
   }
 
   document.addEventListener('change', event => {
-    if (event.target?.id !== 'field-coloredROMPin2DMD' || event.target.checked) return;
-    clearColorChecksums();
-  });
+    if (event.target?.id === 'field-coloredROMPin2DMD' && !event.target.checked) {
+      clearColorChecksums();
+    }
+    scheduleCorrections();
+  }, true);
 
   document.addEventListener('input', event => {
     if (event.target?.id === 'field-coloredROMChecksumSecondary') {
       applyColorChecksumPlaceholder(event.target.closest('.field') || document);
     }
+    scheduleCorrections();
   }, true);
 
+  document.addEventListener('click', event => {
+    if (event.target instanceof Element && event.target.closest('.clear-section-btn')) {
+      window.setTimeout(() => scheduleCorrections(), 0);
+    }
+  }, true);
+
+  function startCorrectionObserver() {
+    if (typeof MutationObserver === 'undefined') return;
+    const root = document.getElementById('accordionStack') || document.body;
+    const observer = new MutationObserver(records => {
+      const relevant = records.some(record => {
+        const target = record.target instanceof Element ? record.target : record.target.parentElement;
+        return target?.closest?.('#accordionStack') || [...record.addedNodes].some(node => (
+          node instanceof Element && (node.matches('.field-error-dot') || node.querySelector('.field-error-dot'))
+        ));
+      });
+      if (relevant) scheduleCorrections();
+    });
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => scheduleCorrections(), { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      applyEnableTooltipCorrection();
+      scheduleCorrections();
+      startCorrectionObserver();
+    }, { once: true });
   } else {
+    applyEnableTooltipCorrection();
     scheduleCorrections();
+    startCorrectionObserver();
   }
 })();
