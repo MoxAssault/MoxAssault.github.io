@@ -4,8 +4,8 @@
 
 ## Instructions
 
-1. Enter a VPS table ID or part of a table name in the search box.
-2. Choose the correct table from the search results.
+1. Enter a VPS table ID or part of a table name in the search box, or drop an existing `.yml` file onto **Drop YML to Edit**.
+2. Choose the correct table from the search results when starting a new build.
 3. Select the VPX and any additional assets that apply to the build.
 4. Open the enabled Configuration Panel tabs and complete the required fields.
 5. Drop supported files onto checksum fields to calculate MD5 values automatically, or enter valid hashes manually.
@@ -13,9 +13,24 @@
 7. Select **Validate** to see the complete error and warning list.
 8. Select **Copy** or **Download & Clear** when the build passes validation.
 
+## Editing an existing YML file
+
+The compact **Drop YML to Edit** area appears between search and the header action buttons.
+
+1. Drop exactly one file ending in `.yml`, or select the area to open the file picker.
+2. When a build is already loaded, confirm that it may be replaced.
+3. A loading toaster remains visible while the file is read, parsed, matched to the current VPS database, and loaded.
+4. The importer verifies `tableVPSId`, `vpxVPSId`, and any other selected asset IDs before clearing the active build.
+5. Supported values are loaded into their matching asset and configuration fields.
+6. Continue editing, validating, copying, and downloading normally.
+
+The importer supports the flat VPXS YAML structure produced by this builder, including scalar values, arrays, and folded or literal text blocks. Unknown fields are skipped and reported after loading. Files using unsupported nested structures, duplicate keys, unexpected indentation, or unavailable VPS IDs are rejected.
+
+Only `.yml` files are accepted. A file must be smaller than 2 MB.
+
 ## Fast repeat-use workflow
 
-1. Search for a table.
+1. Search for a table or reopen an existing YML file.
 2. Select the applicable assets.
 3. Complete only the enabled configuration tabs.
 4. Use the YAML Preview status dot to inspect the build and jump to the first error.
