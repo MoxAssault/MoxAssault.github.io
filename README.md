@@ -1,8 +1,8 @@
 # VPXS YML Builder
 
-A browser-based workspace for creating, validating, copying, and downloading VPXS table configuration files from the Virtual Pinball Spreadsheet database.
+A browser-based workspace for creating, validating, copying, and downloading VPXS table configuration files using data from the Virtual Pinball Spreadsheet database.
 
-The builder is designed for repeated use: search for a table, select its assets, fill only the configuration fields that apply, review the generated YAML, and move directly to the next build.
+The builder is designed for repeat use: search for a table, select the assets that apply, complete the enabled configuration tabs, review the generated YAML, and move directly to the next build.
 
 ## Table of contents
 
@@ -34,42 +34,37 @@ The builder is designed for repeated use: search for a table, select its assets,
 - Filters unsupported table formats and unavailable or broken database entries.
 - Supports VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch assets.
 - Generates a live YAML preview while configuration values are entered.
-- Validates required values, checksums, bundled-asset requirements, override conflicts, and line length.
+- Validates required values, checksums, bundled-asset requirements, override relationships, and line length.
 - Calculates MD5 checksums from files dropped onto supported checksum fields.
 - Reads ZIP, RAR, and 7Z PUP Pack archives and offers discovered directories as Archive Root choices.
 - Saves unfinished work and recent completed builds in the browser.
-- Works as a static GitHub Pages application with no server-side account or application database.
+- Verifies that search is using the latest published VPS database version.
 
 ## Instructions
 
 1. Enter a VPS table ID or part of a table name in the search box.
-2. Choose the correct table from the search suggestions or submit the search.
-3. Select a VPX file. The Configuration Panel becomes available after a VPX is selected.
-4. Select any additional assets that belong with the table.
-5. Open each enabled configuration tab and enter the required information.
-6. Review the YAML Generated Preview and its combined status indicator.
-7. Select **Validate** to review errors and cautions.
-8. Select **Copy** to place valid YAML on the clipboard, or select **Download & Clear** to save the file and begin another build.
-
-Copy and Download are blocked while validation errors remain. Cautions do not block output.
+2. Choose the correct table from the search results.
+3. Select a VPX file and any additional assets that apply to the build.
+4. Open the enabled Configuration Panel tabs and complete the required fields.
+5. Drop supported files onto checksum fields to calculate MD5 values automatically, or enter valid hashes manually.
+6. Review the YAML Preview and correct any fields marked with an error dot.
+7. Select **Validate** to see the complete error and warning list.
+8. Select **Copy** or **Download & Clear** when the build passes validation.
 
 ## Fast repeat-use workflow
 
-The workspace is built to minimize repeated navigation and data entry:
-
-1. Search and select a table.
-2. Choose the VPX and related assets from the Assets Panel.
+1. Search for a table.
+2. Select the applicable assets.
 3. Complete only the enabled configuration tabs.
-4. Drop local files onto checksum fields when an MD5 value is needed.
-5. Validate the build.
-6. Copy the YAML or use **Download & Clear**.
-7. Start typing the next table immediately.
+4. Use the YAML Preview status dot to inspect the build and jump to the first error.
+5. Validate the configuration.
+6. Download the YML and automatically clear the workspace for the next table.
 
-Recent Build History keeps the newest completed snapshot for each table. A snapshot can be restored, copied, downloaded again, or deleted.
+The active build autosaves in the current browser. Recent copied and downloaded builds can be reopened from **Recent Build History**.
 
 ## Asset selection
 
-The Assets Panel supports these categories:
+The Assets Panel lists the available asset categories for the selected table:
 
 - **VPX**
 - **Backglass**
@@ -78,85 +73,49 @@ The Assets Panel supports these categories:
 - **PUP Pack**
 - **VPU Patch**
 
-Each row reports its current state and provides available database entries. Broken entries are disabled. Selected VPX and Backglass entries may include artwork previews.
+Each asset row shows its current state and available database entries. Broken entries are disabled. Supported artwork includes compact thumbnail previews.
 
-Bundled controls indicate that an asset is included with another download instead of being supplied through a separate VPS entry. Bundled assets may require checksums and explanatory notes depending on the asset type.
+A green asset badge is clickable and jumps to that asset's configuration tab. The Configuration Panel appears whenever at least one asset is selected or marked as bundled; selecting a VPX first is not required to begin entering other asset details.
 
 ## Configuration panel
 
-Configuration is divided into compact tabs:
+The Configuration Panel contains tabs for Main, VPX, Backglass, ROM, Color ROM, PUP Pack, and VPU Patch settings.
 
-- **Main** — table ID, FPS, tagline, notes, testers, and table-level overrides.
-- **VPX** — VPX ID, checksum, and notes.
-- **Backglass** — Backglass ID, checksum, notes, and supported overrides.
-- **ROM** — ROM ID, checksum, notes, URL override, and version override.
-- **Color ROM** — Color ROM ID, checksum, notes, override fields, and PAL/VNI mode.
-- **PUP Pack** — ID, checksum, URL, version, archive format, archive root, notes, and required status.
-- **VPU Patch** — `diff*` fields used by the upstream VPXS schema.
-
-Advanced Config is shown as an inset sub-panel within each applicable tab.
-
-### Color ROM modes
-
-- **Serum mode:** one Color ROM checksum is emitted and `coloredROMPin2DMD` is omitted.
-- **PAL/VNI mode:** `coloredROMPin2DMD: true` is emitted and both `.pal` and `.vni` MD5 checksums are required.
+- **Main** contains the Game VPS ID, FPS, tagline, notes, testers, and table metadata overrides.
+- The Game VPS ID uses a compact code-style display with a copy button.
+- **Enable for Wizard** is intentionally fixed off for compatibility.
+- Asset-specific tabs become available when their asset is selected or marked as bundled.
+- Advanced Config sections contain optional metadata and override fields.
+- URL and Version Override fields must be supplied together for ROM, Color ROM, and VPU Patch entries.
+- Backglass URL Override requires Backglass Authors Override and Backglass Image Override.
+- VPU Patch checksum is required whenever the VPU Patch tab is enabled.
 
 ## Validation and status indicators
 
-Validation is based on the current VPXS repository checks and table example conventions.
+Validation errors block Copy and Download. Warnings are allowed but should be reviewed.
 
-The interface reports status in several places:
+The builder provides several status indicators:
 
-- Asset rows and asset badges show availability and selection state.
-- Configuration tabs show error or warning markers.
-- Individual fields with a current validation error receive a red status-dot overlay.
-- The YAML Preview status dot combines both the Assets Panel and Configuration Panel.
-- Hovering or focusing the YAML Preview dot shows each active status type and its quantity when the count is greater than zero.
+- Asset-row status labels.
+- Asset badges in the Assets Panel heading.
+- Configuration-tab error and warning markers.
+- Field-level red error dots with custom tooltips.
+- A combined YAML Preview status dot covering both assets and configuration tabs.
 
-Common blocking errors include:
-
-- Missing VPX selection.
-- Missing or invalid VPX checksum.
-- Missing FPS or non-integer FPS.
-- Missing testers.
-- Missing checksums for selected or bundled assets.
-- Invalid MD5 values.
-- Missing notes for bundled Backglass, ROM, or Color ROM assets.
-- ROM VPS ID and ROM URL Override conflicts.
-- Missing ROM Version Override when a ROM URL Override is used.
-- Missing PAL or VNI checksum in PAL/VNI mode.
-- Required PUP Pack without a VPS entry or file URL.
-- Generated YAML lines exceeding the supported yamllint limit.
+Hover or keyboard-focus the YAML Preview status dot to see active state counts. Entries reported only as unavailable are omitted from that tooltip. Click the dot, or press Enter while it is focused, to move to the first current validation error.
 
 ## VPS database updates
 
-The application verifies the database version with:
+When the page opens, the builder immediately checks the Virtual Pinball Spreadsheet `lastUpdated.json` version.
 
-`https://virtualpinballspreadsheet.github.io/vps-db/lastUpdated.json`
-
-On page load, a top-center status toast immediately reports that the database is being checked. The toast then reports whether the database is current, was updated, or is using a cached fallback.
-
-Database behavior:
-
-- The latest published version is checked when the site opens.
-- The version is checked again every two hours while the page remains open.
+- A top-entry toast shows the checking state.
+- If the cached version matches, the builder continues using it.
+- If a newer version exists, the database is downloaded, validated, and stored in IndexedDB.
+- If the update check fails, the most recent verified cache remains available.
+- While the page stays open, the version is checked again every two hours.
 - Returning to a tab that has been inactive for at least two hours triggers a catch-up check.
-- The full database is downloaded only when the published version changes.
-- Downloaded data is validated before replacing the working cache.
-- The last verified database is stored in IndexedDB and remains available if an update source is temporarily unavailable.
-- A version is confirmed again after download to avoid labeling data with the wrong update timestamp.
 
-For browser diagnostics, the current status is available through:
-
-```js
-window.getVPSDBStatus()
-```
-
-A manual check can be triggered from the browser console with:
-
-```js
-window.checkVPSDBNow()
-```
+The full database is downloaded only when the published version changes.
 
 ## Checksum and archive tools
 
@@ -167,13 +126,16 @@ Accepted file types depend on the field, including:
 - VPX files
 - DirectB2S files
 - ROM archives
-- Color ROM files
+- Single Color ROM files using `.crz`, `.pal`, or `.pac`
+- Double Color ROM PAL/VNI pairs using one `.pal` and one `.vni` file in either checksum field
 - PUP Pack ZIP, RAR, and 7Z archives
 - VPU Patch files
 
+For PAL/VNI pairs, both checksum fields initially accept either extension. After the first file is dropped, that extension is removed from the other field so the pair cannot contain two files of the same type.
+
 When a supported PUP Pack archive is dropped onto the PUP Pack Checksum field, the builder also reads its directory structure. Discovered directories are sorted from top-level paths downward and offered in the PUP Pack Archive Root selector.
 
-Files are processed locally by the browser and are not uploaded by this application.
+Files are processed by the browser and are not uploaded by this application.
 
 ## YAML behavior
 
@@ -184,10 +146,11 @@ Files are processed locally by the browser and are not uploaded by this applicat
 - Testers and Backglass author overrides are emitted as YAML arrays.
 - A single checksum is emitted as a string.
 - Multiple checksums are emitted as a YAML list.
+- PAL/VNI Color ROM mode emits `coloredROMPin2DMD: true` and a two-item `coloredROMChecksum` list.
 - URL fields that exceed the line-length limit receive the supported yamllint comment.
 - Long non-URL text values use folded YAML blocks.
 - Unsupported UI-only values are excluded from output.
-- VPU Patch values use the upstream `diffVPSId`, `diffChecksum`, `diffUrlOverride`, and `diffVersionOverride` keys.
+- VPU Patch values use `diffVPSId`, `diffChecksum`, `diffUrlOverride`, and `diffVersionOverride`.
 - PUP Pack output supports `pupVPSId`, `pupBundled`, `pupChecksum`, `pupFileUrl`, `pupVersion`, `pupArchiveFormat`, `pupArchiveRoot`, `pupRequired`, and `pupNotes` when applicable.
 
 ## Keyboard shortcuts
@@ -198,6 +161,7 @@ Files are processed locally by the browser and are not uploaded by this applicat
 | `Ctrl`/`Cmd` + `Enter` | Validate the current build |
 | `Ctrl`/`Cmd` + `Shift` + `Enter` | Download the YAML and clear the workspace |
 | `Escape` | Close an open dialog |
+| `Enter` or `Space` on the preview status dot | Open the first validation error |
 
 ## Saved browser data
 
@@ -224,6 +188,7 @@ css.src/
   modal.css
   vpsDbToast.css
   uiEnhancements.css
+  v090.css
 js.src/
   fields.js
   utilities.js
@@ -233,6 +198,8 @@ js.src/
   uiHelper.js
   uiEnhancements.js
   main.js
+  nativeTooltipCleanup.js
+  v090Enhancements.js
 vendor/libarchive/
   libarchive.js
   worker-bundle.js
@@ -255,6 +222,7 @@ README.md
 - `js.src/uiHelper.js` renders table, asset, field, tab, checksum, and archive controls.
 - `js.src/uiEnhancements.js` contains image containment, field error markers, Advanced Config spacing, and combined preview status behavior.
 - `js.src/main.js` manages application state, validation, drafts, history, keyboard shortcuts, and output actions.
+- `js.src/v090Enhancements.js` manages the Help tabs, additional validation markers, and refined preview status behavior.
 
 ## Troubleshooting
 
@@ -268,7 +236,7 @@ The builder will use the last verified IndexedDB copy when available. Check the 
 
 ### A checksum drop is rejected
 
-Confirm that the dropped file extension matches the field hint. Each checksum control accepts only the file types appropriate for that asset.
+Confirm that the dropped file extension matches the field hint. Each checksum control accepts only the file types appropriate for that asset. In PAL/VNI mode, the second file must use the extension not already assigned to the first field.
 
 ### A PUP archive checksum works but no directories appear
 
@@ -284,9 +252,9 @@ The current draft is intentionally restored from browser storage. Use **Clear** 
 
 ## FAQ
 
-### Does the site upload my VPX, ROM, Backglass, or PUP files?
+### Does the site upload my VPX, ROM, Backglass, Color ROM, or PUP files?
 
-No. Files dropped onto checksum fields are processed locally in the browser.
+No. Files dropped onto checksum fields are processed in the browser.
 
 ### Does the site edit the Virtual Pinball Spreadsheet database?
 
@@ -318,13 +286,29 @@ The generated YAML has at least one validation error. Warnings are allowed, but 
 
 ### What does the YAML Preview dot represent?
 
-It combines the current Assets Panel states with enabled Configuration Panel states. Hover or keyboard-focus the dot to see the count for every active status type.
+It combines the current Assets Panel states with enabled Configuration Panel states. Hover or keyboard-focus the dot to see active status counts, or click it to move to the first current error.
 
 ### What is stored in Recent Build History?
 
 The newest copied or downloaded snapshot for each table, including its YAML and editable form state. Up to eight recent tables are retained.
 
 ## Version history
+
+### v0.9.0 — Workflow, Color ROM, and Help improvements
+
+- Added slim-line Instructions, Help, and FAQ tabs to the Help dialog.
+- Restyled Game VPS ID as a compact code line with an integrated copy button.
+- Allowed the Configuration Panel to open when any asset is selected, even without a VPX selection.
+- Made every safe green asset badge clickable.
+- Fixed Enable for Wizard off and added a custom compatibility tooltip.
+- Added `.crz`, `.pal`, and `.pac` support for single Color ROM files.
+- Allowed PAL/VNI files to be dropped into either checksum field and dynamically removed duplicate extensions from the remaining field.
+- Reorganized the Color ROM grid and renamed the second checksum field.
+- Improved PUP Pack Required alignment.
+- Added two-way URL and Version Override validation for ROM, Color ROM, and VPU Patch.
+- Added Backglass URL dependency validation and required VPU Patch checksums.
+- Removed unavailable entries from the preview tooltip and made the preview dot open the first error.
+- Updated the footer credit and linked the Virtual Pinball Spreadsheet site.
 
 ### v0.8.0 — Interface validation and documentation
 
@@ -390,7 +374,7 @@ The newest copied or downloaded snapshot for each table, including its YAML and 
 ### v0.1.0 — Compact workspace foundation
 
 - Replaced the original linear wizard with a repeat-use workspace.
-- Added table search, asset selection, live YAML preview, local drafts, recent builds, keyboard shortcuts, and light/dark themes.
+- Added table search, asset selection, live YAML preview, browser-saved drafts, recent builds, keyboard shortcuts, and light/dark themes.
 - Added CDN database loading with a GitHub fallback.
 
 ## Credits and bundled software
