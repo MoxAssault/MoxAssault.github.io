@@ -2,9 +2,21 @@
 
 [Overview](../README.md) | [Usage](USAGE.md) | [Reference](REFERENCE.md) | [Troubleshooting](TROUBLESHOOTING.md) | **FAQ** | [Changelog](../CHANGELOG.md)
 
-## Does the site upload my VPX, ROM, Backglass, Color ROM, or PUP files?
+## Does the site upload my VPX, ROM, Backglass, Color ROM, PUP, or YML files?
 
-No. Files dropped onto checksum fields are processed in the browser.
+No. Files dropped onto checksum fields or the YML editor are processed in the browser by this application.
+
+## What YML files can be reopened?
+
+The importer is designed for flat VPXS table configuration files using the fields represented by this builder. It accepts the `.yml` extension only, with a 2 MB maximum size.
+
+## What happens to fields the builder does not recognize?
+
+Unknown top-level fields are skipped and reported after loading. They are not added to the generated output unless the builder has a corresponding field.
+
+## Why does importing require the current VPS database?
+
+The builder uses `tableVPSId` to load the correct table and verifies selected asset IDs before replacing the active build. This prevents an imported file from silently loading mismatched or unavailable selections.
 
 ## Does the site edit the Virtual Pinball Spreadsheet database?
 
