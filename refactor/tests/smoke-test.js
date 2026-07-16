@@ -92,10 +92,20 @@
     const originalTheme = appDocument.documentElement.dataset.theme;
     try {
       toggle?.dispatchEvent(new appWindow.MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
-      const enteredPink = appDocument.documentElement.dataset.theme === 'pink';
+      const firstTheme = appDocument.documentElement.dataset.theme;
+      const firstTransitionPassed = originalTheme === 'pink'
+        ? firstTheme === 'dark' || firstTheme === 'light'
+        : firstTheme === 'pink';
+
       toggle?.dispatchEvent(new appWindow.MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
-      const returned = appDocument.documentElement.dataset.theme === originalTheme;
-      record('Secret theme activation and return', enteredPink && returned);
+      const secondTheme = appDocument.documentElement.dataset.theme;
+      const returnedToOriginal = secondTheme === originalTheme;
+
+      record(
+        'Secret theme activation and return',
+        firstTransitionPassed && returnedToOriginal,
+        `${originalTheme} → ${firstTheme} → ${secondTheme}`
+      );
     } catch (error) {
       record('Secret theme activation and return', false, error?.message || 'Unknown error');
     }
