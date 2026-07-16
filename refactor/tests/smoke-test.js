@@ -86,6 +86,8 @@
     const expectedRefactorPaths = [
       '/refactor/styles/tokens.css',
       '/refactor/styles/components/app-shell.css',
+      '/refactor/styles/components/search.css',
+      '/refactor/styles/components/table-card.css',
       '/refactor/styles/components/database-status-toast.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
@@ -97,6 +99,8 @@
     const replacedLegacyPaths = [
       '/css.src/1variables.css',
       '/css.src/base.css',
+      '/css.src/search.css',
+      '/css.src/card.css',
       '/css.src/vpsDbToast.css',
       '/js.src/fields.js',
       '/js.src/apiHelper.js',
