@@ -91,6 +91,8 @@
       '/refactor/styles/components/preview-panel.css',
       '/refactor/styles/components/dialogs.css',
       '/refactor/styles/components/database-status-toast.css',
+      '/refactor/styles/components/yml-import.css',
+      '/refactor/styles/components/readme-actions.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
       '/refactor/src/services/vpsDatabase.js',
@@ -106,6 +108,8 @@
       '/css.src/modal.css',
       '/css.src/v0103.css',
       '/css.src/vpsDbToast.css',
+      '/css.src/ymlImport.css',
+      '/css.src/readmeGenerator.css',
       '/js.src/fields.js',
       '/js.src/apiHelper.js',
       '/js.src/vpsDbToast.js',
@@ -139,6 +143,22 @@
       && dialogTops.every(top => Number.isFinite(top) && top >= 12)
       && dialogTops.every(top => top === dialogTops[0]);
     record('Shared dialog placement', dialogsAligned, dialogTops.map(top => `${top}px`).join(', '));
+
+    const importDrop = appDocument.getElementById('ymlImportDrop');
+    const importStyle = appWindow.getComputedStyle(importDrop);
+    record(
+      'YML import control layout',
+      importStyle.display === 'inline-flex' && Number.parseFloat(importStyle.minHeight) >= 34,
+      `${importStyle.display}, ${importStyle.minHeight}`
+    );
+
+    const readmeActions = appDocument.querySelector('.readme-actions');
+    const readmeStyle = appWindow.getComputedStyle(readmeActions);
+    record(
+      'README action layout',
+      readmeStyle.display === 'grid' && readmeActions?.children.length === 2,
+      `${readmeStyle.display}, ${readmeActions?.children.length || 0} actions`
+    );
 
     const vendorUrls = [
       '/vendor/libarchive/libarchive.js',
