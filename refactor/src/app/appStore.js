@@ -56,12 +56,12 @@
     return clonePlain(state);
   }
 
-  function emit(type, detail = {}) {
+  function emit(type, detail = {}, options = {}) {
     const event = Object.freeze({
       type,
       detail: clonePlain(detail),
-      revision,
-      timestamp: Date.now()
+      revision: Number.isInteger(options.revision) ? options.revision : revision,
+      timestamp: Number.isFinite(options.timestamp) ? options.timestamp : Date.now()
     });
     (listeners.get(type) || new Set()).forEach(listener => {
       try { listener(event); } catch (error) { console.error(`VPS app event listener failed for ${type}`, error); }
@@ -77,21 +77,49 @@
   }
 
   function notify(source, changedSections, eventType = EVENT_TYPES.STATE_CHANGED) {
-    revision += 1;
+    const notificationRevision = revision + 1;
+    const notificationSource = source || 'unknown';
+    const notificationTimestamp = Date.now();
+    const sections = [...changedSections];
+
+    revision = notificationRevision;
     state.meta = {
-      revision,
-      source: source || 'unknown',
-      changedAt: new Date().toISOString()
+      revision: notificationRevision,
+      source: notificationSource,
+      changedAt: new Date(notificationTimestamp).toISOString()
     };
+
     const nextSnapshot = snapshot();
+    const metadata = Object.freeze({
+      source: notificationSource,
+      changedSections: sections,
+      revision: notificationRevision
+    });
+
     subscribers.forEach(listener => {
-      try { listener(nextSnapshot, { source: state.meta.source, changedSections: [...changedSections] }); }
+      try { listener(nextSnapshot, metadata); }
       catch (error) { console.error('VPS app state subscriber failed', error); }
     });
-    emit(EVENT_TYPES.STATE_CHANGED, { source: state.meta.source, changedSections, state: nextSnapshot });
-    if (eventType !== EVENT_TYPES.STATE_CHANGED) {
-      emit(eventType, { source: state.meta.source, changedSections, state: nextSnapshot });
-    }
+
+    const detail = {
+      source: notificationSource,
+      changedSections: sections,
+      state: nextSnapshot
+    };
+    const eventOptions = {
+      revision: notificationRevision,
+      timestamp: notificationTimestamp
+    };
+
+    emit(EVENT_TYPES.STATE_CHANGED, detail, eventOptions);
+    if (eventType !== EVENT_TYPES.STATE_CHANGED) emit(eventType, detail, eventOptions);
+
+    return Object.freeze({
+      source: notificationSource,
+      revision: notificationRevision,
+      timestamp: notificationTimestamp,
+      state: nextSnapshot
+    });
   }
 
   function subscribe(listener, options = {}) {
@@ -123,8 +151,14 @@
     if (!previousRecordId && nextRecordId) eventType = EVENT_TYPES.BUILD_LOADED;
     else if (previousRecordId && !nextRecordId) eventType = EVENT_TYPES.BUILD_CLEARED;
 
-    notify(options.source || 'setBuild', changedSections, eventType);
-    if (hasYamlUpdate) emit(EVENT_TYPES.YAML_CHANGED, { source: options.source || 'setBuild', yaml: state.build.yaml });
+    const notification = notify(options.source || 'setBuild', changedSections, eventType);
+    if (hasYamlUpdate) {
+      emit(
+        EVENT_TYPES.YAML_CHANGED,
+        { source: notification.source, yaml: notification.state.build.yaml },
+        { revision: notification.revision, timestamp: notification.timestamp }
+      );
+    }
     return snapshot();
   }
 
