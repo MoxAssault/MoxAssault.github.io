@@ -45,15 +45,20 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 
 - `src/config/fieldDefinitions.js` — asset-category configuration, bundle fields, configuration steps, and YAML exclusions
 - `src/app/appStore.js` — detached application-state snapshots, state updates, subscriptions, revisions, and named events
-- `src/app/legacyStateBridge.js` — temporary bridge that mirrors the production controller state into the shared store
+- `src/app/legacyStateBridge.js` — temporary bridge that mirrors production controller state into the shared store; it no longer observes the rendered YAML preview
 - `src/utils/formatting.js` — HTML escaping, labels, dates, arrays, line wrapping, and safe filenames
 - `src/services/assetCatalog.js` — VPS asset filtering, VPU Patch relationships, cover selection, and semantic asset states
 - `src/services/yamlService.js` — checksum normalization, YAML generation, and YAML highlighting
+- `src/services/previewModel.js` — pure generated-YAML, line-count, syntax-highlight, and overall asset-status model
+- `src/controllers/previewController.js` — renders the preview from shared state and writes generated YAML back to `VPS_APP_STORE`
 - `src/services/ymlParser.js` — pure flat-YML parsing for top-level VPXS fields, quoted values, arrays, and folded/literal blocks
 - `src/services/ymlImportModel.js` — supported-field filtering, import normalization, selection extraction, and VPS asset-ID validation
 - `src/controllers/ymlImportController.js` — file limits, import toasts, database lookup, DOM orchestration, field loading, and drop-zone behavior
 - `src/services/buildValidator.js` — pure build validation for required fields, checksums, asset conflicts, bundled notes, PAL/VNI, PUP requirements, and YAML line length
 - `src/controllers/validationStateController.js` — recalculates validation on shared build/YAML changes and writes errors and warnings into `VPS_APP_STORE`
+- `src/services/storageService.js` — guarded text/JSON localStorage access and stable application storage keys
+- `src/services/buildPersistence.js` — draft snapshots, workspace preferences, recent-build entries, deduplication, filenames, and history limits
+- `src/controllers/persistenceController.js` — shared-state autosave scheduling plus draft, preference, and history APIs
 - `src/services/fileOutput.js` — browser downloads and clipboard output
 - `src/services/archivePaths.js` — normalized archive-directory extraction and ordering
 - `src/services/readmeTemplateResolver.js` — redirects the original upstream README-template URLs to local vendored copies
@@ -64,7 +69,7 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `src/controllers/databaseStatusController.js` — database status toast, stable shared-array behavior, periodic checks, and inactive-tab catch-up
 - `src/controllers/themeController.js` — dark/light behavior plus secret pink-theme activation and persistence
 - `src/ui/tooltipController.js` — removes duplicate native title tooltips and migrates asset badge copy into custom tooltip data
-- `tests/smoke-test.html`, `tests/smoke-test.js`, `tests/stage9-smoke.js`, and `tests/stage9-validation-smoke.js` — same-origin runtime regression checks
+- `tests/smoke-test.html`, `tests/smoke-test.js`, and the Stage 9 smoke extensions — same-origin runtime regression checks
 
 ### Vendored README templates
 
@@ -89,46 +94,16 @@ The copies include the source files' final newline, so their Git blob SHAs match
 
 The browser test verifies:
 
-- Required DOM structure
-- Core public globals
-- Split utility module namespaces
-- Stylesheet and script availability
-- Required refactor-owned paths and removal of replaced legacy paths
-- Application store methods and event constants
-- State subscriptions, named events, revision updates, detached snapshots, and restoration
-- Legacy bridge shape and generated YAML synchronization
-- README generator context sourced from the shared store
-- Exact SHA-256 integrity of both vendored README templates
-- Local routing of the original upstream README-template URLs
-- Flat-YML parsing, folded values, lists, flow arrays, numeric and Boolean values
-- Duplicate YML-field rejection
-- Imported-value normalization and unsupported-field reporting
-- Refactor-owned YML import controller API and `.yml` extension enforcement
-- Removal of inherited `js.src/ymlImport.js`
-- Validation service and store-controller globals and script ownership
-- Expected named errors for an empty build
-- A complete minimal build producing no errors or warnings
-- PAL/VNI two-checksum enforcement
-- Validation results synchronizing into the shared store without loops
-- Asset-row grid and minimum-height behavior
-- Semantic asset-state color resolution
-- Configuration-panel flex layout
-- Main, PUP Pack, and Color ROM named grid areas
-- Shared custom checkbox dimensions and appearance
-- Preview-panel flex layout
-- Shared dialog positioning
-- YML import and README action layouts
-- Native-tooltip migration through the active MutationObserver
-- Archive JavaScript, worker, and WebAssembly dependencies
-- Field-definition category and step counts
-- Builder utility exports and compatibility bindings
-- YAML normalization, PAL/VNI checksum output, and omitted temporary fields
-- Required and selected asset-state behavior
-- Search-result ranking behavior
-- VPS database loading and status API
-- Database status toast DOM and accessibility attributes
-- Secret-theme transitions from dark, light, or pink startup states
-- Initial YAML preview generation
+- Required DOM structure and dependency availability
+- Refactor-owned paths and removal of replaced legacy paths
+- Application store updates, events, nested notifications, detached snapshots, and restoration
+- README shared-state context and exact vendored-template integrity
+- Flat-YML parsing, duplicate rejection, normalization, asset-ID validation, and import-controller behavior
+- Pure build validation, PAL/VNI requirements, and validation-store synchronization
+- Preview model output, status calculation, line counting, DOM synchronization, and store-generated YAML
+- Storage JSON round trips, draft snapshot compatibility, recent-build deduplication, history snapshots, and workspace preferences
+- Asset, configuration, checkbox, preview, dialog, YML import, and README action layouts
+- Tooltip migration, archive runtime dependencies, database loading/status, search ranking, and all theme transitions
 
 ## Refactor stages
 
@@ -140,7 +115,7 @@ The browser test verifies:
 6. Audit and split the combined asset/configuration workspace stylesheet. **Complete**
 7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration. **Complete**
 8. Introduce explicit application state and events. **Complete**
-9. Split validation, preview, history, storage, import, and output responsibilities. **In progress — import and shared validation complete**
+9. Split validation, preview, history, storage, import, and output responsibilities. **In progress — service and shared-state layers complete; legacy UI gates remain**
 10. Split UI rendering into table, asset, configuration, preview, dialog, tooltip, and toast modules.
 11. Consolidate version-named correction files into responsibility-based modules.
 12. Convert the refactor entry point to browser-native ES modules.
@@ -150,15 +125,17 @@ The browser test verifies:
 
 The state shape, write methods, subscriptions, named events, compatibility boundary, and temporary bridge are documented in `docs/state-architecture.md`.
 
-The production `main.js` still owns its internal mutable state. `legacyStateBridge.js` mirrors that state into `VPS_APP_STORE` until a refactor-owned application controller replaces it. New modules should read from the store rather than intercepting UI render functions or scraping the DOM.
+The production `main.js` still owns its internal mutable state. `legacyStateBridge.js` mirrors that state into `VPS_APP_STORE` until a refactor-owned application controller replaces it. New modules read from the store rather than intercepting UI render functions or scraping the DOM.
 
-The first migrated consumer is `services/readmeGenerator.js`; the inherited `js.src/readmeGenerator.js` is no longer loaded by the refactor build.
+The shared preview is now generated by `previewModel.js` and rendered by `previewController.js`. The bridge no longer watches `previewYaml`; generated YAML is written directly into the store by the preview controller.
 
-Shared validation is now maintained by `services/buildValidator.js` and `controllers/validationStateController.js`. The production `main.js` validator remains in place temporarily for the existing dialog and copy/download blocking behavior; its replacement will occur when the validation dialog controller is separated.
+Drafts, preferences, and recent-build formats are now owned by `storageService.js` and `buildPersistence.js`. `persistenceController.js` autosaves shared build state and cancels stale timers when a build is cleared or restored to empty.
+
+Shared validation is maintained by `buildValidator.js` and `validationStateController.js`. The production `main.js` validator remains temporarily for the current dialog and copy/download gates.
 
 ## Workspace stylesheet split
 
-The former `css.src/category.css` responsibilities are now separated into:
+The former `css.src/category.css` responsibilities are separated into:
 
 1. `styles/components/asset-panel.css`
 2. `styles/components/configuration-panel.css`
@@ -178,9 +155,9 @@ The parser and model are pure, directly testable modules. The controller retains
 
 ## Next extraction targets
 
-1. Split the validation dialog and copy/download validation gates from `main.js` onto the shared validator
-2. Split generated-preview state and preview presentation out of `main.js`
-3. Move draft/preferences/recent-build persistence into a storage service
-4. Introduce a refactor-owned application controller as the authoritative store writer and remove `legacyStateBridge.js`
-5. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
-6. Split UI rendering after state and event ownership are explicit
+1. Move the validation dialog and copy/download gates onto the shared validator and output services
+2. Introduce a refactor-owned application controller as the authoritative store writer and remove `legacyStateBridge.js`
+3. Split UI rendering after state and event ownership are authoritative
+4. Consolidate version-named enhancement and correction layers
+5. Convert the refactor entry point to browser-native ES modules
+6. Run the full replacement regression pass before changing the production root
