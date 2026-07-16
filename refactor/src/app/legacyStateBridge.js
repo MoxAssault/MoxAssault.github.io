@@ -12,7 +12,6 @@
     selections: {},
     values: {}
   };
-  let previewObserver = null;
   let workspaceObserver = null;
 
   function openDetailsFrom(options = {}) {
@@ -84,9 +83,7 @@
   });
 
   function syncPreview() {
-    const preview = document.getElementById('previewYaml');
-    if (!preview) return;
-    store.setBuild({ yaml: preview.textContent || '---\n' }, { source: 'preview:render' });
+    return window.VPS_PREVIEW_CONTROLLER?.renderNow?.() || null;
   }
 
   function syncWorkspaceVisibility() {
@@ -94,17 +91,9 @@
     if (!workspace?.hidden) return;
     latest = { record: null, selections: {}, values: {} };
     store.clearBuild({ source: 'workspace:cleared' });
-    syncPreview();
   }
 
   function startObservers() {
-    const preview = document.getElementById('previewYaml');
-    if (preview && typeof MutationObserver !== 'undefined') {
-      previewObserver = new MutationObserver(syncPreview);
-      previewObserver.observe(preview, { subtree: true, childList: true, characterData: true });
-      syncPreview();
-    }
-
     const workspace = document.getElementById('workspace');
     if (workspace && typeof MutationObserver !== 'undefined') {
       workspaceObserver = new MutationObserver(syncWorkspaceVisibility);
