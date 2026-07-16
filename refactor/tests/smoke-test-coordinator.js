@@ -2,7 +2,7 @@
   'use strict';
 
   const nativeSetTimeout = window.setTimeout.bind(window);
-  const serialDelays = new Set([1200, 1800, 2200, 2600]);
+  const serialDelays = new Set([1200, 1800, 2200, 2600, 3000]);
   let queue = Promise.resolve();
   let scheduledSections = 0;
   let syntheticTimerId = -1;
