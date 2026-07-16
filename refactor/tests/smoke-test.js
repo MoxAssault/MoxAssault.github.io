@@ -66,7 +66,8 @@
     record('Required DOM structure', missingIds.length === 0, missingIds.join(', '));
 
     const requiredGlobals = [
-      'fetchVPSDB', 'getVPSDBStatus', 'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI'
+      'fetchVPSDB', 'getVPSDBStatus', 'checkVPSDBNow',
+      'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI'
     ];
     const missingGlobals = requiredGlobals.filter(name => !appWindow[name]);
     record('Core application globals', missingGlobals.length === 0, missingGlobals.join(', '));
@@ -85,17 +86,21 @@
     const expectedRefactorPaths = [
       '/refactor/styles/tokens.css',
       '/refactor/styles/components/app-shell.css',
+      '/refactor/styles/components/database-status-toast.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
       '/refactor/src/services/vpsDatabase.js',
       '/refactor/src/services/tableSearch.js',
+      '/refactor/src/controllers/databaseStatusController.js',
       '/refactor/src/controllers/themeController.js'
     ];
     const replacedLegacyPaths = [
       '/css.src/1variables.css',
       '/css.src/base.css',
+      '/css.src/vpsDbToast.css',
       '/js.src/fields.js',
       '/js.src/apiHelper.js',
+      '/js.src/vpsDbToast.js',
       '/js.src/searchHelper.js',
       '/js.src/secretTheme.js'
     ];
@@ -147,6 +152,14 @@
       record('VPS database load', false, error?.message || 'Unknown error');
       record('VPS database status API', false, 'Database load failed before status verification.');
     }
+
+    const databaseToast = appDocument.getElementById('vpsDbToast');
+    const toastClose = databaseToast?.querySelector('.vps-db-toast-close');
+    const validToast = databaseToast
+      && databaseToast.getAttribute('role') === 'status'
+      && databaseToast.getAttribute('aria-live') === 'polite'
+      && toastClose?.getAttribute('aria-label') === 'Dismiss database status';
+    record('Database status toast DOM', Boolean(validToast));
 
     const toggle = appDocument.getElementById('themeToggle');
     const originalTheme = appDocument.documentElement.dataset.theme;
