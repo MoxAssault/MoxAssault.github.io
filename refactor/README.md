@@ -44,11 +44,14 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 ### Refactor-owned JavaScript
 
 - `src/config/fieldDefinitions.js` — asset-category configuration, bundle fields, configuration steps, and YAML exclusions
+- `src/app/appStore.js` — detached application-state snapshots, state updates, subscriptions, revisions, and named events
+- `src/app/legacyStateBridge.js` — temporary bridge that mirrors the production controller state into the shared store
 - `src/utils/formatting.js` — HTML escaping, labels, dates, arrays, line wrapping, and safe filenames
 - `src/services/assetCatalog.js` — VPS asset filtering, VPU Patch relationships, cover selection, and semantic asset states
 - `src/services/yamlService.js` — checksum normalization, YAML generation, and YAML highlighting
 - `src/services/fileOutput.js` — browser downloads and clipboard output
 - `src/services/archivePaths.js` — normalized archive-directory extraction and ordering
+- `src/services/readmeGenerator.js` — Manual and Wizard README generation driven directly by shared application state
 - `src/core/builderUtilities.js` — compatibility aggregator that preserves the existing `VPS_UTILS` public contract
 - `src/services/tableSearch.js` — search normalization, ranking, exact matching, and keyboard-selection state
 - `src/services/vpsDatabase.js` — verified database loading, IndexedDB caching, version checks, network fallbacks, and status events
@@ -63,7 +66,6 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `js.src/uiEnhancements.js`
 - `js.src/v090Enhancements.js`
 - `js.src/v091Corrections.js`
-- `js.src/readmeGenerator.js`
 - `js.src/main.js`
 - `js.src/ymlImport.js`
 - `js.src/v0102Fixes.js`
@@ -80,6 +82,10 @@ The browser test verifies:
 - Split utility module namespaces
 - Stylesheet and script availability
 - Required refactor-owned paths and removal of replaced legacy paths
+- Application store methods and event constants
+- State subscriptions, named events, revision updates, detached snapshots, and restoration
+- Legacy bridge shape and generated YAML synchronization
+- README generator context sourced from the shared store
 - Asset-row grid and minimum-height behavior
 - Semantic asset-state color resolution
 - Configuration-panel flex layout
@@ -109,12 +115,20 @@ The browser test verifies:
 5. Move stable shared utility and tooltip contracts into the refactor namespace. **Complete**
 6. Audit and split the combined asset/configuration workspace stylesheet. **Complete**
 7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration. **Complete**
-8. Introduce explicit application state and events.
+8. Introduce explicit application state and events. **Complete**
 9. Split validation, preview, history, storage, import, and output responsibilities.
 10. Split UI rendering into table, asset, configuration, preview, dialog, tooltip, and toast modules.
 11. Consolidate version-named correction files into responsibility-based modules.
 12. Convert the refactor entry point to browser-native ES modules.
 13. Run full regression tests before replacing the production root.
+
+## Shared state transition
+
+The state shape, write methods, subscriptions, named events, compatibility boundary, and temporary bridge are documented in `docs/state-architecture.md`.
+
+The production `main.js` still owns its internal mutable state. `legacyStateBridge.js` mirrors that state into `VPS_APP_STORE` until a refactor-owned application controller replaces it. New modules should read from the store rather than intercepting UI render functions or scraping the DOM.
+
+The first migrated consumer is `services/readmeGenerator.js`; the inherited `js.src/readmeGenerator.js` is no longer loaded by the refactor build.
 
 ## Workspace stylesheet split
 
@@ -128,7 +142,8 @@ The ownership map and cascade constraints remain documented in `docs/workspace-s
 
 ## Next extraction targets
 
-1. Move README generation and YML importing into named service/controller modules
-2. Introduce an explicit application store before splitting `main.js`
-3. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
-4. Split UI rendering after state and event ownership are explicit
+1. Move YML parsing and importing into named parser, validation, and import-controller modules
+2. Split validation, preview output, history, and storage responsibilities out of `main.js`
+3. Introduce a refactor-owned application controller as the authoritative store writer and remove `legacyStateBridge.js`
+4. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
+5. Split UI rendering after state and event ownership are explicit
