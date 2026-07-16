@@ -68,7 +68,7 @@
     const requiredGlobals = [
       'fetchVPSDB', 'getVPSDBStatus', 'checkVPSDBNow',
       'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI',
-      'VPS_APP_STORE', 'VPS_APP_EVENTS', 'VPS_STATE_BRIDGE'
+      'VPS_APP_STORE', 'VPS_APP_EVENTS', 'VPS_STATE_BRIDGE', 'VPS_README_GENERATOR'
     ];
     const missingGlobals = requiredGlobals.filter(name => !appWindow[name]);
     record('Core application globals', missingGlobals.length === 0, missingGlobals.join(', '));
@@ -116,6 +116,7 @@
       '/refactor/src/services/yamlService.js',
       '/refactor/src/services/fileOutput.js',
       '/refactor/src/services/archivePaths.js',
+      '/refactor/src/services/readmeGenerator.js',
       '/refactor/src/core/builderUtilities.js',
       '/refactor/src/services/vpsDatabase.js',
       '/refactor/src/services/tableSearch.js',
@@ -139,6 +140,7 @@
       '/js.src/apiHelper.js',
       '/js.src/vpsDbToast.js',
       '/js.src/searchHelper.js',
+      '/js.src/readmeGenerator.js',
       '/js.src/secretTheme.js',
       '/js.src/nativeTooltipCleanup.js'
     ];
@@ -218,11 +220,21 @@
         && bridgeSnapshot.selections
         && bridgeSnapshot.values;
       record('Legacy state bridge API', Boolean(bridgeShapeValid));
+
+      const readmeApi = appWindow.VPS_README_GENERATOR;
+      const readmeContext = readmeApi?.getContext?.();
+      const readmeContextValid = typeof readmeApi?.buildManualReadme === 'function'
+        && typeof readmeApi?.buildWizardReadme === 'function'
+        && typeof readmeApi?.generate === 'function'
+        && String(readmeContext?.record?.id || '') === String(restoredState.build?.record?.id || '')
+        && String(readmeContext?.values?.tableVPSId || '') === String(restoredState.build?.values?.tableVPSId || '');
+      record('README shared-state context', readmeContextValid, readmeContext?.record?.id || 'empty build');
     } catch (error) {
       record('Application store API', false, error?.message || 'Unknown error');
       record('Application store updates and snapshots', false, 'Store verification threw an error.');
       record('Application store restoration', false, 'Store verification threw an error.');
       record('Legacy state bridge API', false, 'Store verification threw an error.');
+      record('README shared-state context', false, 'Store verification threw an error.');
     }
 
     const fixtureHost = appDocument.createElement('div');
