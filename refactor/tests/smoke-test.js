@@ -67,7 +67,8 @@
 
     const requiredGlobals = [
       'fetchVPSDB', 'getVPSDBStatus', 'checkVPSDBNow',
-      'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI'
+      'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI',
+      'VPS_APP_STORE', 'VPS_APP_EVENTS', 'VPS_STATE_BRIDGE'
     ];
     const missingGlobals = requiredGlobals.filter(name => !appWindow[name]);
     record('Core application globals', missingGlobals.length === 0, missingGlobals.join(', '));
@@ -108,6 +109,8 @@
       '/refactor/styles/components/readme-actions.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
+      '/refactor/src/app/appStore.js',
+      '/refactor/src/app/legacyStateBridge.js',
       '/refactor/src/utils/formatting.js',
       '/refactor/src/services/assetCatalog.js',
       '/refactor/src/services/yamlService.js',
@@ -149,6 +152,78 @@
         lingeringLegacyPaths.length ? `legacy ${lingeringLegacyPaths.join(', ')}` : ''
       ].filter(Boolean).join('; ')
     );
+
+    try {
+      const store = appWindow.VPS_APP_STORE;
+      const events = appWindow.VPS_APP_EVENTS;
+      const requiredStoreMethods = [
+        'getSnapshot', 'select', 'subscribe', 'setBuild', 'setUi',
+        'setValidation', 'replace', 'clearBuild'
+      ];
+      const missingStoreMethods = requiredStoreMethods.filter(name => typeof store?.[name] !== 'function');
+      const eventTypesValid = events?.types?.STATE_CHANGED === 'state:changed'
+        && events?.types?.BUILD_LOADED === 'build:loaded'
+        && typeof events?.on === 'function'
+        && typeof events?.emit === 'function';
+      record(
+        'Application store API',
+        missingStoreMethods.length === 0 && eventTypesValid,
+        missingStoreMethods.join(', ')
+      );
+
+      const originalState = store.getSnapshot();
+      let subscriptionCalled = false;
+      let eventCalled = false;
+      const unsubscribe = store.subscribe((nextState, metadata) => {
+        if (nextState?.build?.record?.id === 'smoke-store' && metadata?.source === 'smoke:store') {
+          subscriptionCalled = true;
+        }
+      });
+      const stopEvent = events.on(events.types.STATE_CHANGED, event => {
+        if (event?.detail?.source === 'smoke:store') eventCalled = true;
+      });
+
+      store.setBuild({
+        record: { id: 'smoke-store', name: 'Smoke Store' },
+        selections: { tableFiles: 'smoke-vpx' },
+        values: { tableVPSId: 'smoke-store', vpxVPSId: 'smoke-vpx' },
+        yaml: '---\ntableVPSId: "smoke-store"\n'
+      }, { source: 'smoke:store' });
+
+      const firstSnapshot = store.getSnapshot();
+      firstSnapshot.build.values.tableVPSId = 'mutated-copy';
+      const secondSnapshot = store.getSnapshot();
+      const isolatedSnapshot = secondSnapshot.build.values.tableVPSId === 'smoke-store';
+      const selectedId = store.select(current => current.build.record?.id);
+      record(
+        'Application store updates and snapshots',
+        subscriptionCalled && eventCalled && isolatedSnapshot && selectedId === 'smoke-store',
+        `${selectedId}, revision ${secondSnapshot.meta?.revision}`
+      );
+
+      unsubscribe();
+      stopEvent();
+      store.replace(originalState, { source: 'smoke:restore' });
+      const restoredState = store.getSnapshot();
+      record(
+        'Application store restoration',
+        String(restoredState.build?.record?.id || '') === String(originalState.build?.record?.id || '')
+          && restoredState.build?.yaml === originalState.build?.yaml,
+        restoredState.build?.record?.id || 'empty build'
+      );
+
+      const bridgeSnapshot = appWindow.VPS_STATE_BRIDGE.getLatest();
+      const bridgeShapeValid = bridgeSnapshot
+        && Object.prototype.hasOwnProperty.call(bridgeSnapshot, 'record')
+        && bridgeSnapshot.selections
+        && bridgeSnapshot.values;
+      record('Legacy state bridge API', Boolean(bridgeShapeValid));
+    } catch (error) {
+      record('Application store API', false, error?.message || 'Unknown error');
+      record('Application store updates and snapshots', false, 'Store verification threw an error.');
+      record('Application store restoration', false, 'Store verification threw an error.');
+      record('Legacy state bridge API', false, 'Store verification threw an error.');
+    }
 
     const fixtureHost = appDocument.createElement('div');
     fixtureHost.style.position = 'fixed';
@@ -421,6 +496,12 @@
 
     const yamlPreview = appDocument.getElementById('previewYaml');
     record('Initial YAML preview', Boolean(yamlPreview?.textContent?.includes('---')));
+    const mirroredYaml = appWindow.VPS_APP_STORE?.getSnapshot()?.build?.yaml || '';
+    record(
+      'State bridge YAML synchronization',
+      mirroredYaml === yamlPreview?.textContent,
+      `${mirroredYaml.trimEnd().split('\n').length} mirrored line${mirroredYaml.trimEnd().split('\n').length === 1 ? '' : 's'}`
+    );
 
     render();
   }
