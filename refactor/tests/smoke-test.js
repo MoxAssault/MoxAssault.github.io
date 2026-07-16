@@ -84,6 +84,7 @@
     const loadedPaths = new Set([...stylesheetLinks, ...scriptSources].map(pathname));
     const expectedRefactorPaths = [
       '/refactor/styles/tokens.css',
+      '/refactor/styles/components/app-shell.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
       '/refactor/src/services/tableSearch.js',
@@ -91,6 +92,7 @@
     ];
     const replacedLegacyPaths = [
       '/css.src/1variables.css',
+      '/css.src/base.css',
       '/js.src/fields.js',
       '/js.src/searchHelper.js',
       '/js.src/secretTheme.js'
