@@ -36,6 +36,14 @@
     }
   }
 
+  function pathname(url) {
+    try {
+      return new URL(url, window.location.href).pathname;
+    } catch (_) {
+      return '';
+    }
+  }
+
   async function run() {
     checks.length = 0;
 
@@ -73,6 +81,31 @@
     const scriptResults = await Promise.all(scriptSources.map(fetchDependency));
     record('Script dependencies', scriptResults.every(Boolean), `${scriptResults.filter(Boolean).length}/${scriptResults.length} loaded`);
 
+    const loadedPaths = new Set([...stylesheetLinks, ...scriptSources].map(pathname));
+    const expectedRefactorPaths = [
+      '/refactor/styles/tokens.css',
+      '/refactor/styles/themes/pink.css',
+      '/refactor/src/config/fieldDefinitions.js',
+      '/refactor/src/services/tableSearch.js',
+      '/refactor/src/controllers/themeController.js'
+    ];
+    const replacedLegacyPaths = [
+      '/css.src/1variables.css',
+      '/js.src/fields.js',
+      '/js.src/searchHelper.js',
+      '/js.src/secretTheme.js'
+    ];
+    const missingRefactorPaths = expectedRefactorPaths.filter(path => !loadedPaths.has(path));
+    const lingeringLegacyPaths = replacedLegacyPaths.filter(path => loadedPaths.has(path));
+    record(
+      'Refactor-owned module paths',
+      missingRefactorPaths.length === 0 && lingeringLegacyPaths.length === 0,
+      [
+        missingRefactorPaths.length ? `missing ${missingRefactorPaths.join(', ')}` : '',
+        lingeringLegacyPaths.length ? `legacy ${lingeringLegacyPaths.join(', ')}` : ''
+      ].filter(Boolean).join('; ')
+    );
+
     const vendorUrls = [
       '/vendor/libarchive/libarchive.js',
       '/vendor/libarchive/worker-bundle.js',
@@ -80,6 +113,24 @@
     ];
     const vendorResults = await Promise.all(vendorUrls.map(fetchDependency));
     record('Archive runtime dependencies', vendorResults.every(Boolean), `${vendorResults.filter(Boolean).length}/${vendorResults.length} loaded`);
+
+    const fieldConfig = appWindow.VPS_YML_FIELDS;
+    const categoryCount = Object.keys(fieldConfig?.CATEGORY_CONFIG || {}).length;
+    const stepCount = Array.isArray(fieldConfig?.WIZARD_STEPS) ? fieldConfig.WIZARD_STEPS.length : 0;
+    record('Field-definition integrity', categoryCount === 6 && stepCount === 7, `${categoryCount} categories, ${stepCount} steps`);
+
+    try {
+      const fixtures = [
+        { id: 'abc2', name: 'Beta' },
+        { id: 'abc', name: 'Zed' },
+        { id: 'x', name: 'abc' }
+      ];
+      const ranked = appWindow.VPS_SEARCH.filterSuggestions(fixtures, 'abc');
+      const rankedIds = ranked.map(record => record.id).join(',');
+      record('Table-search ranking', rankedIds === 'abc,x,abc2', rankedIds);
+    } catch (error) {
+      record('Table-search ranking', false, error?.message || 'Unknown error');
+    }
 
     try {
       const database = await appWindow.fetchVPSDB();
