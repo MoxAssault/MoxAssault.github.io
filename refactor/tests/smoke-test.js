@@ -98,6 +98,9 @@
       '/refactor/styles/components/app-shell.css',
       '/refactor/styles/components/search.css',
       '/refactor/styles/components/table-card.css',
+      '/refactor/styles/components/asset-panel.css',
+      '/refactor/styles/components/configuration-panel.css',
+      '/refactor/styles/components/form-controls.css',
       '/refactor/styles/components/preview-panel.css',
       '/refactor/styles/components/dialogs.css',
       '/refactor/styles/components/database-status-toast.css',
@@ -122,6 +125,7 @@
       '/css.src/base.css',
       '/css.src/search.css',
       '/css.src/card.css',
+      '/css.src/category.css',
       '/css.src/modal.css',
       '/css.src/v0103.css',
       '/css.src/vpsDbToast.css',
@@ -145,6 +149,88 @@
         lingeringLegacyPaths.length ? `legacy ${lingeringLegacyPaths.join(', ')}` : ''
       ].filter(Boolean).join('; ')
     );
+
+    const fixtureHost = appDocument.createElement('div');
+    fixtureHost.style.position = 'fixed';
+    fixtureHost.style.left = '-10000px';
+    fixtureHost.style.top = '0';
+    fixtureHost.style.width = '900px';
+    fixtureHost.style.pointerEvents = 'none';
+    appDocument.body.appendChild(fixtureHost);
+
+    const assetRowFixture = appDocument.createElement('div');
+    assetRowFixture.className = 'asset-row';
+    fixtureHost.appendChild(assetRowFixture);
+    const assetRowStyle = appWindow.getComputedStyle(assetRowFixture);
+    record(
+      'Asset panel row layout',
+      assetRowStyle.display === 'grid' && Number.parseFloat(assetRowStyle.minHeight) >= 52,
+      `${assetRowStyle.display}, ${assetRowStyle.minHeight}`
+    );
+
+    const assetStatusFixture = appDocument.createElement('div');
+    assetStatusFixture.className = 'asset-status state-green';
+    const statusDotFixture = appDocument.createElement('span');
+    statusDotFixture.className = 'status-dot';
+    assetStatusFixture.appendChild(statusDotFixture);
+    fixtureHost.appendChild(assetStatusFixture);
+
+    const greenProbe = appDocument.createElement('span');
+    greenProbe.style.color = 'var(--state-green)';
+    fixtureHost.appendChild(greenProbe);
+    const statusColor = appWindow.getComputedStyle(assetStatusFixture).color;
+    const expectedGreen = appWindow.getComputedStyle(greenProbe).color;
+    record('Asset semantic state color', statusColor === expectedGreen, `${statusColor} / ${expectedGreen}`);
+
+    const configPanelFixture = appDocument.createElement('div');
+    configPanelFixture.className = 'config-tab-panel';
+    fixtureHost.appendChild(configPanelFixture);
+    const configPanelStyle = appWindow.getComputedStyle(configPanelFixture);
+    record(
+      'Configuration panel layout',
+      configPanelStyle.display === 'flex'
+        && configPanelStyle.flexDirection === 'column'
+        && Number.parseFloat(configPanelStyle.minHeight) >= 430,
+      `${configPanelStyle.display}, ${configPanelStyle.flexDirection}, ${configPanelStyle.minHeight}`
+    );
+
+    const mainGridFixture = appDocument.createElement('div');
+    mainGridFixture.className = 'field-grid field-grid-main';
+    fixtureHost.appendChild(mainGridFixture);
+    const mainGridAreas = appWindow.getComputedStyle(mainGridFixture).gridTemplateAreas;
+
+    const pupGridFixture = appDocument.createElement('div');
+    pupGridFixture.className = 'field-grid field-grid-pup';
+    fixtureHost.appendChild(pupGridFixture);
+    const pupGridAreas = appWindow.getComputedStyle(pupGridFixture).gridTemplateAreas;
+
+    const colorGridFixture = appDocument.createElement('div');
+    colorGridFixture.className = 'field-grid field-grid-coloredRom';
+    fixtureHost.appendChild(colorGridFixture);
+    const colorGridAreas = appWindow.getComputedStyle(colorGridFixture).gridTemplateAreas;
+
+    record(
+      'Configuration named grids',
+      mainGridAreas.includes('game')
+        && pupGridAreas.includes('pup-id')
+        && colorGridAreas.includes('color-id'),
+      `main ${mainGridAreas}; pup ${pupGridAreas}; color ${colorGridAreas}`
+    );
+
+    const checkboxFixture = appDocument.createElement('input');
+    checkboxFixture.type = 'checkbox';
+    fixtureHost.appendChild(checkboxFixture);
+    const checkboxStyle = appWindow.getComputedStyle(checkboxFixture);
+    const checkboxAppearance = checkboxStyle.appearance || checkboxStyle.webkitAppearance;
+    record(
+      'Shared checkbox styling',
+      checkboxAppearance === 'none'
+        && Number.parseFloat(checkboxStyle.width) === 16
+        && Number.parseFloat(checkboxStyle.height) === 16,
+      `${checkboxAppearance}, ${checkboxStyle.width} × ${checkboxStyle.height}`
+    );
+
+    fixtureHost.remove();
 
     const previewDrawer = appDocument.getElementById('previewDrawer');
     const previewStyle = appWindow.getComputedStyle(previewDrawer);
