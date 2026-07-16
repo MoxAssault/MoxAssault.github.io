@@ -8,14 +8,18 @@
   let autosaveTimer = 0;
   let unsubscribe = null;
 
-  function saveDraftNow(snapshot = store.getSnapshot()) {
+  function cancelAutosave() {
     window.clearTimeout(autosaveTimer);
     autosaveTimer = 0;
+  }
+
+  function saveDraftNow(snapshot = store.getSnapshot()) {
+    cancelAutosave();
     return persistence.saveDraft(snapshot);
   }
 
   function scheduleDraft(snapshot) {
-    window.clearTimeout(autosaveTimer);
+    cancelAutosave();
     autosaveTimer = window.setTimeout(() => saveDraftNow(snapshot), 350);
   }
 
@@ -26,8 +30,13 @@
     if (changed.includes('ui')) persistence.savePreferences(snapshot.ui || {});
 
     if (!changed.some(section => section === 'build' || section === 'yaml' || section === 'ui')) return;
-    if (snapshot.build?.record) scheduleDraft(snapshot);
-    else if (metadata.source === 'workspace:cleared' || metadata.source === 'clearBuild') persistence.clearDraft();
+    if (snapshot.build?.record) {
+      scheduleDraft(snapshot);
+      return;
+    }
+
+    cancelAutosave();
+    if (metadata.source === 'workspace:cleared' || metadata.source === 'clearBuild') persistence.clearDraft();
   }
 
   function start() {
@@ -38,8 +47,7 @@
   function stop() {
     unsubscribe?.();
     unsubscribe = null;
-    window.clearTimeout(autosaveTimer);
-    autosaveTimer = 0;
+    cancelAutosave();
   }
 
   function addRecent(action = 'Saved', filename, snapshot = store.getSnapshot()) {
