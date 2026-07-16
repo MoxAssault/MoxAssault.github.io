@@ -66,7 +66,7 @@
     record('Required DOM structure', missingIds.length === 0, missingIds.join(', '));
 
     const requiredGlobals = [
-      'fetchVPSDB', 'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI'
+      'fetchVPSDB', 'getVPSDBStatus', 'VPS_YML_FIELDS', 'VPS_UTILS', 'VPS_SEARCH', 'VPS_UI'
     ];
     const missingGlobals = requiredGlobals.filter(name => !appWindow[name]);
     record('Core application globals', missingGlobals.length === 0, missingGlobals.join(', '));
@@ -87,6 +87,7 @@
       '/refactor/styles/components/app-shell.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
+      '/refactor/src/services/vpsDatabase.js',
       '/refactor/src/services/tableSearch.js',
       '/refactor/src/controllers/themeController.js'
     ];
@@ -94,6 +95,7 @@
       '/css.src/1variables.css',
       '/css.src/base.css',
       '/js.src/fields.js',
+      '/js.src/apiHelper.js',
       '/js.src/searchHelper.js',
       '/js.src/secretTheme.js'
     ];
@@ -137,8 +139,13 @@
     try {
       const database = await appWindow.fetchVPSDB();
       record('VPS database load', Array.isArray(database) && database.length > 0, Array.isArray(database) ? `${database.length} records` : 'Unexpected response');
+
+      const status = appWindow.getVPSDBStatus();
+      const validStatus = status && typeof status === 'object' && status.state && status.state !== 'idle' && status.checkedAt;
+      record('VPS database status API', Boolean(validStatus), status?.state || 'missing status');
     } catch (error) {
       record('VPS database load', false, error?.message || 'Unknown error');
+      record('VPS database status API', false, 'Database load failed before status verification.');
     }
 
     const toggle = appDocument.getElementById('themeToggle');
