@@ -41,7 +41,12 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 ### Refactor-owned JavaScript
 
 - `src/config/fieldDefinitions.js` — asset-category configuration, bundle fields, configuration steps, and YAML exclusions
-- `src/core/builderUtilities.js` — compatibility export for formatting, asset-state, YAML, file-output, checksum, and archive helpers
+- `src/utils/formatting.js` — HTML escaping, labels, dates, arrays, line wrapping, and safe filenames
+- `src/services/assetCatalog.js` — VPS asset filtering, VPU Patch relationships, cover selection, and semantic asset states
+- `src/services/yamlService.js` — checksum normalization, YAML generation, and YAML highlighting
+- `src/services/fileOutput.js` — browser downloads and clipboard output
+- `src/services/archivePaths.js` — normalized archive-directory extraction and ordering
+- `src/core/builderUtilities.js` — compatibility aggregator that preserves the existing `VPS_UTILS` public contract
 - `src/services/tableSearch.js` — search normalization, ranking, exact matching, and keyboard-selection state
 - `src/services/vpsDatabase.js` — verified database loading, IndexedDB caching, version checks, network fallbacks, and status events
 - `src/controllers/databaseStatusController.js` — database status toast, stable shared-array behavior, periodic checks, and inactive-tab catch-up
@@ -70,6 +75,7 @@ The browser test verifies:
 
 - Required DOM structure
 - Core public globals
+- Split utility module namespaces
 - Stylesheet and script availability
 - Required refactor-owned paths and removal of replaced legacy paths
 - Preview-panel flex layout
@@ -78,7 +84,7 @@ The browser test verifies:
 - Native-tooltip migration through the active MutationObserver
 - Archive JavaScript, worker, and WebAssembly dependencies
 - Field-definition category and step counts
-- Builder utility exports
+- Builder utility exports and compatibility bindings
 - YAML normalization, PAL/VNI checksum output, and omitted temporary fields
 - Required and selected asset-state behavior
 - Search-result ranking behavior
@@ -94,8 +100,8 @@ The browser test verifies:
 3. Move the verified VPS database loader and database-status presentation into service and controller modules. **Complete**
 4. Split preview, dialogs, YML import, README actions, and other clear CSS boundaries into responsibility-based components. **Complete**
 5. Move stable shared utility and tooltip contracts into the refactor namespace. **Complete**
-6. Audit and split the combined asset/configuration workspace stylesheet. **In progress**
-7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration.
+6. Audit and split the combined asset/configuration workspace stylesheet. **Ownership audit complete; file split in progress**
+7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration. **Complete**
 8. Introduce explicit application state and events.
 9. Split validation, preview, history, storage, import, and output responsibilities.
 10. Split UI rendering into table, asset, configuration, preview, dialog, tooltip, and toast modules.
@@ -105,22 +111,21 @@ The browser test verifies:
 
 ## Large workspace stylesheet audit
 
-`css.src/category.css` is intentionally still inherited. It currently combines:
+`css.src/category.css` is intentionally still inherited while its replacement files are prepared. Its selector ownership, load order, cascade constraints, and regression requirements are documented in:
 
-- Asset rows, thumbnails, details, availability states, and responsive asset layouts
-- Configuration accordions and the later tabbed configuration interface
-- Field controls, advanced configuration layouts, and global themed checkboxes
-- Checksum drop zones and progress indicators
-- PUP Pack archive controls
-- Color ROM PAL/VNI layouts
-- Multiple generations of later state and layout overrides
+- `docs/workspace-style-map.md`
 
-It will be split only after selector ownership and cascade order are mapped. Moving it intact or dividing it by line range would preserve its confusing structure rather than improve it.
+The mapped replacement files are:
+
+1. `styles/components/asset-panel.css`
+2. `styles/components/configuration-panel.css`
+3. `styles/components/form-controls.css`
+
+The inherited stylesheet will only be detached after all three replacements are active and the added component-level layout tests pass.
 
 ## Next extraction targets
 
-1. Build an asset/configuration selector map for `css.src/category.css`
-2. Split `src/core/builderUtilities.js` internally while keeping its public compatibility object
-3. Move README generation and YML importing into named service/controller modules
-4. Introduce an explicit application store before splitting `main.js`
-5. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
+1. Implement the three mapped workspace component stylesheets and detach `css.src/category.css`
+2. Move README generation and YML importing into named service/controller modules
+3. Introduce an explicit application store before splitting `main.js`
+4. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
