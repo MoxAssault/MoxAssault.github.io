@@ -99,7 +99,8 @@
       '/refactor/src/services/vpsDatabase.js',
       '/refactor/src/services/tableSearch.js',
       '/refactor/src/controllers/databaseStatusController.js',
-      '/refactor/src/controllers/themeController.js'
+      '/refactor/src/controllers/themeController.js',
+      '/refactor/src/ui/tooltipController.js'
     ];
     const replacedLegacyPaths = [
       '/css.src/1variables.css',
@@ -116,7 +117,8 @@
       '/js.src/apiHelper.js',
       '/js.src/vpsDbToast.js',
       '/js.src/searchHelper.js',
-      '/js.src/secretTheme.js'
+      '/js.src/secretTheme.js',
+      '/js.src/nativeTooltipCleanup.js'
     ];
     const missingRefactorPaths = expectedRefactorPaths.filter(path => !loadedPaths.has(path));
     const lingeringLegacyPaths = replacedLegacyPaths.filter(path => loadedPaths.has(path));
@@ -161,6 +163,20 @@
       readmeStyle.display === 'grid' && readmeActions?.children.length === 2,
       `${readmeStyle.display}, ${readmeActions?.children.length || 0} actions`
     );
+
+    try {
+      const tooltipFixture = appDocument.createElement('button');
+      tooltipFixture.className = 'asset-badge';
+      tooltipFixture.title = 'First line\nSecond line';
+      appDocument.body.appendChild(tooltipFixture);
+      await new Promise(resolve => appWindow.setTimeout(resolve, 0));
+      const tooltipPassed = !tooltipFixture.hasAttribute('title')
+        && tooltipFixture.dataset.tooltip === 'First line Second line';
+      record('Tooltip migration controller', tooltipPassed, tooltipFixture.dataset.tooltip || 'not migrated');
+      tooltipFixture.remove();
+    } catch (error) {
+      record('Tooltip migration controller', false, error?.message || 'Unknown error');
+    }
 
     const vendorUrls = [
       '/vendor/libarchive/libarchive.js',
