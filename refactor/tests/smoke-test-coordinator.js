@@ -22,6 +22,49 @@
     return queue;
   }
 
+  function installStoreTestFacade() {
+    const frame = document.getElementById('appFrame');
+    const appWindow = frame?.contentWindow;
+    const originalStore = appWindow?.VPS_APP_STORE;
+    if (!appWindow || !originalStore || originalStore.__smokeTestFacade === true) return;
+
+    const facade = {
+      ...originalStore,
+      __smokeTestFacade: true,
+      setBuild(next, options = {}) {
+        if (options.source === 'smoke:store') {
+          appWindow.VPS_PERSISTENCE_CONTROLLER?.stop?.();
+        }
+        return originalStore.setBuild(next, options);
+      },
+      replace(nextState, options = {}) {
+        if (options.source !== 'smoke:restore') {
+          return originalStore.replace(nextState, options);
+        }
+
+        const restored = originalStore.replace(nextState, {
+          ...options,
+          silent: true
+        });
+
+        queueMicrotask(() => {
+          appWindow.VPS_PREVIEW_CONTROLLER?.renderNow?.();
+          appWindow.VPS_VALIDATION_STATE?.validateNow?.();
+          appWindow.VPS_PERSISTENCE_CONTROLLER?.start?.();
+        });
+
+        return restored;
+      }
+    };
+
+    Object.defineProperty(appWindow, 'VPS_APP_STORE', {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: Object.freeze(facade)
+    });
+  }
+
   window.setTimeout = function coordinatedSetTimeout(callback, delay = 0, ...args) {
     const normalizedDelay = Number(delay);
     if (typeof callback === 'function' && serialDelays.has(normalizedDelay)) {
@@ -37,6 +80,11 @@
     }
     return nativeSetTimeout(callback, delay, ...args);
   };
+
+  const frame = document.getElementById('appFrame');
+  if (frame) {
+    frame.addEventListener('load', () => nativeSetTimeout(installStoreTestFacade, 0), { once: true });
+  }
 
   window.VPS_SMOKE_COORDINATOR = Object.freeze({
     enqueue,
