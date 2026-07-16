@@ -150,9 +150,13 @@
 
     const importDrop = appDocument.getElementById('ymlImportDrop');
     const importStyle = appWindow.getComputedStyle(importDrop);
+    const importDisplayValid = importStyle.display === 'flex' || importStyle.display === 'inline-flex';
     record(
       'YML import control layout',
-      importStyle.display === 'inline-flex' && Number.parseFloat(importStyle.minHeight) >= 34,
+      importDisplayValid
+        && importStyle.alignItems === 'center'
+        && importStyle.justifyContent === 'center'
+        && Number.parseFloat(importStyle.minHeight) >= 34,
       `${importStyle.display}, ${importStyle.minHeight}`
     );
 
