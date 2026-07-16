@@ -70,12 +70,12 @@
         {
           mode: 'manual',
           path: '/refactor/templates/readme/man_README.md',
-          hash: '7052f269c6ec9ac90582cabd0243695f490dccfe99f2bf255e16d0787e85bdd4'
+          hash: 'e87931aa10930a5d2e04eeaa5b75d2fb89691b33b36eae1057d0accc96f7c36e'
         },
         {
           mode: 'wizard',
           path: '/refactor/templates/readme/wiz_README.md',
-          hash: 'c60a04dc66afa061871f79021cc1dbf3984773b198f25c6cd93512cdf8628ac4'
+          hash: '167582d643cc0f9033b3d6272cc52dc80c9f6d5133580d402ab53572f4e88bb3'
         }
       ];
       const templateResults = await Promise.all(expectedTemplates.map(async template => {
