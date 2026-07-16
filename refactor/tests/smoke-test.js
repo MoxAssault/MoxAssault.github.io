@@ -72,6 +72,16 @@
     const missingGlobals = requiredGlobals.filter(name => !appWindow[name]);
     record('Core application globals', missingGlobals.length === 0, missingGlobals.join(', '));
 
+    const utilityModuleGlobals = [
+      'VPS_FORMATTING',
+      'VPS_ASSET_CATALOG',
+      'VPS_YAML_SERVICE',
+      'VPS_FILE_OUTPUT',
+      'VPS_ARCHIVE_PATHS'
+    ];
+    const missingUtilityModules = utilityModuleGlobals.filter(name => !appWindow[name]);
+    record('Utility module namespaces', missingUtilityModules.length === 0, missingUtilityModules.join(', '));
+
     const stylesheetLinks = [...appDocument.querySelectorAll('link[rel="stylesheet"]')]
       .map(link => link.href)
       .filter(url => !url.includes('fonts.googleapis.com'));
@@ -95,6 +105,11 @@
       '/refactor/styles/components/readme-actions.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
+      '/refactor/src/utils/formatting.js',
+      '/refactor/src/services/assetCatalog.js',
+      '/refactor/src/services/yamlService.js',
+      '/refactor/src/services/fileOutput.js',
+      '/refactor/src/services/archivePaths.js',
       '/refactor/src/core/builderUtilities.js',
       '/refactor/src/services/vpsDatabase.js',
       '/refactor/src/services/tableSearch.js',
@@ -211,6 +226,13 @@
         missingUtilityFunctions.join(', ')
       );
 
+      const compatibilityBindingsValid = appWindow.VPS_UTILS.escapeHtml === appWindow.VPS_FORMATTING.escapeHtml
+        && appWindow.VPS_UTILS.getAssetState === appWindow.VPS_ASSET_CATALOG.getAssetState
+        && appWindow.VPS_UTILS.buildYaml === appWindow.VPS_YAML_SERVICE.buildYaml
+        && appWindow.VPS_UTILS.downloadText === appWindow.VPS_FILE_OUTPUT.downloadText
+        && appWindow.VPS_UTILS.extractArchiveDirectories === appWindow.VPS_ARCHIVE_PATHS.extractArchiveDirectories;
+      record('Utility compatibility bindings', compatibilityBindingsValid);
+
       const primaryChecksum = 'a'.repeat(32);
       const secondaryChecksum = 'b'.repeat(32);
       const fixtureYaml = appWindow.VPS_UTILS.buildYaml({
@@ -251,6 +273,7 @@
       );
     } catch (error) {
       record('Builder utility exports', false, error?.message || 'Unknown error');
+      record('Utility compatibility bindings', false, 'Utility verification threw an error.');
       record('YAML utility contract', false, 'Utility verification threw an error.');
       record('Asset-state utility contract', false, 'Utility verification threw an error.');
     }
