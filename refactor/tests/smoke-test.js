@@ -88,6 +88,8 @@
       '/refactor/styles/components/app-shell.css',
       '/refactor/styles/components/search.css',
       '/refactor/styles/components/table-card.css',
+      '/refactor/styles/components/preview-panel.css',
+      '/refactor/styles/components/dialogs.css',
       '/refactor/styles/components/database-status-toast.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
@@ -101,6 +103,8 @@
       '/css.src/base.css',
       '/css.src/search.css',
       '/css.src/card.css',
+      '/css.src/modal.css',
+      '/css.src/v0103.css',
       '/css.src/vpsDbToast.css',
       '/js.src/fields.js',
       '/js.src/apiHelper.js',
@@ -118,6 +122,23 @@
         lingeringLegacyPaths.length ? `legacy ${lingeringLegacyPaths.join(', ')}` : ''
       ].filter(Boolean).join('; ')
     );
+
+    const previewDrawer = appDocument.getElementById('previewDrawer');
+    const previewStyle = appWindow.getComputedStyle(previewDrawer);
+    record(
+      'Preview panel layout',
+      previewStyle.display === 'flex' && previewStyle.flexDirection === 'column',
+      `${previewStyle.display}, ${previewStyle.flexDirection}`
+    );
+
+    const dialogs = ['helpDialog', 'validationDialog', 'recentDialog']
+      .map(id => appDocument.getElementById(id));
+    const dialogPositions = dialogs.map(dialog => appWindow.getComputedStyle(dialog));
+    const dialogTops = dialogPositions.map(style => Number.parseFloat(style.top));
+    const dialogsAligned = dialogPositions.every(style => style.position === 'fixed')
+      && dialogTops.every(top => Number.isFinite(top) && top >= 12)
+      && dialogTops.every(top => top === dialogTops[0]);
+    record('Shared dialog placement', dialogsAligned, dialogTops.map(top => `${top}px`).join(', '));
 
     const vendorUrls = [
       '/vendor/libarchive/libarchive.js',
