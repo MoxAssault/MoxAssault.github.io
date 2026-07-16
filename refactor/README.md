@@ -52,6 +52,8 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `src/services/ymlParser.js` — pure flat-YML parsing for top-level VPXS fields, quoted values, arrays, and folded/literal blocks
 - `src/services/ymlImportModel.js` — supported-field filtering, import normalization, selection extraction, and VPS asset-ID validation
 - `src/controllers/ymlImportController.js` — file limits, import toasts, database lookup, DOM orchestration, field loading, and drop-zone behavior
+- `src/services/buildValidator.js` — pure build validation for required fields, checksums, asset conflicts, bundled notes, PAL/VNI, PUP requirements, and YAML line length
+- `src/controllers/validationStateController.js` — recalculates validation on shared build/YAML changes and writes errors and warnings into `VPS_APP_STORE`
 - `src/services/fileOutput.js` — browser downloads and clipboard output
 - `src/services/archivePaths.js` — normalized archive-directory extraction and ordering
 - `src/services/readmeTemplateResolver.js` — redirects the original upstream README-template URLs to local vendored copies
@@ -62,7 +64,7 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `src/controllers/databaseStatusController.js` — database status toast, stable shared-array behavior, periodic checks, and inactive-tab catch-up
 - `src/controllers/themeController.js` — dark/light behavior plus secret pink-theme activation and persistence
 - `src/ui/tooltipController.js` — removes duplicate native title tooltips and migrates asset badge copy into custom tooltip data
-- `tests/smoke-test.html`, `tests/smoke-test.js`, and `tests/stage9-smoke.js` — same-origin runtime regression checks
+- `tests/smoke-test.html`, `tests/smoke-test.js`, `tests/stage9-smoke.js`, and `tests/stage9-validation-smoke.js` — same-origin runtime regression checks
 
 ### Vendored README templates
 
@@ -103,6 +105,11 @@ The browser test verifies:
 - Imported-value normalization and unsupported-field reporting
 - Refactor-owned YML import controller API and `.yml` extension enforcement
 - Removal of inherited `js.src/ymlImport.js`
+- Validation service and store-controller globals and script ownership
+- Expected named errors for an empty build
+- A complete minimal build producing no errors or warnings
+- PAL/VNI two-checksum enforcement
+- Validation results synchronizing into the shared store without loops
 - Asset-row grid and minimum-height behavior
 - Semantic asset-state color resolution
 - Configuration-panel flex layout
@@ -133,7 +140,7 @@ The browser test verifies:
 6. Audit and split the combined asset/configuration workspace stylesheet. **Complete**
 7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration. **Complete**
 8. Introduce explicit application state and events. **Complete**
-9. Split validation, preview, history, storage, import, and output responsibilities. **In progress — YML import pipeline complete**
+9. Split validation, preview, history, storage, import, and output responsibilities. **In progress — import and shared validation complete**
 10. Split UI rendering into table, asset, configuration, preview, dialog, tooltip, and toast modules.
 11. Consolidate version-named correction files into responsibility-based modules.
 12. Convert the refactor entry point to browser-native ES modules.
@@ -146,6 +153,8 @@ The state shape, write methods, subscriptions, named events, compatibility bound
 The production `main.js` still owns its internal mutable state. `legacyStateBridge.js` mirrors that state into `VPS_APP_STORE` until a refactor-owned application controller replaces it. New modules should read from the store rather than intercepting UI render functions or scraping the DOM.
 
 The first migrated consumer is `services/readmeGenerator.js`; the inherited `js.src/readmeGenerator.js` is no longer loaded by the refactor build.
+
+Shared validation is now maintained by `services/buildValidator.js` and `controllers/validationStateController.js`. The production `main.js` validator remains in place temporarily for the existing dialog and copy/download blocking behavior; its replacement will occur when the validation dialog controller is separated.
 
 ## Workspace stylesheet split
 
@@ -169,7 +178,7 @@ The parser and model are pure, directly testable modules. The controller retains
 
 ## Next extraction targets
 
-1. Split build validation into a pure validation service and dialog controller
+1. Split the validation dialog and copy/download validation gates from `main.js` onto the shared validator
 2. Split generated-preview state and preview presentation out of `main.js`
 3. Move draft/preferences/recent-build persistence into a storage service
 4. Introduce a refactor-owned application controller as the authoritative store writer and remove `legacyStateBridge.js`
