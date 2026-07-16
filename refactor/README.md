@@ -46,6 +46,7 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `src/services/vpsDatabase.js` — verified database loading, IndexedDB caching, version checks, network fallbacks, and status events
 - `src/controllers/databaseStatusController.js` — database status toast, stable shared-array behavior, periodic checks, and inactive-tab catch-up
 - `src/controllers/themeController.js` — dark/light behavior plus secret pink-theme activation and persistence
+- `src/ui/tooltipController.js` — removes duplicate native title tooltips and migrates asset badge copy into custom tooltip data
 - `tests/smoke-test.html` and `tests/smoke-test.js` — same-origin runtime regression checks
 
 ### Production files still inherited by the refactor copy
@@ -58,7 +59,6 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `js.src/main.js`
 - `js.src/ymlImport.js`
 - `js.src/v0102Fixes.js`
-- `js.src/nativeTooltipCleanup.js`
 - `css.src/category.css`
 - `css.src/uiEnhancements.css`
 - `css.src/v090.css`
@@ -75,6 +75,7 @@ The browser test verifies:
 - Preview-panel flex layout
 - Shared dialog positioning
 - YML import and README action layouts
+- Native-tooltip migration through the active MutationObserver
 - Archive JavaScript, worker, and WebAssembly dependencies
 - Field-definition category and step counts
 - Builder utility exports
@@ -92,14 +93,15 @@ The browser test verifies:
 2. Isolate themes, design tokens, field configuration, search behavior, shared shell styling, and selected-table styling. **Complete**
 3. Move the verified VPS database loader and database-status presentation into service and controller modules. **Complete**
 4. Split preview, dialogs, YML import, README actions, and other clear CSS boundaries into responsibility-based components. **Complete**
-5. Audit and split the combined asset/configuration workspace stylesheet. **In progress**
-6. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration.
-7. Introduce explicit application state and events.
-8. Split validation, preview, history, storage, import, and output responsibilities.
-9. Split UI rendering into table, asset, configuration, preview, dialog, tooltip, and toast modules.
-10. Consolidate version-named correction files into responsibility-based modules.
-11. Convert the refactor entry point to browser-native ES modules.
-12. Run full regression tests before replacing the production root.
+5. Move stable shared utility and tooltip contracts into the refactor namespace. **Complete**
+6. Audit and split the combined asset/configuration workspace stylesheet. **In progress**
+7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration.
+8. Introduce explicit application state and events.
+9. Split validation, preview, history, storage, import, and output responsibilities.
+10. Split UI rendering into table, asset, configuration, preview, dialog, tooltip, and toast modules.
+11. Consolidate version-named correction files into responsibility-based modules.
+12. Convert the refactor entry point to browser-native ES modules.
+13. Run full regression tests before replacing the production root.
 
 ## Large workspace stylesheet audit
 
@@ -119,6 +121,6 @@ It will be split only after selector ownership and cascade order are mapped. Mov
 
 1. Build an asset/configuration selector map for `css.src/category.css`
 2. Split `src/core/builderUtilities.js` internally while keeping its public compatibility object
-3. Move `js.src/nativeTooltipCleanup.js` into the UI layer
-4. Move README generation and YML importing into named service/controller modules
-5. Introduce an explicit application store before splitting `main.js`
+3. Move README generation and YML importing into named service/controller modules
+4. Introduce an explicit application store before splitting `main.js`
+5. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
