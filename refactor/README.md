@@ -31,6 +31,9 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `styles/components/app-shell.css` — document defaults, header, shared buttons, theme toggle, empty state, workspace shell, footer, responsive shell rules, and utility classes
 - `styles/components/search.css` — search input, search status, suggestion list, focus, and disabled states
 - `styles/components/table-card.css` — selected-table strip, artwork preview, metadata, asset badges, badge states, and responsive behavior
+- `styles/components/asset-panel.css` — asset rows, selectors, thumbnails, details, status indicators, semantic state colors, and responsive asset layouts
+- `styles/components/configuration-panel.css` — configuration tabs, fields, named layouts, checksum drop zones, PUP archive controls, issue indicators, and responsive configuration layouts
+- `styles/components/form-controls.css` — shared custom checkbox appearance used across asset and configuration controls
 - `styles/components/preview-panel.css` — YAML preview panel, action row, syntax highlighting, status indicator, and responsive behavior
 - `styles/components/dialogs.css` — Help, Validation, and Recent dialogs, shared placement, dialog contents, and history controls
 - `styles/components/database-status-toast.css` — VPS database status toast layout, states, animation, and responsive behavior
@@ -64,7 +67,6 @@ This directory is the staged refactor copy of the production VPXS YML Builder.
 - `js.src/main.js`
 - `js.src/ymlImport.js`
 - `js.src/v0102Fixes.js`
-- `css.src/category.css`
 - `css.src/uiEnhancements.css`
 - `css.src/v090.css`
 - `css.src/v091.css`
@@ -78,6 +80,11 @@ The browser test verifies:
 - Split utility module namespaces
 - Stylesheet and script availability
 - Required refactor-owned paths and removal of replaced legacy paths
+- Asset-row grid and minimum-height behavior
+- Semantic asset-state color resolution
+- Configuration-panel flex layout
+- Main, PUP Pack, and Color ROM named grid areas
+- Shared custom checkbox dimensions and appearance
 - Preview-panel flex layout
 - Shared dialog positioning
 - YML import and README action layouts
@@ -100,7 +107,7 @@ The browser test verifies:
 3. Move the verified VPS database loader and database-status presentation into service and controller modules. **Complete**
 4. Split preview, dialogs, YML import, README actions, and other clear CSS boundaries into responsibility-based components. **Complete**
 5. Move stable shared utility and tooltip contracts into the refactor namespace. **Complete**
-6. Audit and split the combined asset/configuration workspace stylesheet. **Ownership audit complete; file split in progress**
+6. Audit and split the combined asset/configuration workspace stylesheet. **Complete**
 7. Split the builder utility compatibility layer into formatting, asset-state, YAML, archive, and output modules while retaining `VPS_UTILS` during migration. **Complete**
 8. Introduce explicit application state and events.
 9. Split validation, preview, history, storage, import, and output responsibilities.
@@ -109,23 +116,19 @@ The browser test verifies:
 12. Convert the refactor entry point to browser-native ES modules.
 13. Run full regression tests before replacing the production root.
 
-## Large workspace stylesheet audit
+## Workspace stylesheet split
 
-`css.src/category.css` is intentionally still inherited while its replacement files are prepared. Its selector ownership, load order, cascade constraints, and regression requirements are documented in:
-
-- `docs/workspace-style-map.md`
-
-The mapped replacement files are:
+The former `css.src/category.css` responsibilities are now separated into:
 
 1. `styles/components/asset-panel.css`
 2. `styles/components/configuration-panel.css`
 3. `styles/components/form-controls.css`
 
-The inherited stylesheet will only be detached after all three replacements are active and the added component-level layout tests pass.
+The ownership map and cascade constraints remain documented in `docs/workspace-style-map.md`. The refactor entry point no longer loads `css.src/category.css`, and the smoke test rejects that legacy path.
 
 ## Next extraction targets
 
-1. Implement the three mapped workspace component stylesheets and detach `css.src/category.css`
-2. Move README generation and YML importing into named service/controller modules
-3. Introduce an explicit application store before splitting `main.js`
-4. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
+1. Move README generation and YML importing into named service/controller modules
+2. Introduce an explicit application store before splitting `main.js`
+3. Consolidate version-named enhancement and correction layers after their behavior is covered by targeted tests
+4. Split UI rendering after state and event ownership are explicit
