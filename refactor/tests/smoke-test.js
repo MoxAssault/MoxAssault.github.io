@@ -95,6 +95,7 @@
       '/refactor/styles/components/readme-actions.css',
       '/refactor/styles/themes/pink.css',
       '/refactor/src/config/fieldDefinitions.js',
+      '/refactor/src/core/builderUtilities.js',
       '/refactor/src/services/vpsDatabase.js',
       '/refactor/src/services/tableSearch.js',
       '/refactor/src/controllers/databaseStatusController.js',
@@ -111,6 +112,7 @@
       '/css.src/ymlImport.css',
       '/css.src/readmeGenerator.css',
       '/js.src/fields.js',
+      '/js.src/utilities.js',
       '/js.src/apiHelper.js',
       '/js.src/vpsDbToast.js',
       '/js.src/searchHelper.js',
@@ -172,6 +174,66 @@
     const categoryCount = Object.keys(fieldConfig?.CATEGORY_CONFIG || {}).length;
     const stepCount = Array.isArray(fieldConfig?.WIZARD_STEPS) ? fieldConfig.WIZARD_STEPS.length : 0;
     record('Field-definition integrity', categoryCount === 6 && stepCount === 7, `${categoryCount} categories, ${stepCount} steps`);
+
+    try {
+      const expectedUtilityFunctions = [
+        'escapeHtml', 'humanize', 'formatDate', 'isItemBroken', 'isExcludedVpxFormat',
+        'isVpuPatchItem', 'getParentId', 'getCategoryItems', 'getAssetState', 'getCoverUrl',
+        'normalizeArray', 'wrapText', 'buildYaml', 'highlightYaml', 'safeFilename',
+        'downloadText', 'copyText', 'getItemLabel', 'formatDateDMY', 'isMd5Hash',
+        'normalizeChecksumValue', 'extractArchiveDirectories'
+      ];
+      const missingUtilityFunctions = expectedUtilityFunctions
+        .filter(name => typeof appWindow.VPS_UTILS?.[name] !== 'function');
+      record(
+        'Builder utility exports',
+        missingUtilityFunctions.length === 0,
+        missingUtilityFunctions.join(', ')
+      );
+
+      const primaryChecksum = 'a'.repeat(32);
+      const secondaryChecksum = 'b'.repeat(32);
+      const fixtureYaml = appWindow.VPS_UTILS.buildYaml({
+        tableVPSId: 'fixture-table',
+        enabled: false,
+        fps: '60',
+        testers: 'Alpha, Beta',
+        coloredROMPin2DMD: true,
+        coloredROMChecksum: primaryChecksum,
+        coloredROMChecksumSecondary: secondaryChecksum
+      });
+      const yamlContractPassed = fixtureYaml.includes('enabled: false')
+        && fixtureYaml.includes('fps: 60')
+        && fixtureYaml.includes('testers:\n  - "Alpha"\n  - "Beta"')
+        && fixtureYaml.includes(`coloredROMChecksum:\n  - "${primaryChecksum}"\n  - "${secondaryChecksum}"`)
+        && fixtureYaml.includes('coloredROMPin2DMD: true')
+        && !fixtureYaml.includes('coloredROMChecksumSecondary');
+      record('YAML utility contract', yamlContractPassed);
+
+      const requiredState = appWindow.VPS_UTILS.getAssetState(
+        { tableFiles: [{ id: 'vpx-one' }] },
+        'tableFiles',
+        { required: true },
+        {},
+        {}
+      );
+      const selectedState = appWindow.VPS_UTILS.getAssetState(
+        { tableFiles: [{ id: 'vpx-one' }] },
+        'tableFiles',
+        { required: true },
+        { tableFiles: 'vpx-one' },
+        {}
+      );
+      record(
+        'Asset-state utility contract',
+        requiredState.key === 'red' && selectedState.key === 'green',
+        `${requiredState.key} → ${selectedState.key}`
+      );
+    } catch (error) {
+      record('Builder utility exports', false, error?.message || 'Unknown error');
+      record('YAML utility contract', false, 'Utility verification threw an error.');
+      record('Asset-state utility contract', false, 'Utility verification threw an error.');
+    }
 
     try {
       const fixtures = [
