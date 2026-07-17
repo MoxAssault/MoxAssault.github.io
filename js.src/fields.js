@@ -18,7 +18,7 @@
       label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled'
     },
     altSoundFiles: {
-      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId',
+      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId', bundleField: 'altSoundBundled',
       sourceFields: ['altSoundFiles'], optionFormat: 'id-version-author'
     },
     vpuPatchFiles: {
@@ -32,6 +32,7 @@
     { name: 'ROM', yml_field: 'romBundled' },
     { name: 'Color ROM', yml_field: 'coloredROMBundled' },
     { name: 'PUP Pack', yml_field: 'pupBundled' },
+    { name: 'Alt Sound', yml_field: 'altSoundBundled' },
     { name: 'VPU Patch', yml_field: 'diffBundled' }
   ];
 
@@ -135,13 +136,32 @@
       ]
     },
     {
-      id: 'altSound', label: 'Alt Sound', legend: 'Alt Sound', category: 'altSoundFiles',
+      id: 'altSound', label: 'Alt Sound', legend: 'Alt Sound', category: 'altSoundFiles', bundleField: 'altSoundBundled',
       fields: [
         { name: 'Alt Sound ID', yml_field: 'altSoundVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'Alt Sound Checksum(s)', yml_field: 'altSoundChecksum', type: 'array', wide: true,
-          placeholder: 'MD5 or comma-separated MD5 values', checksumExtensions: ['.zip', '.rar', '.7z']
-        }
+          placeholder: 'Alt Sound Checksum(s)'
+        },
+        { name: 'Alt Sound Notes', yml_field: 'altSoundNotes', type: 'str', multiline: true, wide: true },
+        { name: 'Alt Sound URL Override', yml_field: 'altSoundUrlOverride', type: 'url', wide: true },
+        { name: 'Alt Sound Version Override', yml_field: 'altSoundVersionOverride', type: 'str' },
+        {
+          name: 'Alt Sound Archive Format', yml_field: 'altSoundArchiveFormat', type: 'select', hideLabel: true,
+          options: [
+            { label: 'Alt Sound Archive Format', value: '' },
+            { label: 'ZIP', value: 'zip' },
+            { label: 'RAR', value: 'rar' },
+            { label: '7Z', value: '7z' }
+          ]
+        },
+        { name: 'Alt Sound Authors Override', yml_field: 'altSoundAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name' },
+        {
+          name: 'Alt Sound Archive Root', yml_field: 'altSoundArchiveRoot', type: 'select', hideLabel: true,
+          options: [{ label: 'Drop an Alt Sound archive to browse directories', value: '' }]
+        },
+        { name: 'Alt Sound Bundled', yml_field: 'altSoundBundled', type: 'bool' },
+        { name: 'Alt Sound Archive Directories', yml_field: '__altSoundArchiveDirectories', type: 'str', customRenderer: true }
       ]
     },
     {
@@ -160,9 +180,10 @@
   const OMIT_FROM_YAML = new Set([
     'coloredROMChecksumSecondary',
     '__pupArchiveDirectories',
+    '__altSoundArchiveDirectories',
     '__checksumSources'
   ]);
-  const PRESET_FIELDS = new Set(['enabled', 'fps', 'testers', 'pupArchiveFormat']);
+  const PRESET_FIELDS = new Set(['enabled', 'fps', 'testers', 'pupArchiveFormat', 'altSoundArchiveFormat']);
 
   window.VPS_YML_FIELDS = {
     CATEGORY_CONFIG,
