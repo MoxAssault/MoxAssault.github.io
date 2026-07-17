@@ -1,0 +1,201 @@
+(() => {
+  'use strict';
+
+  const utils = window.VPS_UTILS;
+  if (!utils) return;
+
+  const { escapeHtml, normalizeArray, wrapText } = utils;
+
+  function cleanYamlString(value) {
+    return String(value).replace(/"/g, "'").trim();
+  }
+
+  function normalizeAdditionalRoms(value) {
+    if (!Array.isArray(value)) return [];
+    return value.map(entry => {
+      if (!entry || typeof entry !== 'object') return null;
+      const normalized = {
+        vpsId: String(entry.vpsId || '').trim(),
+        checksum: String(entry.checksum || '').trim(),
+        versionOverride: String(entry.versionOverride || '').trim(),
+        urlOverride: String(entry.urlOverride || '').trim()
+      };
+      return normalized.vpsId ? normalized : null;
+    }).filter(Boolean);
+  }
+
+  function prepareData(values, omit) {
+    const data = { ...values };
+
+    if (typeof data.enabled !== 'boolean') data.enabled = false;
+    delete data.bass;
+    delete data.applyFixes;
+
+    const primaryColorChecksum = Array.isArray(data.coloredROMChecksum)
+      ? data.coloredROMChecksum[0]
+      : data.coloredROMChecksum;
+    const secondaryColorChecksum = data.coloredROMChecksumSecondary
+      ?? (Array.isArray(data.coloredROMChecksum) ? data.coloredROMChecksum[1] : '');
+
+    if (data.coloredROMPin2DMD === true) {
+      const checksums = [primaryColorChecksum, secondaryColorChecksum]
+        .map(value => String(value || '').trim())
+        .filter(Boolean);
+      if (checksums.length) data.coloredROMChecksum = checksums;
+      else delete data.coloredROMChecksum;
+    } else {
+      delete data.coloredROMPin2DMD;
+      if (primaryColorChecksum) data.coloredROMChecksum = String(primaryColorChecksum).trim();
+      else delete data.coloredROMChecksum;
+    }
+    delete data.coloredROMChecksumSecondary;
+
+    ['testers', 'backglassAuthorsOverride', 'diffAuthorsOverride'].forEach(key => {
+      const normalized = normalizeArray(data[key]);
+      if (normalized.length) data[key] = normalized;
+      else delete data[key];
+    });
+
+    const altSoundChecksums = normalizeArray(data.altSoundChecksum);
+    if (altSoundChecksums.length === 1) data.altSoundChecksum = altSoundChecksums[0];
+    else if (altSoundChecksums.length > 1) data.altSoundChecksum = altSoundChecksums;
+    else delete data.altSoundChecksum;
+
+    const additionalRoms = normalizeAdditionalRoms(data.additionalRoms);
+    if (additionalRoms.length) data.additionalRoms = additionalRoms;
+    else delete data.additionalRoms;
+
+    ['fps', 'tableYearOverride'].forEach(key => {
+      if (data[key] === '' || data[key] === undefined || data[key] === null) {
+        delete data[key];
+        return;
+      }
+      const parsed = Number.parseInt(data[key], 10);
+      if (Number.isFinite(parsed)) data[key] = parsed;
+      else delete data[key];
+    });
+
+    Object.keys(data).forEach(key => {
+      if (omit.has(key) || key.startsWith('__') || key.endsWith('_check')) delete data[key];
+    });
+
+    return data;
+  }
+
+  function scalarIsPresent(value, key = '') {
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'string') return value.trim() !== '';
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'boolean') return value === true || key === 'enabled';
+    if (value && typeof value === 'object') return Object.keys(value).length > 0;
+    return false;
+  }
+
+  function isUrlField(name) {
+    return name.endsWith('UrlOverride') || name.endsWith('FileUrl') || name === 'urlOverride';
+  }
+
+  function serializeScalar(name, value, indent = '') {
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return `${indent}${name}: ${value}\n`;
+    }
+
+    const cleanValue = cleanYamlString(value);
+    if (isUrlField(name)) {
+      const prefix = cleanValue.length > 120
+        ? `${indent}# yamllint disable-line rule:line-length\n`
+        : '';
+      return `${prefix}${indent}${name}: "${cleanValue.replace(/\n+/g, ' ')}"\n`;
+    }
+
+    if (cleanValue.includes('\n') || cleanValue.length > 120) {
+      let output = `${indent}${name}: >-\n`;
+      wrapText(cleanValue, Math.max(40, 120 - indent.length)).forEach(line => {
+        output += line ? `${indent}  ${line}\n` : `${indent}  \n`;
+      });
+      return output;
+    }
+
+    return `${indent}${name}: "${cleanValue}"\n`;
+  }
+
+  function serializeObjectList(name, items) {
+    let yaml = `${name}:\n`;
+    const propertyOrder = ['vpsId', 'checksum', 'versionOverride', 'urlOverride'];
+
+    items.forEach(item => {
+      const properties = propertyOrder
+        .filter(key => scalarIsPresent(item[key], key))
+        .map(key => [key, item[key]]);
+      if (!properties.length) return;
+
+      const [firstName, firstValue] = properties.shift();
+      const firstLine = serializeScalar(firstName, firstValue, '  ').replace(/^  /, '  - ');
+      yaml += firstLine;
+      properties.forEach(([key, value]) => {
+        yaml += serializeScalar(key, value, '    ');
+      });
+    });
+
+    return yaml;
+  }
+
+  function buildYaml(values, options = {}) {
+    const omit = options.omit instanceof Set ? options.omit : new Set(options.omit || []);
+    const data = prepareData(values, omit);
+    const entries = Object.entries(data)
+      .filter(([key, value]) => scalarIsPresent(value, key))
+      .sort(([left], [right]) => left.localeCompare(right));
+
+    let yaml = '---\n';
+
+    entries.forEach(([name, value]) => {
+      if (Array.isArray(value)) {
+        if (value.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
+          yaml += serializeObjectList(name, value);
+          return;
+        }
+
+        yaml += `${name}:\n`;
+        value.forEach(item => {
+          yaml += `  - "${cleanYamlString(item)}"\n`;
+        });
+        return;
+      }
+
+      yaml += serializeScalar(name, value);
+    });
+
+    return yaml;
+  }
+
+  function highlightYaml(yaml) {
+    return String(yaml)
+      .split('\n')
+      .map(line => {
+        if (line.startsWith('#') || line.trimStart().startsWith('#') || line === '---') {
+          return `<span class="yml-comment">${escapeHtml(line)}</span>`;
+        }
+
+        const objectListMatch = line.match(/^(\s*-\s+)([^:#][^:]*):(.*)$/);
+        if (objectListMatch) {
+          return `${escapeHtml(objectListMatch[1])}<span class="yml-key">${escapeHtml(objectListMatch[2])}</span>:<span class="yml-value">${escapeHtml(objectListMatch[3])}</span>`;
+        }
+
+        const listMatch = line.match(/^(\s*-\s+)(.*)$/);
+        if (listMatch) {
+          return `${escapeHtml(listMatch[1])}<span class="yml-value">${escapeHtml(listMatch[2])}</span>`;
+        }
+
+        const keyMatch = line.match(/^(\s*)([^:#][^:]*):(.*)$/);
+        if (!keyMatch) return escapeHtml(line);
+
+        return `${escapeHtml(keyMatch[1])}<span class="yml-key">${escapeHtml(keyMatch[2])}</span>:<span class="yml-value">${escapeHtml(keyMatch[3])}</span>`;
+      })
+      .join('\n');
+  }
+
+  utils.buildYaml = buildYaml;
+  utils.highlightYaml = highlightYaml;
+  utils.normalizeAdditionalRoms = normalizeAdditionalRoms;
+})();
