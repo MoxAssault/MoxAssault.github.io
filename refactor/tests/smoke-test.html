@@ -20,6 +20,32 @@
   <p>This page runs the complete regression gate against the native-module refactor build.</p>
   <ul id="results"><li class="pending">Waiting for the refactor application…</li></ul>
   <iframe id="appFrame" src="/refactor/" title="VPXS refactor application"></iframe>
-  <script type="module" src="final-smoke.js"></script>
+  <script>
+    (() => {
+      const frame = document.getElementById('appFrame');
+      let started = false;
+
+      function startRegression() {
+        if (started) return;
+        started = true;
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = '/refactor/tests/final-smoke.js';
+        document.body.appendChild(script);
+      }
+
+      function hasLoadedRefactor() {
+        try {
+          return frame.contentDocument?.readyState === 'complete'
+            && frame.contentWindow?.location?.pathname === '/refactor/';
+        } catch (_) {
+          return false;
+        }
+      }
+
+      if (hasLoadedRefactor()) startRegression();
+      else frame.addEventListener('load', startRegression, { once: true });
+    })();
+  </script>
 </body>
 </html>
