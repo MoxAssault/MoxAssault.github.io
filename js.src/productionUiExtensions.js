@@ -10,6 +10,7 @@
   const { getCategoryItems, getItemLabel, isItemBroken, normalizeArray } = utils;
   const renderAssets = UI.renderAssetMatrix.bind(UI);
   const renderConfig = UI.renderAccordions.bind(UI);
+  let controlFrame = 0;
 
   function authors(item) {
     const names = normalizeArray(item?.authors ?? item?.author);
@@ -75,47 +76,50 @@
     input.checked = values.enabled !== true;
     const row = input.closest('.checkbox-row');
     const label = row?.querySelector('span:not(.control-tooltip)');
-    if (label) label.textContent = 'Disable for Wizard';
+    if (label && label.textContent !== 'Disable for Wizard') label.textContent = 'Disable for Wizard';
 
     const tooltipText = 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.';
     const definition = enabledDefinition();
     definition.name = 'Disable for Wizard';
     definition.tooltip = tooltipText;
-    let tooltip = row?.querySelector('.control-tooltip');
-    if (row && !tooltip) {
+    if (row) {
       row.classList.add('has-control-tooltip');
-      tooltip = document.createElement('span');
-      tooltip.className = 'control-tooltip';
-      tooltip.setAttribute('role', 'tooltip');
-      row.appendChild(tooltip);
+      row.dataset.disableWizardTooltip = tooltipText;
     }
-    if (tooltip) tooltip.textContent = tooltipText;
 
     if (input.dataset.disableWizardBound !== 'true') {
       input.dataset.disableWizardBound = 'true';
       input.addEventListener('change', event => {
         event.stopImmediatePropagation();
-        callbacks.onChange('enabled', !input.checked, definition);
+        callbacks.onChange('enabled', event.isTrusted ? !input.checked : input.checked, definition);
       }, true);
     }
   }
 
-  function decorate() {
+  function applyControlCorrections() {
+    controlFrame = 0;
     applyDisableControl();
     document.getElementById('field-tutorialVPSId')?.closest('.field')?.classList.add('field-main-tutorial');
-    window.VPS_ADDITIONAL_ROMS?.render?.();
-    window.VPS_FEATURE_VALIDATION?.refresh?.();
   }
 
-  function schedule() {
-    window.requestAnimationFrame(() => window.requestAnimationFrame(decorate));
+  function scheduleControlCorrections() {
+    if (controlFrame) return;
+    controlFrame = window.requestAnimationFrame(() => {
+      controlFrame = window.requestAnimationFrame(applyControlCorrections);
+    });
+  }
+
+  function refreshFeatureUi() {
+    window.VPS_ADDITIONAL_ROMS?.render?.();
+    window.VPS_FEATURE_VALIDATION?.refresh?.();
+    scheduleControlCorrections();
   }
 
   UI.renderAssetMatrix = function (container, record, selections, values, callbacks) {
     runtime.update({ record, selections, values });
     const result = renderAssets(container, record, selections, values, callbacks);
     relabelAssetOptions(container, record, selections);
-    schedule();
+    refreshFeatureUi();
     return result;
   };
 
@@ -131,24 +135,15 @@
       }
     });
     const result = renderConfig(container, renderableSteps(steps, runtime.state.record), displayValues, callbacks);
-    schedule();
+    refreshFeatureUi();
     return result;
   };
 
-  function observeConfiguration() {
-    const root = document.getElementById('accordionStack');
-    if (!root || typeof MutationObserver === 'undefined') return;
-    const observer = new MutationObserver(schedule);
-    observer.observe(root, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['disabled']
-    });
-  }
+  document.addEventListener('input', refreshFeatureUi, true);
+  document.addEventListener('change', refreshFeatureUi, true);
 
-  document.addEventListener('input', schedule, true);
-  document.addEventListener('change', schedule, true);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observeConfiguration, { once: true });
-  else observeConfiguration();
+  window.VPS_PRODUCTION_UI_EXTENSIONS = Object.freeze({
+    refresh: refreshFeatureUi,
+    scheduleControlCorrections
+  });
 })();
