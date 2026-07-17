@@ -10,13 +10,35 @@
     const add = (stepId, fieldName, title, message) => output.push({ stepId, fieldName, title, message });
     const { selections, values } = runtime.state;
 
-    if (selections?.altSoundFiles || values?.altSoundVPSId) {
+    const altSoundSelected = Boolean(selections?.altSoundFiles || values?.altSoundVPSId);
+    const altSoundBundled = values?.altSoundBundled === true;
+    const altSoundUrl = String(values?.altSoundUrlOverride || '').trim();
+    const altSoundVersion = String(values?.altSoundVersionOverride || '').trim();
+    const altSoundActive = altSoundSelected || altSoundBundled || Boolean(altSoundUrl || altSoundVersion);
+
+    if (altSoundActive) {
       const checksums = normalizeArray(values?.altSoundChecksum);
       if (!checksums.length) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value for the selected Alt Sound.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value whenever Alt Sound is selected, overridden, or bundled.');
       } else if (checksums.some(checksum => !isMd5Hash(checksum))) {
         add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is invalid', 'Every Alt Sound checksum must contain exactly 32 hexadecimal characters.');
       }
+    }
+
+    if (altSoundSelected && altSoundUrl) {
+      add('altSound', 'altSoundUrlOverride', 'Choose one Alt Sound source', 'Use either Alt Sound VPS ID or Alt Sound URL Override, not both.');
+    }
+    if (altSoundUrl && !altSoundVersion) {
+      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Add Alt Sound Version Override whenever Alt Sound URL Override is used.');
+    }
+    if (altSoundVersion && !altSoundUrl) {
+      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add Alt Sound URL Override whenever Alt Sound Version Override is used.');
+    }
+    if (altSoundBundled && !String(values?.altSoundNotes || '').trim()) {
+      add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
+    }
+    if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {
+      add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
     }
 
     const tutorialId = String(values?.tutorialVPSId || '').trim();
