@@ -69,19 +69,9 @@
     });
   }
 
-  function saveRecent(entries) {
-    const clean = Array.isArray(entries)
-      ? entries.filter(entry => !isRegressionArtifact(entry?.snapshot?.record || entry)).slice(0, MAX_RECENT)
-      : [];
-    return storage.writeJson(storage.keys.recent, clean);
-  }
-
   function loadRecent() {
-    const stored = storage.readJson(storage.keys.recent, []);
-    if (!Array.isArray(stored)) return [];
-    const clean = stored.filter(entry => !isRegressionArtifact(entry?.snapshot?.record || entry));
-    if (clean.length !== stored.length) saveRecent(clean);
-    return clean;
+    const recent = storage.readJson(storage.keys.recent, []);
+    return Array.isArray(recent) ? recent : [];
   }
 
   function currentFilename(snapshot = {}) {
@@ -91,7 +81,7 @@
 
   function createRecentEntry(snapshot = {}, action = 'Saved', filename = currentFilename(snapshot)) {
     const record = snapshot.build?.record;
-    if (!record || isRegressionArtifact(record)) return null;
+    if (!record) return null;
 
     return {
       id: record.id || '',
@@ -102,6 +92,10 @@
       yaml: snapshot.build?.yaml || '---\n',
       snapshot: normalizeSnapshot(snapshot)
     };
+  }
+
+  function saveRecent(entries) {
+    return storage.writeJson(storage.keys.recent, Array.isArray(entries) ? entries.slice(0, MAX_RECENT) : []);
   }
 
   function addRecent(snapshot, action = 'Saved', filename) {
