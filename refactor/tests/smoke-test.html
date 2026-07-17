@@ -8,7 +8,8 @@
     body { margin: 0; padding: 20px; font: 14px system-ui, sans-serif; background: #111; color: #eee; }
     h1 { margin-top: 0; }
     iframe { width: 100%; height: 620px; border: 1px solid #555; border-radius: 8px; background: #fff; }
-    #results { display: grid; gap: 6px; margin: 16px 0; padding: 0; list-style: none; }
+    #results { display: grid; gap: 6px; margin: 16px 0 8px; padding: 0; list-style: none; }
+    #checkCount { min-height: 1.4em; margin: 0 0 16px; color: #aaa; }
     .pass { color: #4ade80; }
     .fail { color: #ff6473; }
     .pending { color: #ffd166; }
@@ -19,11 +20,50 @@
   <h1>VPXS Refactor Final Regression</h1>
   <p>This page runs the complete regression gate against the native-module refactor build.</p>
   <ul id="results"><li class="pending">Waiting for the refactor application…</li></ul>
+  <p id="checkCount" role="status" aria-live="polite">Expected suite size: 37 consolidated checks.</p>
   <iframe id="appFrame" src="/refactor/?v=20260717-md5-2" title="VPXS refactor application"></iframe>
   <script>
     (() => {
+      const EXPECTED_CHECKS = 37;
       const frame = document.getElementById('appFrame');
+      const results = document.getElementById('results');
+      const checkCount = document.getElementById('checkCount');
       let started = false;
+      let finished = false;
+
+      function restoreEmbeddedAppUi() {
+        try {
+          const appDocument = frame.contentDocument;
+          if (!appDocument) return;
+
+          appDocument.querySelectorAll('dialog[open]').forEach(dialog => {
+            if (typeof dialog.close === 'function') dialog.close();
+            else dialog.removeAttribute('open');
+          });
+
+          appDocument.querySelector('[data-help-tab="instructions"]')?.click();
+        } catch (_) {
+          // The regression results are still valid if cleanup is unavailable.
+        }
+      }
+
+      function finishRegression() {
+        if (finished) return;
+        const summary = results.firstElementChild?.textContent || '';
+        if (!/regression check/i.test(summary)) return;
+
+        finished = true;
+        const completed = Math.max(0, results.children.length - 1);
+        const expected = completed === EXPECTED_CHECKS;
+        checkCount.textContent = expected
+          ? `${completed} of ${EXPECTED_CHECKS} consolidated checks completed.`
+          : `${completed} checks completed; ${EXPECTED_CHECKS} were expected.`;
+        checkCount.className = expected ? 'pass' : 'fail';
+        restoreEmbeddedAppUi();
+      }
+
+      const resultObserver = new MutationObserver(finishRegression);
+      resultObserver.observe(results, { childList: true, subtree: true, characterData: true });
 
       function startRegression() {
         if (started) return;
