@@ -19,7 +19,7 @@
   <h1>VPXS Refactor Final Regression</h1>
   <p>This page runs the complete regression gate against the native-module refactor build.</p>
   <ul id="results"><li class="pending">Waiting for the refactor application…</li></ul>
-  <iframe id="appFrame" src="/refactor/" title="VPXS refactor application"></iframe>
+  <iframe id="appFrame" src="/refactor/?v=20260717-md5-2" title="VPXS refactor application"></iframe>
   <script>
     (() => {
       const frame = document.getElementById('appFrame');
@@ -30,7 +30,7 @@
         started = true;
         const script = document.createElement('script');
         script.type = 'module';
-        script.src = '/refactor/tests/final-smoke.js';
+        script.src = '/refactor/tests/final-smoke.js?v=20260717-md5-2';
         document.body.appendChild(script);
       }
 
