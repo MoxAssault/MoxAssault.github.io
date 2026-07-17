@@ -174,3 +174,37 @@
   .additional-rom-item { align-items: flex-start; flex-direction: column; }
   .additional-rom-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* The legacy Wizard helper still creates a tooltip node; the inverse control owns the final copy. */
+.field-main-enabled .control-tooltip { display: none !important; }
+.field-main-enabled .checkbox-row.has-control-tooltip {
+  position: relative;
+}
+.field-main-enabled .checkbox-row.has-control-tooltip::after {
+  position: absolute;
+  z-index: 500;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max-content;
+  max-width: 260px;
+  padding: 6px 8px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text-muted);
+  content: attr(data-disable-wizard-tooltip);
+  font: 600 10.5px/1.35 "Inter", sans-serif;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 130ms ease, transform 130ms ease, visibility 130ms ease;
+  white-space: normal;
+}
+.field-main-enabled .checkbox-row.has-control-tooltip:hover::after,
+.field-main-enabled .checkbox-row.has-control-tooltip:focus-within::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
