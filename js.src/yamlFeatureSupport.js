@@ -50,7 +50,7 @@
     }
     delete data.coloredROMChecksumSecondary;
 
-    ['testers', 'backglassAuthorsOverride', 'diffAuthorsOverride'].forEach(key => {
+    ['testers', 'backglassAuthorsOverride', 'diffAuthorsOverride', 'altSoundAuthorsOverride'].forEach(key => {
       const normalized = normalizeArray(data[key]);
       if (normalized.length) data[key] = normalized;
       else delete data[key];
@@ -60,6 +60,16 @@
     if (altSoundChecksums.length === 1) data.altSoundChecksum = altSoundChecksums[0];
     else if (altSoundChecksums.length > 1) data.altSoundChecksum = altSoundChecksums;
     else delete data.altSoundChecksum;
+
+    const hasAltSound = Boolean(
+      data.altSoundVPSId
+      || data.altSoundUrlOverride
+      || data.altSoundBundled === true
+      || data.altSoundChecksum
+    );
+    if (hasAltSound && !String(data.altSoundArchiveFormat || '').trim()) {
+      data.altSoundArchiveFormat = 'zip';
+    }
 
     const additionalRoms = normalizeAdditionalRoms(data.additionalRoms);
     if (additionalRoms.length) data.additionalRoms = additionalRoms;
