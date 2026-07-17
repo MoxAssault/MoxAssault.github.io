@@ -208,3 +208,71 @@
   visibility: visible;
   transform: translateY(0);
 }
+
+/* Feature validation uses attribute-only markers so it does not retrigger legacy DOM observers. */
+.field.feature-has-field-error,
+.additional-rom-controls.feature-has-field-error {
+  position: relative;
+}
+.field.feature-has-field-error::after,
+.additional-rom-controls.feature-has-field-error::after {
+  position: absolute;
+  z-index: 510;
+  top: -4px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--panel-soft);
+  border-radius: 50%;
+  background: var(--state-red);
+  box-shadow: 0 0 0 3px var(--state-red-soft);
+  content: '';
+  cursor: help;
+}
+.checksum-drop-field.feature-has-field-error::after,
+.additional-rom-controls.feature-has-field-error::after {
+  top: 1px;
+  right: 1px;
+  border-color: var(--panel-raised);
+}
+.field.feature-has-field-error::before,
+.additional-rom-controls.feature-has-field-error::before {
+  position: absolute;
+  z-index: 520;
+  right: -2px;
+  bottom: calc(100% + 8px);
+  display: none;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--state-red) 55%, var(--panel-line));
+  border-radius: 7px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-feature-error-message);
+  font: 600 10.5px/1.35 "Inter", sans-serif;
+  text-transform: none;
+  white-space: normal;
+}
+.field.feature-has-field-error:hover::before,
+.field.feature-has-field-error:focus-within::before,
+.additional-rom-controls.feature-has-field-error:hover::before,
+.additional-rom-controls.feature-has-field-error:focus-within::before {
+  display: block;
+}
+.config-tab.feature-has-error {
+  color: var(--danger);
+  box-shadow: inset 0 3px 0 var(--danger);
+}
+.config-tab.feature-has-error::after {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+  content: '';
+}
