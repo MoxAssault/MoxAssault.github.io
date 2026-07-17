@@ -87,15 +87,24 @@
     });
   }
 
-  function show(currentErrors) {
+  let bypassClick = false;
+
+  function appendToDialog(currentErrors) {
     const dialog = document.getElementById('validationDialog');
     const body = document.getElementById('validationBody');
     if (!dialog || !body) return;
-    const list = document.createElement('ul');
-    list.className = 'validation-list';
+    let list = body.querySelector('.validation-list');
+    if (!list) {
+      list = document.createElement('ul');
+      list.className = 'validation-list';
+      body.replaceChildren(list);
+    }
+    list.querySelector('.validation-item.success')?.remove();
+    const existing = new Set([...list.querySelectorAll('.validation-item strong')].map(node => node.textContent));
     currentErrors.forEach(error => {
+      if (existing.has(error.title)) return;
       const item = document.createElement('li');
-      item.className = 'validation-item error';
+      item.className = 'validation-item error feature-validation-item';
       const title = document.createElement('strong');
       title.textContent = error.title;
       const message = document.createElement('span');
@@ -103,27 +112,53 @@
       item.append(title, message);
       list.appendChild(item);
     });
-    body.replaceChildren(list);
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
+    if (!dialog.open) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    }
     refresh();
+  }
+
+  function runOriginalValidation(currentErrors) {
+    bypassClick = true;
+    document.getElementById('validateBtn')?.click();
+    bypassClick = false;
+    window.setTimeout(() => appendToDialog(currentErrors), 0);
   }
 
   function init() {
     document.addEventListener('click', event => {
+      if (bypassClick) return;
       const action = event.target instanceof Element
         ? event.target.closest('#validateBtn, #drawerCopyBtn, #downloadNextBtn')
         : null;
       if (!action) return;
       const current = errors();
       if (!current.length) return;
+      if (action.id === 'validateBtn') {
+        window.setTimeout(() => appendToDialog(current), 0);
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
-      show(current);
+      runOriginalValidation(current);
+    }, true);
+
+    document.addEventListener('keydown', event => {
+      if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return;
+      const current = errors();
+      if (!current.length) return;
+      if (event.shiftKey) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        runOriginalValidation(current);
+      } else {
+        window.setTimeout(() => appendToDialog(current), 0);
+      }
     }, true);
   }
 
-  window.VPS_FEATURE_VALIDATION = Object.freeze({ errors, refresh, show });
+  window.VPS_FEATURE_VALIDATION = Object.freeze({ errors, refresh, appendToDialog });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
