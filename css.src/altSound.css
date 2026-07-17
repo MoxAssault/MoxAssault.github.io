@@ -54,7 +54,8 @@ textarea { resize: none !important; }
   grid-template-areas:
     "alt-id alt-checksum"
     "alt-notes alt-notes"
-    "alt-root alt-format";
+    "alt-root alt-format"
+    "alt-directory alt-directory";
 }
 .field-grid-altSound .field:has(#field-altSoundVPSId) { grid-area: alt-id; }
 .field-grid-altSound .field:has(#field-altSoundChecksum) { grid-area: alt-checksum; }
@@ -66,10 +67,8 @@ textarea { resize: none !important; }
   min-height: 72px;
   height: 72px;
 }
-.alt-sound-directory-select {
-  width: 100%;
-  margin-top: 7px;
-}
+.field-alt-sound-directory { grid-area: alt-directory; }
+.alt-sound-directory-select { width: 100%; }
 
 /* Alt Sound overrides are kept in Advanced Config as full-width rows. */
 .advanced-grid-altSound {
@@ -140,22 +139,28 @@ textarea { resize: none !important; }
       "notes notes"
       "testers testers";
   }
-  .field-grid-pup,
-  .field-grid-altSound {
+
+  .field-grid-pup {
     grid-template-columns: 1fr;
     grid-template-areas:
       "id"
-      "alt-id"
       "checksum"
-      "alt-checksum"
       "notes"
-      "alt-notes"
       "version"
       "url"
       "root"
-      "alt-root"
       "format"
-      "alt-format"
       "required";
+  }
+
+  .field-grid-altSound {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "alt-id"
+      "alt-checksum"
+      "alt-notes"
+      "alt-root"
+      "alt-format"
+      "alt-directory";
   }
 }
