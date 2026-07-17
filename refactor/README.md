@@ -1,112 +1,102 @@
 # VPXS YML Builder Refactor Workspace
 
-This directory is the staged refactor copy of the production VPXS YML Builder.
+This directory contains the staged replacement for the production VPXS YML Builder.
 
 ## Safety boundary
 
 - The repository root remains the production build.
-- `refactor/index.html` is the working copy used for structural changes.
-- Existing production CSS and JavaScript remain available from the repository root while modules are moved one responsibility at a time.
-- A feature is detached from a production file only after its replacement is loaded and covered by the refactor smoke test.
-- The `<base href="../">` entry keeps root runtime dependencies working, including the bundled libarchive worker and WebAssembly files.
+- `/refactor/` is the isolated working and regression environment.
+- Production root files are not replaced until the complete automated and deployed-browser regression gates pass.
+- `<base href="../">` preserves root-hosted runtime assets such as the libarchive worker and WebAssembly file.
 
-## Baseline behavior to preserve
+## Final architecture
 
-- VPS database verification, caching, and fallback sources
-- Table search and suggestions
-- Asset selection and status display
-- Configuration tabs and field validation
-- YAML generation, copy, download, and recent builds
-- YML import and edit workflow
-- Checksum and PUP archive tools
-- Manual and Wizard README generation
-- Dark, light, and secret pink themes
-- Responsive desktop and mobile layouts
+### Entry point
 
-## Current responsibility map
+`src/bootstrap.js` is the single browser-native ES-module entry point. It loads foundational services in dependency order, imports the split UI facade, starts application controllers, publishes `VPS_MODULE_MANIFEST`, and exposes `VPS_BOOTSTRAP_STATUS`.
 
-### Refactor-owned styles
+`refactor/index.html` contains one application script:
 
-- `styles/tokens.css` — dark/light design tokens and semantic state values
-- `styles/components/app-shell.css` — application shell, header, workspace, footer, buttons, and responsive shell rules
-- `styles/components/search.css` — search controls and suggestion results
-- `styles/components/table-card.css` — selected-table presentation and badges
-- `styles/components/asset-panel.css` — asset rows, selectors, details, thumbnails, and status states
-- `styles/components/configuration-panel.css` — configuration tabs, fields, checksums, archive controls, and responsive layouts
-- `styles/components/form-controls.css` — shared custom checkbox presentation
-- `styles/components/preview-panel.css` — generated-YAML preview and status presentation
-- `styles/components/dialogs.css` — Help, Validation, and Recent dialogs
-- `styles/components/database-status-toast.css` — VPS database status toast
-- `styles/components/yml-import.css` — YML import control and toast placement
-- `styles/components/readme-actions.css` — Manual and Wizard README actions
-- `styles/themes/pink.css` — secret pink-theme overrides
+```html
+<script type="module" src="/refactor/src/bootstrap.js"></script>
+```
 
-### Refactor-owned application and services
+The refactor entry point no longer loads production JavaScript or version-named correction files.
+
+### State and application ownership
 
 - `src/app/appStore.js` — authoritative build, UI, validation, metadata, subscriptions, and named events
-- `src/app/applicationController.js` — authoritative search, table loading, asset/configuration editing, workspace rendering, recent history UI, shortcuts, and clear/next workflow
+- `src/app/applicationController.js` — search, table loading, asset/configuration editing, workspace rendering, history UI, shortcuts, and clear/next workflow
+- `src/controllers/previewController.js` — generated preview and YAML synchronization
+- `src/controllers/validationStateController.js` — validation-state synchronization
+- `src/controllers/validationDialogController.js` — validation results and dialog presentation
+- `src/controllers/outputController.js` — validation-gated copy and download actions
+- `src/controllers/persistenceController.js` — draft autosave, preferences, and history APIs
+- `src/controllers/ymlImportController.js` — import workflow and browser orchestration
+- `src/controllers/workflowUiController.js` — field error markers, help tabs, preview status breakdown, first-error navigation, and import scrolling protection
+
+### Split UI rendering
+
+- `src/ui/dom.js` — shared DOM and copy-control helpers
+- `src/ui/searchRenderer.js` — search suggestions
+- `src/ui/tableRenderer.js` — selected-table card, artwork, badges, and VPS ID copy control
+- `src/ui/assetRenderer.js` — asset rows, selectors, thumbnails, status, and details
+- `src/ui/checksumTools.js` — background MD5 calculation, archive browsing, checksum drops, and PAL/VNI extension pairing
+- `src/ui/configurationRenderer.js` — configuration tabs, fields, advanced controls, conditional inputs, and checksum controls
+- `src/ui/index.js` — stable `VPS_UI` compatibility facade
+- `src/ui/tooltipController.js` — native-title cleanup and custom tooltip migration
+
+### Services
+
 - `src/config/fieldDefinitions.js` — asset categories, configuration steps, bundle fields, presets, and YAML exclusions
 - `src/utils/formatting.js` — labels, dates, arrays, wrapping, escaping, and safe filenames
-- `src/services/assetCatalog.js` — asset filtering, VPU Patch relationships, cover selection, and asset states
-- `src/services/yamlService.js` — checksum normalization, YAML generation, and YAML highlighting
-- `src/services/previewModel.js` — pure YAML preview, line count, highlighting, and overall status model
-- `src/controllers/previewController.js` — preview rendering from shared state and generated-YAML synchronization
+- `src/services/assetCatalog.js` — asset filtering, relationships, cover selection, and semantic asset states
+- `src/services/yamlService.js` — checksum normalization, YAML generation, and highlighting
+- `src/services/previewModel.js` — pure preview model and overall asset state
 - `src/services/ymlParser.js` — flat-YML parsing
-- `src/services/ymlImportModel.js` — imported-field normalization and asset-ID validation
-- `src/controllers/ymlImportController.js` — import file limits, database lookup, DOM orchestration, drag-and-drop, and toasts
-- `src/services/buildValidator.js` — required fields, checksums, override pairs, asset conflicts, bundled notes, PAL/VNI, PUP, VPU Patch, and line-length rules
-- `src/controllers/validationStateController.js` — shared validation-state synchronization
-- `src/controllers/validationDialogController.js` — validation-results rendering and dialog behavior
-- `src/controllers/outputController.js` — validation-gated copy and download actions plus recent-history recording
-- `src/services/storageService.js` — guarded localStorage access and stable storage keys
-- `src/services/buildPersistence.js` — drafts, preferences, recent builds, deduplication, filenames, and history limits
-- `src/controllers/persistenceController.js` — shared-state autosave scheduling and persistence APIs
-- `src/services/fileOutput.js` — browser downloads and clipboard output
+- `src/services/ymlImportModel.js` — import normalization and asset-ID validation
+- `src/services/buildValidator.js` — required fields, checksums, override pairs, conflicts, bundled notes, PAL/VNI, PUP, VPU Patch, and line-length rules
+- `src/services/storageService.js` — guarded localStorage access
+- `src/services/buildPersistence.js` — drafts, preferences, history, deduplication, and filenames
+- `src/services/fileOutput.js` — browser download and clipboard output
 - `src/services/archivePaths.js` — normalized archive-directory extraction
 - `src/services/readmeTemplateResolver.js` — local README-template routing
 - `src/services/readmeGenerator.js` — store-backed Manual and Wizard README generation
-- `src/core/builderUtilities.js` — temporary `VPS_UTILS` compatibility aggregator
 - `src/services/tableSearch.js` — search normalization, ranking, exact matching, and keyboard state
 - `src/services/vpsDatabase.js` — verified database loading, caching, version checks, and fallbacks
 - `src/controllers/databaseStatusController.js` — database status presentation and periodic checks
 - `src/controllers/themeController.js` — dark, light, and secret pink themes
-- `src/ui/tooltipController.js` — native-title removal and custom tooltip migration
+- `src/core/builderUtilities.js` — temporary `VPS_UTILS` compatibility facade during final promotion
 
-### Vendored README templates
+### Styles
+
+All application styles loaded by `/refactor/` are refactor-owned. The former `uiEnhancements`, `v090`, and `v091` styles are consolidated into:
+
+- `styles/components/workflow-enhancements.css`
+
+That file owns table artwork containment, compact advanced controls, Help tabs, copy controls, field-error markers, control tooltips, Color ROM/PUP corrections, preview status breakdowns, stacking, and responsive corrections.
+
+The remaining component styles continue to own the shell, search, selected table, assets, configuration, controls, preview, dialogs, database status, import, README actions, tokens, and pink theme.
+
+## Vendored README templates
 
 - `templates/readme/man_README.md` — exact copy of upstream `Content/man_README.md`
 - `templates/readme/wiz_README.md` — exact copy of upstream `Content/wiz_README.md`
 
-The copies include the source files' final newline, so their Git blob SHAs match the upstream repository exactly. README generation no longer depends on those upstream files remaining available.
+Their Git blob SHAs match the original files, including the final newline. README generation no longer depends on the source templates remaining available.
 
-### Production files still inherited by the refactor copy
+## Regression gate
 
-- `js.src/uiHelper.js`
-- `js.src/uiEnhancements.js`
-- `js.src/v090Enhancements.js`
-- `js.src/v091Corrections.js`
-- `js.src/v0102Fixes.js`
-- `css.src/uiEnhancements.css`
-- `css.src/v090.css`
-- `css.src/v091.css`
+`tests/smoke-test.html` now runs one coordinated end-to-end suite through `tests/final-smoke.js`. It verifies:
 
-The refactor entry point no longer loads `js.src/main.js` or `src/app/legacyStateBridge.js`.
+- Native-module bootstrap and the complete responsibility-based module manifest
+- Absence of production JavaScript, inherited CSS, version-named files, and the removed state bridge
+- Required DOM, globals, module files, stylesheets, and archive runtime dependencies
+- Store events, nested updates, detached snapshots, restoration, and authoritative rendering
+- UI facade methods and split table, asset, configuration, checksum, help, validation, preview, and tooltip behavior
+- YAML, YML parsing/import, search ranking, MD5 calculation, output gates, README templates, persistence, database status, and theme transitions
 
-## Smoke-test coverage
-
-The browser suite verifies:
-
-- Required DOM structure and runtime dependencies
-- Refactor ownership and absence of replaced legacy paths
-- Application-store events, nested updates, detached snapshots, and restoration
-- Store-authoritative table selection and rendered workspace state
-- Shared validation and output-controller gates
-- Consolidated Backglass, Color ROM, and VPU Patch validation rules
-- README shared-state context and exact vendored-template integrity
-- YML parsing, normalization, asset validation, and import behavior
-- Preview model and shared-state synchronization
-- Draft, preference, and recent-build persistence
-- Component layouts, tooltip migration, archive runtime files, database loading/status, search ranking, and theme transitions
+`.github/workflows/refactor-regression.yml` starts a static server, installs Chromium through Playwright, and executes `tests/run-browser-regression.mjs` on every refactor change and through manual dispatch.
 
 ## Refactor stages
 
@@ -119,32 +109,17 @@ The browser suite verifies:
 7. Split the builder utility compatibility layer. **Complete**
 8. Introduce explicit application state and events. **Complete**
 9. Split validation, preview, history, storage, import, and output responsibilities; make the shared store authoritative. **Complete**
-10. Split remaining inherited UI rendering and enhancement responsibilities.
-11. Consolidate version-named enhancement and correction files.
-12. Convert the refactor entry point to browser-native ES modules.
-13. Run the full replacement regression pass before changing the production root.
+10. Split inherited UI rendering and enhancement responsibilities. **Complete**
+11. Consolidate version-named enhancement and correction files. **Complete**
+12. Convert the refactor entry point to browser-native ES modules. **Complete**
+13. Run the full replacement regression pass before changing the production root. **Gate installed — awaiting passing automated and deployed-browser runs**
 
-## Shared state ownership
+## Production promotion checklist
 
-`VPS_APP_STORE` is now the authoritative state owner. `applicationController.js` writes record, selection, value, and UI changes directly to the store. Preview, validation, persistence, output, import, and README modules consume that shared state.
+Production replacement is allowed only after all of the following are true:
 
-The temporary `legacyStateBridge.js` and inherited `js.src/main.js` are no longer loaded by `/refactor/`; the bridge file has been removed.
-
-The store contract and event behavior are documented in `docs/state-architecture.md`.
-
-## Workspace stylesheet split
-
-The former `css.src/category.css` responsibilities are separated into:
-
-1. `styles/components/asset-panel.css`
-2. `styles/components/configuration-panel.css`
-3. `styles/components/form-controls.css`
-
-The ownership map and cascade constraints remain documented in `docs/workspace-style-map.md`.
-
-## Remaining work
-
-1. Split inherited UI rendering and enhancement behavior into responsibility-based modules
-2. Consolidate `uiEnhancements`, `v090`, `v091`, and `v0102` behavior
-3. Convert the refactor entry point to browser-native ES modules
-4. Run the full replacement regression pass before changing the production root
+1. The GitHub Actions **Refactor Regression** workflow passes on the final refactor commit.
+2. `/refactor/tests/smoke-test.html` reports every regression check as passing on GitHub Pages.
+3. Manual spot checks confirm search, asset selection, configuration editing, YML import, checksum/archive tools, validation, copy/download, README generation, recent history, and all themes.
+4. The root production files are backed up or retained in commit history before promotion.
+5. The promoted root is tested again after replacement.
