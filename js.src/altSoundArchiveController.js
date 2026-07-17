@@ -74,11 +74,23 @@
     runtime.state.callbacks?.onChange?.(key, value, { yml_field: key, ...definition });
   }
 
+  function directoryHolder() {
+    const grid = document.querySelector('#config-panel-altSound > .field-grid-altSound');
+    if (!grid) return null;
+    let holder = grid.querySelector(':scope > .field-alt-sound-directory');
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.className = 'field field-wide field-alt-sound-directory';
+      grid.appendChild(holder);
+    }
+    return holder;
+  }
+
   function populateDirectorySelect() {
     const root = document.getElementById('field-altSoundArchiveRoot');
-    if (!root) return;
-    const wrapper = root.closest('.field');
-    let select = wrapper?.querySelector('.alt-sound-directory-select');
+    const holder = directoryHolder();
+    if (!root || !holder) return;
+    let select = holder.querySelector('.alt-sound-directory-select');
     if (!select) {
       select = document.createElement('select');
       select.className = 'archive-directory-select alt-sound-directory-select';
@@ -88,7 +100,7 @@
         root.value = select.value;
         update('altSoundArchiveRoot', select.value, { type: 'str' });
       });
-      wrapper?.appendChild(select);
+      holder.appendChild(select);
     }
     const list = Array.isArray(values().__altSoundArchiveDirectories) ? values().__altSoundArchiveDirectories : [];
     const desired = ['', ...list];
