@@ -32,58 +32,84 @@
     return output;
   }
 
-  function dot(wrapper, messages, extraClass = '') {
+  function restoreControlLabel(control) {
+    if (!control) return;
+    if (control.dataset.featureOriginalAriaLabel !== undefined) {
+      const original = control.dataset.featureOriginalAriaLabel;
+      if (original) control.setAttribute('aria-label', original);
+      else control.removeAttribute('aria-label');
+      delete control.dataset.featureOriginalAriaLabel;
+    }
+    control.removeAttribute('aria-invalid');
+  }
+
+  function clearPresentation() {
+    document.querySelectorAll('.feature-has-field-error').forEach(wrapper => {
+      wrapper.classList.remove('feature-has-field-error');
+      wrapper.removeAttribute('data-feature-error-message');
+      wrapper.removeAttribute('data-feature-error-count');
+      const control = wrapper.matches('.additional-rom-controls')
+        ? wrapper.querySelector('.additional-rom-add')
+        : wrapper.querySelector('input, textarea, select, button, .readonly-id');
+      restoreControlLabel(control);
+      if (!wrapper.querySelector('.field-error-dot')) {
+        wrapper.classList.remove('has-field-error');
+        wrapper.removeAttribute('data-error-count');
+      }
+    });
+
+    document.querySelectorAll('.config-tab.feature-has-error').forEach(tab => {
+      tab.classList.remove('feature-has-error');
+      tab.removeAttribute('data-feature-error-count');
+      if (tab.dataset.featureAddedError === 'true') tab.classList.remove('has-error');
+      delete tab.dataset.featureAddedError;
+    });
+  }
+
+  function presentField(wrapper, messages) {
     if (!wrapper || !messages.length) return;
-    wrapper.classList.add('has-field-error');
+    wrapper.classList.add('has-field-error', 'feature-has-field-error');
     wrapper.dataset.errorCount = String(messages.length);
-    const marker = document.createElement('span');
-    marker.className = `field-error-dot feature-error-dot${extraClass ? ` ${extraClass}` : ''}`;
-    marker.dataset.tooltip = messages.join(' ');
-    marker.setAttribute('role', 'img');
-    marker.setAttribute('aria-label', messages.join(' '));
-    marker.tabIndex = 0;
-    wrapper.appendChild(marker);
+    wrapper.dataset.featureErrorCount = String(messages.length);
+    wrapper.dataset.featureErrorMessage = messages.join(' ');
+
+    const control = wrapper.matches('.additional-rom-controls')
+      ? wrapper.querySelector('.additional-rom-add')
+      : wrapper.querySelector('input, textarea, select, button, .readonly-id');
+    if (!control) return;
+    if (control.dataset.featureOriginalAriaLabel === undefined) {
+      control.dataset.featureOriginalAriaLabel = control.getAttribute('aria-label') || '';
+    }
+    const original = control.dataset.featureOriginalAriaLabel;
+    control.setAttribute('aria-label', `${original ? `${original}. ` : ''}${messages.join(' ')}`);
+    control.setAttribute('aria-invalid', 'true');
   }
 
   function refresh() {
-    document.querySelectorAll('.feature-error-dot').forEach(marker => {
-      const wrapper = marker.parentElement;
-      marker.remove();
-      if (!wrapper?.querySelector('.field-error-dot')) {
-        wrapper?.classList.remove('has-field-error');
-        wrapper?.removeAttribute('data-error-count');
-      }
-    });
-    document.querySelectorAll('.config-tab.feature-has-error').forEach(tab => {
-      tab.classList.remove('feature-has-error', 'has-error');
-      if (!tab.classList.contains('has-v090-error')) tab.querySelector('.config-tab-alert')?.remove();
-    });
-
+    clearPresentation();
     const grouped = new Map();
+
     errors().forEach(error => {
       const key = `${error.stepId}:${error.fieldName}`;
       const messages = grouped.get(key) || [];
       if (!messages.includes(error.message)) messages.push(error.message);
       grouped.set(key, messages);
+
       const tab = document.getElementById(`config-tab-${error.stepId}`);
       if (tab) {
+        if (!tab.classList.contains('has-error')) tab.dataset.featureAddedError = 'true';
         tab.classList.add('has-error', 'feature-has-error');
-        if (!tab.querySelector('.config-tab-alert')) {
-          const alert = document.createElement('span');
-          alert.className = 'config-tab-alert';
-          alert.setAttribute('aria-hidden', 'true');
-          tab.appendChild(alert);
-        }
+        const count = Number.parseInt(tab.dataset.featureErrorCount || '0', 10) + 1;
+        tab.dataset.featureErrorCount = String(count);
       }
     });
 
     grouped.forEach((messages, key) => {
       const fieldName = key.slice(key.indexOf(':') + 1);
-      if (fieldName === 'additionalRoms') {
-        dot(document.querySelector('.additional-rom-controls'), messages, 'additional-rom-error-dot');
-      } else {
-        dot(document.getElementById(`field-${fieldName}`)?.closest('.field'), messages);
-      }
+      const wrapper = fieldName === 'additionalRoms'
+        ? document.querySelector('.additional-rom-controls')
+        : document.getElementById(`field-${fieldName}`)?.closest('.field');
+      presentField(wrapper, messages);
     });
   }
 
