@@ -17,6 +17,10 @@
     pupPackFiles: {
       label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled'
     },
+    altSoundFiles: {
+      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId',
+      sourceFields: ['altSoundFiles'], optionFormat: 'id-version-author'
+    },
     vpuPatchFiles: {
       label: 'VPU Patch', singular: 'VPU Patch file', stepId: 'vpuPatch', idField: 'diffVPSId', bundleField: 'diffBundled',
       sourceFields: ['vpuPatchFiles', 'vpuPatches', 'patchFiles']
@@ -35,15 +39,23 @@
     {
       id: 'main', label: 'Main', legend: 'Main Configuration', always: true,
       fields: [
-        { name: 'Game VPS ID', yml_field: 'tableVPSId', type: 'str', readonly: true, wide: true },
+        { name: 'Game VPS ID', yml_field: 'tableVPSId', type: 'str', readonly: true },
         { name: 'FPS', yml_field: 'fps', type: 'int', min: 1, max: 99, maxlength: 2 },
-        { name: 'Enable for Wizard', yml_field: 'enabled', type: 'bool', disabled: true, tooltip: 'Disabled by default for VPXS compatibility.' },
+        {
+          name: 'Disable for Wizard', yml_field: 'enabled', type: 'bool', invertBoolean: true,
+          tooltip: 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.'
+        },
         { name: 'Tagline', yml_field: 'tagline', type: 'str', wide: true, responsiveTextarea: true },
         { name: 'Main Notes', yml_field: 'mainNotes', type: 'str', multiline: true, wide: true },
         { name: 'Testers', yml_field: 'testers', type: 'array', multiline: true, wide: true, placeholder: 'name, name, name' },
         { name: 'Table Name Override', yml_field: 'tableNameOverride', type: 'str', wide: true, advanced: true },
         { name: 'Table Manufacturer Override', yml_field: 'tableManufacturerOverride', type: 'str', advanced: true },
-        { name: 'Year Override', yml_field: 'tableYearOverride', type: 'int', maxlength: 4, advanced: true }
+        { name: 'Year Override', yml_field: 'tableYearOverride', type: 'int', maxlength: 4, advanced: true },
+        {
+          name: 'Tutorial VPS ID', yml_field: 'tutorialVPSId', type: 'select', wide: true, advanced: true,
+          dynamicOptionsSource: 'tutorialFiles', optionFormat: 'id-author', conditionalRecordArray: 'tutorialFiles',
+          options: [{ label: 'Select a tutorial', value: '' }]
+        }
       ]
     },
     {
@@ -72,7 +84,8 @@
         { name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, checksumExtensions: ['.zip', '.rar', '.7z'] },
         { name: 'ROM Notes', yml_field: 'romNotes', type: 'str', multiline: true, wide: true },
         { name: 'ROM URL Override', yml_field: 'romUrlOverride', type: 'url', wide: true, advanced: true },
-        { name: 'ROM Version Override', yml_field: 'romVersionOverride', type: 'str', wide: true, advanced: true }
+        { name: 'ROM Version Override', yml_field: 'romVersionOverride', type: 'str', wide: true, advanced: true },
+        { name: 'Additional ROMs', yml_field: 'additionalRoms', type: 'additional-roms', advanced: true, customRenderer: true }
       ]
     },
     {
@@ -122,10 +135,22 @@
       ]
     },
     {
+      id: 'altSound', label: 'Alt Sound', legend: 'Alt Sound', category: 'altSoundFiles',
+      fields: [
+        { name: 'Alt Sound ID', yml_field: 'altSoundVPSId', type: 'str', readonly: true, wide: true },
+        {
+          name: 'Alt Sound Checksum(s)', yml_field: 'altSoundChecksum', type: 'array', wide: true,
+          placeholder: 'MD5 or comma-separated MD5 values', checksumExtensions: ['.zip', '.rar', '.7z']
+        }
+      ]
+    },
+    {
       id: 'vpuPatch', label: 'VPU Patch', legend: 'VPU Patch', category: 'vpuPatchFiles', bundleField: 'diffBundled',
       fields: [
         { name: 'VPU Patch ID', yml_field: 'diffVPSId', type: 'str', readonly: true, wide: true },
         { name: 'VPU Patch Checksum', yml_field: 'diffChecksum', type: 'str', wide: true, checksumExtensions: ['.dif'] },
+        { name: 'Patch Notes', yml_field: 'diffNotes', type: 'str', multiline: true, wide: true },
+        { name: 'Patch Authors Override', yml_field: 'diffAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name', advanced: true },
         { name: 'Patch URL Override', yml_field: 'diffUrlOverride', type: 'url', wide: true, advanced: true },
         { name: 'Patch Version Override', yml_field: 'diffVersionOverride', type: 'str', wide: true, advanced: true }
       ]
