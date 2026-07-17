@@ -1,54 +1,65 @@
 (() => {
   'use strict';
+
   const runtime = window.VPS_FEATURE_RUNTIME;
   const utils = window.VPS_UTILS;
   if (!runtime || !utils) return;
   const { isMd5Hash, normalizeArray } = utils;
 
+  const BUNDLED_NOTES = [
+    ['b2s', 'backglassBundled', 'backglassNotes', 'Backglass'],
+    ['rom', 'romBundled', 'romNotes', 'ROM'],
+    ['coloredRom', 'coloredROMBundled', 'coloredROMNotes', 'Color ROM'],
+    ['pup', 'pupBundled', 'pupNotes', 'PUP Pack'],
+    ['altSound', 'altSoundBundled', 'altSoundNotes', 'Alt Sound'],
+    ['vpuPatch', 'diffBundled', 'diffNotes', 'VPU Patch']
+  ];
+
   function errors() {
     const output = [];
     const add = (stepId, fieldName, title, message) => output.push({ stepId, fieldName, title, message });
-    const { selections, values } = runtime.state;
+    const { selections, values = {}, record } = runtime.state;
 
-    const altSoundSelected = Boolean(selections?.altSoundFiles || values?.altSoundVPSId);
-    const altSoundBundled = values?.altSoundBundled === true;
-    const altSoundUrl = String(values?.altSoundUrlOverride || '').trim();
-    const altSoundVersion = String(values?.altSoundVersionOverride || '').trim();
-    const altSoundActive = altSoundSelected || altSoundBundled || Boolean(altSoundUrl || altSoundVersion);
+    BUNDLED_NOTES.forEach(([stepId, bundledField, notesField, label]) => {
+      if (values[bundledField] === true && !String(values[notesField] || '').trim()) {
+        add(stepId, notesField, `${label} Notes are required`, `Add ${label} Notes when the asset is bundled.`);
+      }
+    });
 
-    if (altSoundActive) {
-      const checksums = normalizeArray(values?.altSoundChecksum);
+    const altActive = Boolean(selections?.altSoundFiles || values.altSoundVPSId || values.altSoundBundled || values.altSoundUrlOverride);
+    if (altActive) {
+      const checksums = normalizeArray(values.altSoundChecksum);
       if (!checksums.length) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value whenever Alt Sound is selected, overridden, or bundled.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value for Alt Sound.');
       } else if (checksums.some(checksum => !isMd5Hash(checksum))) {
         add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is invalid', 'Every Alt Sound checksum must contain exactly 32 hexadecimal characters.');
       }
+
+      const hasVpsId = Boolean(String(values.altSoundVPSId || '').trim());
+      const hasUrl = Boolean(String(values.altSoundUrlOverride || '').trim());
+      const hasVersion = Boolean(String(values.altSoundVersionOverride || '').trim());
+      if (hasVpsId && hasUrl) {
+        add('altSound', 'altSoundUrlOverride', 'Choose one Alt Sound source', 'Use either Alt Sound VPS ID or URL Override, not both.');
+      }
+      if (hasUrl && !hasVersion) {
+        add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Add Alt Sound Version Override when URL Override is used.');
+      }
+      if (hasVersion && !hasUrl) {
+        add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add Alt Sound URL Override when Version Override is used.');
+      }
+      if (values.altSoundBundled === true && !String(values.altSoundArchiveRoot || '').trim()) {
+        add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Add Alt Sound Archive Root when Alt Sound is bundled.');
+      }
     }
 
-    if (altSoundSelected && altSoundUrl) {
-      add('altSound', 'altSoundUrlOverride', 'Choose one Alt Sound source', 'Use either Alt Sound VPS ID or Alt Sound URL Override, not both.');
-    }
-    if (altSoundUrl && !altSoundVersion) {
-      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Add Alt Sound Version Override whenever Alt Sound URL Override is used.');
-    }
-    if (altSoundVersion && !altSoundUrl) {
-      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add Alt Sound URL Override whenever Alt Sound Version Override is used.');
-    }
-    if (altSoundBundled && !String(values?.altSoundNotes || '').trim()) {
-      add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
-    }
-    if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {
-      add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
-    }
-
-    const tutorialId = String(values?.tutorialVPSId || '').trim();
-    if (tutorialId && !runtime.state.record?.tutorialFiles?.some(item => String(item?.id || '') === tutorialId)) {
+    const tutorialId = String(values.tutorialVPSId || '').trim();
+    if (tutorialId && !record?.tutorialFiles?.some(item => String(item?.id || '') === tutorialId)) {
       add('main', 'tutorialVPSId', 'Tutorial VPS ID is unavailable', 'Choose an available tutorial for this table.');
     }
 
-    window.VPS_ADDITIONAL_ROMS?.entries?.().forEach((entry, index) => {
+    window.VPS_ADDITIONAL_ROMS?.entries?.().slice(0, 1).forEach((entry, index) => {
       window.VPS_ADDITIONAL_ROMS.validateEntry(entry, index).forEach(message => {
-        add('rom', 'additionalRoms', `Additional ROM ${index + 1} needs attention`, message);
+        add('rom', 'additionalRoms', 'Additional ROM needs attention', message);
       });
     });
     return output;
@@ -110,7 +121,6 @@
   function refresh() {
     clearPresentation();
     const grouped = new Map();
-
     errors().forEach(error => {
       const key = `${error.stepId}:${error.fieldName}`;
       const messages = grouped.get(key) || [];
@@ -121,8 +131,7 @@
       if (tab) {
         if (!tab.classList.contains('has-error')) tab.dataset.featureAddedError = 'true';
         tab.classList.add('has-error', 'feature-has-error');
-        const count = Number.parseInt(tab.dataset.featureErrorCount || '0', 10) + 1;
-        tab.dataset.featureErrorCount = String(count);
+        tab.dataset.featureErrorCount = String(Number.parseInt(tab.dataset.featureErrorCount || '0', 10) + 1);
       }
     });
 
@@ -204,6 +213,9 @@
         window.setTimeout(() => appendToDialog(current), 0);
       }
     }, true);
+
+    document.addEventListener('input', refresh, true);
+    document.addEventListener('change', refresh, true);
   }
 
   window.VPS_FEATURE_VALIDATION = Object.freeze({ errors, refresh, appendToDialog });
