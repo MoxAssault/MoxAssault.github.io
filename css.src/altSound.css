@@ -1,65 +1,161 @@
-/* Complete Alt Sound configuration mirrors the PUP Pack panel. */
+/* Production corrections for shared controls and panel layouts. */
+textarea { resize: none !important; }
 
+/* Main row: ID | FPS | Tutorial | Wizard Disabled. */
+.field-grid-main {
+  grid-template-columns: minmax(0, 1fr) 68px minmax(150px, 0.62fr) 92px;
+  grid-template-areas:
+    "game fps tutorial enabled"
+    "tagline tagline tagline tagline"
+    "notes notes testers testers";
+}
+.field-main-tutorial {
+  grid-area: tutorial;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0;
+}
+.field-main-enabled { min-width: 0; }
+.field-main-enabled .checkbox-row {
+  min-height: 38px;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.05;
+  white-space: normal;
+}
+.field-main-enabled .checkbox-row > span:not(.control-tooltip) {
+  display: inline-block;
+  width: 54px;
+  text-align: left;
+}
+
+/* PUP: version precedes URL, then root and format share the following row. */
+.field-grid-pup {
+  grid-template-columns: minmax(0, 1fr) minmax(135px, 0.42fr);
+  grid-template-areas:
+    "id checksum"
+    "notes notes"
+    "version url"
+    "root format"
+    "required required";
+}
+.field-pup-id { grid-area: id; }
+.field-pup-checksum { grid-area: checksum; }
+.field-pup-notes { grid-area: notes; }
+.field-pup-version { grid-area: version; }
+.field-pup-url { grid-area: url; min-width: 0; }
+.field-pup-root { grid-area: root; }
+.field-pup-format { grid-area: format; }
+.field-pup-required { grid-area: required; }
+
+/* Alt Sound main section mirrors the PUP proportions. */
 .field-grid-altSound {
-  grid-template-columns: minmax(140px, 0.8fr) minmax(190px, 1.2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(135px, 0.42fr);
   grid-template-areas:
     "alt-id alt-checksum"
     "alt-notes alt-notes"
-    "alt-url alt-url"
-    "alt-version alt-format"
-    "alt-authors alt-authors"
-    "alt-root alt-bundled";
+    "alt-root alt-format";
 }
-
 .field-grid-altSound .field:has(#field-altSoundVPSId) { grid-area: alt-id; }
 .field-grid-altSound .field:has(#field-altSoundChecksum) { grid-area: alt-checksum; }
 .field-grid-altSound .field:has(#field-altSoundNotes) { grid-area: alt-notes; }
-.field-grid-altSound .field:has(#field-altSoundUrlOverride) { grid-area: alt-url; }
-.field-grid-altSound .field:has(#field-altSoundVersionOverride) { grid-area: alt-version; }
-.field-grid-altSound .field:has(#field-altSoundArchiveFormat) { grid-area: alt-format; }
-.field-grid-altSound .field:has(#field-altSoundAuthorsOverride) { grid-area: alt-authors; }
 .field-grid-altSound .field:has(#field-altSoundArchiveRoot) { grid-area: alt-root; }
-.field-grid-altSound .field:has(#field-altSoundBundled) {
-  grid-area: alt-bundled;
-  align-self: center;
-}
-
+.field-grid-altSound .field:has(#field-altSoundArchiveFormat) { grid-area: alt-format; }
+.field-grid-altSound .field:has(#field-altSoundBundled) { display: none !important; }
 .field-grid-altSound .field:has(#field-altSoundNotes) textarea {
   min-height: 72px;
   height: 72px;
-  resize: vertical;
+}
+.alt-sound-directory-select {
+  width: 100%;
+  margin-top: 7px;
 }
 
-.field-grid-altSound .field:has(#field-altSoundBundled) .checkbox-row {
-  min-height: 36px;
-  justify-content: flex-start;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  white-space: nowrap;
+/* Alt Sound overrides are kept in Advanced Config as full-width rows. */
+.advanced-grid-altSound {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "authors"
+    "url"
+    "version";
+}
+.advanced-grid-altSound .field:has(#field-altSoundAuthorsOverride) { grid-area: authors; }
+.advanced-grid-altSound .field:has(#field-altSoundUrlOverride) { grid-area: url; }
+.advanced-grid-altSound .field:has(#field-altSoundVersionOverride) { grid-area: version; }
+
+/* Keep the Alt Sound checksum marker identical to standard error dots. */
+.field-alt-sound-checksum.feature-has-field-error::after,
+.field-alt-sound-checksum.has-field-error > .field-error-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-width: 2px !important;
 }
 
-#field-altSoundArchiveRoot:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+/* Single Additional ROM summary icon. */
+.additional-rom-info-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 800 12px/1 "Inter", sans-serif;
 }
-
-.field-alt-sound-checksum .checksum-drop-hint {
-  min-width: 0;
+.additional-rom-info-icon + .additional-rom-add { margin-left: 6px; }
+.additional-rom-info-icon::after {
+  position: absolute;
+  z-index: 600;
+  right: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: min(360px, 70vw);
+  padding: 7px 9px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 600 10.5px/1.35 "Inter", sans-serif;
+  text-align: left;
+  white-space: normal;
 }
+.additional-rom-info-icon:hover::after,
+.additional-rom-info-icon:focus-visible::after { display: block; }
+.additional-rom-add:disabled { opacity: 0.45; cursor: not-allowed; }
+.additional-rom-controls:empty { display: none; }
 
 @media (max-width: 760px) {
+  .field-grid-main {
+    grid-template-columns: minmax(110px, 1fr) 64px;
+    grid-template-areas:
+      "game fps"
+      "tutorial tutorial"
+      "enabled enabled"
+      "tagline tagline"
+      "notes notes"
+      "testers testers";
+  }
+  .field-grid-pup,
   .field-grid-altSound {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "id"
       "alt-id"
+      "checksum"
       "alt-checksum"
+      "notes"
       "alt-notes"
-      "alt-url"
-      "alt-version"
-      "alt-format"
-      "alt-authors"
+      "version"
+      "url"
+      "root"
       "alt-root"
-      "alt-bundled";
+      "format"
+      "alt-format"
+      "required";
   }
 }
