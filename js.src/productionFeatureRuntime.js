@@ -10,8 +10,6 @@
     state,
     update(patch = {}) { Object.assign(state, patch); },
     schedule() {
-      window.VPS_ADDITIONAL_ROMS?.render?.();
-      window.VPS_FEATURE_VALIDATION?.refresh?.();
       window.VPS_PRODUCTION_UI_EXTENSIONS?.scheduleControlCorrections?.();
     }
   };
