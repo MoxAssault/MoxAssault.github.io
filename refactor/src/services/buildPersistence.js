@@ -6,6 +6,12 @@
   if (!storage || !formatting) return;
 
   const MAX_RECENT = 8;
+  const REGRESSION_RECORD_ID = 'final-regression-table';
+
+  function isRegressionArtifact(record) {
+    return String(record?.id || '') === REGRESSION_RECORD_ID
+      && String(record?.name || '') === 'Final Regression Table';
+  }
 
   function normalizeSnapshot(snapshot = {}) {
     return {
@@ -20,7 +26,7 @@
 
   function createDraft(snapshot = {}) {
     const normalized = normalizeSnapshot(snapshot);
-    if (!normalized.record) return null;
+    if (!normalized.record || isRegressionArtifact(normalized.record)) return null;
 
     return {
       version: 2,
@@ -33,18 +39,23 @@
     };
   }
 
+  function clearDraft() {
+    return storage.remove(storage.keys.draft);
+  }
+
   function loadDraft() {
     const draft = storage.readJson(storage.keys.draft, null);
-    return draft?.record && draft?.values ? draft : null;
+    if (!draft?.record || !draft?.values) return null;
+    if (isRegressionArtifact(draft.record)) {
+      clearDraft();
+      return null;
+    }
+    return draft;
   }
 
   function saveDraft(snapshot) {
     const draft = createDraft(snapshot);
     return draft ? storage.writeJson(storage.keys.draft, draft) : false;
-  }
-
-  function clearDraft() {
-    return storage.remove(storage.keys.draft);
   }
 
   function loadPreferences() {
@@ -58,9 +69,19 @@
     });
   }
 
+  function saveRecent(entries) {
+    const clean = Array.isArray(entries)
+      ? entries.filter(entry => !isRegressionArtifact(entry?.snapshot?.record || entry)).slice(0, MAX_RECENT)
+      : [];
+    return storage.writeJson(storage.keys.recent, clean);
+  }
+
   function loadRecent() {
-    const recent = storage.readJson(storage.keys.recent, []);
-    return Array.isArray(recent) ? recent : [];
+    const stored = storage.readJson(storage.keys.recent, []);
+    if (!Array.isArray(stored)) return [];
+    const clean = stored.filter(entry => !isRegressionArtifact(entry?.snapshot?.record || entry));
+    if (clean.length !== stored.length) saveRecent(clean);
+    return clean;
   }
 
   function currentFilename(snapshot = {}) {
@@ -70,7 +91,7 @@
 
   function createRecentEntry(snapshot = {}, action = 'Saved', filename = currentFilename(snapshot)) {
     const record = snapshot.build?.record;
-    if (!record) return null;
+    if (!record || isRegressionArtifact(record)) return null;
 
     return {
       id: record.id || '',
@@ -81,10 +102,6 @@
       yaml: snapshot.build?.yaml || '---\n',
       snapshot: normalizeSnapshot(snapshot)
     };
-  }
-
-  function saveRecent(entries) {
-    return storage.writeJson(storage.keys.recent, Array.isArray(entries) ? entries.slice(0, MAX_RECENT) : []);
   }
 
   function addRecent(snapshot, action = 'Saved', filename) {
