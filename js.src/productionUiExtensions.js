@@ -100,6 +100,7 @@
     controlFrame = 0;
     applyDisableControl();
     document.getElementById('field-tutorialVPSId')?.closest('.field')?.classList.add('field-main-tutorial');
+    window.VPS_FEATURE_VALIDATION?.refresh?.();
   }
 
   function scheduleControlCorrections() {
@@ -111,7 +112,6 @@
 
   function refreshFeatureUi() {
     window.VPS_ADDITIONAL_ROMS?.render?.();
-    window.VPS_FEATURE_VALIDATION?.refresh?.();
     scheduleControlCorrections();
   }
 
