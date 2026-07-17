@@ -144,10 +144,12 @@
       const item = itemMap.get(String(entry.vpsId || ''));
       const title = row.querySelector('strong');
       const details = row.querySelector('small');
-      if (title) title.textContent = additionalRomName(item, entry, index);
+      const name = additionalRomName(item, entry, index);
+      if (title && title.textContent !== name) title.textContent = name;
       if (details) {
         const parts = [String(entry.vpsId || '').trim(), String(entry.checksum || '').trim()].filter(Boolean);
-        details.textContent = parts.length ? parts.join(' · ') : 'Checksum missing';
+        const detailText = parts.length ? parts.join(' · ') : 'Checksum missing';
+        if (details.textContent !== detailText) details.textContent = detailText;
       }
     });
   }
