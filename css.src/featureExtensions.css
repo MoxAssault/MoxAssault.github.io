@@ -1,0 +1,176 @@
+/* Production feature extension: Main layout, Alt Sound, Tutorials, and Additional ROMs. */
+
+/* Match the Main ID width to the standard ID column while preserving compact controls. */
+.field-grid-main {
+  grid-template-columns: minmax(0, calc(50% - 5px)) 72px minmax(150px, 1fr);
+  grid-template-areas:
+    "game fps enabled"
+    "tagline tagline tagline"
+    "notes notes testers";
+}
+.field-main-id { min-width: 0; }
+.field-main-fps { min-width: 0; }
+.field-main-enabled { min-width: 150px; }
+.field-main-enabled .checkbox-row {
+  justify-content: flex-start;
+  width: max-content;
+  max-width: 100%;
+}
+
+/* Give Year Override enough room for its complete placeholder. */
+.advanced-grid-main {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.42fr);
+  grid-template-areas:
+    "table-name table-name"
+    "manufacturer year"
+    "tutorial tutorial";
+}
+.advanced-grid-main .field-main-tutorial { grid-area: tutorial; }
+.advanced-grid-main .field-main-year-override { min-width: 150px; }
+.advanced-grid-main .field-main-manufacturer-override { min-width: 0; }
+
+/* Anchor every checksum error dot to the input corner instead of the padded drop zone. */
+.checksum-drop-field > .field-error-dot,
+.additional-rom-controls > .field-error-dot {
+  top: 1px;
+  right: 1px;
+  z-index: 510;
+  border-color: var(--panel-raised);
+}
+.checksum-drop-field.has-field-error > input {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
+}
+
+/* Additional ROM control inside ROM Advanced Config. */
+.additional-rom-add {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  color: var(--accent);
+  font: 800 18px/1 "Chakra Petch", sans-serif;
+}
+.additional-rom-add:hover,
+.additional-rom-add:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.additional-rom-add::after {
+  position: absolute;
+  z-index: 560;
+  right: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: max-content;
+  padding: 5px 7px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 700 10px/1.2 "Inter", sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.additional-rom-add:hover::after,
+.additional-rom-add:focus-visible::after { display: block; }
+
+.additional-rom-controls {
+  position: relative;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--panel-line);
+}
+.additional-rom-list { display: grid; gap: 7px; }
+.additional-rom-empty {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.additional-rom-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 9px;
+  border: 1px solid var(--panel-line);
+  border-radius: 7px;
+  background: var(--panel-soft);
+}
+.additional-rom-item strong,
+.additional-rom-item small { display: block; }
+.additional-rom-item strong { color: var(--text); font-size: 11.5px; }
+.additional-rom-item small {
+  overflow-wrap: anywhere;
+  color: var(--text-faint);
+  font: 10px "JetBrains Mono", monospace;
+}
+.additional-rom-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.additional-rom-actions .text-btn { min-height: 28px; padding: 0 8px; }
+
+/* Additional ROM editor dialog. */
+.additional-rom-dialog { width: min(640px, calc(100% - 28px)); }
+.additional-rom-body { display: grid; gap: 12px; }
+.additional-rom-grid { grid-template-columns: 1fr; padding-top: 0; }
+.additional-rom-errors {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--state-red) 55%, var(--panel-line));
+  border-radius: 8px;
+  background: var(--danger-soft);
+  color: var(--text);
+  font-size: 11px;
+}
+.additional-rom-errors[hidden] { display: none; }
+.additional-rom-advanced { margin: 0; }
+.additional-rom-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.additional-rom-dialog-actions .preview-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Alt Sound uses the same balanced ID/checksum proportions as other file tabs. */
+.field-grid-altSound {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .field-grid-main {
+    grid-template-columns: minmax(110px, 1fr) 64px;
+    grid-template-areas:
+      "game fps"
+      "enabled enabled"
+      "tagline tagline"
+      "notes notes"
+      "testers testers";
+  }
+  .field-main-enabled { min-width: 0; }
+  .advanced-grid-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "table-name"
+      "manufacturer"
+      "year"
+      "tutorial";
+  }
+  .advanced-grid-main .field-main-year-override { min-width: 0; }
+  .field-grid-altSound { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .additional-rom-item { align-items: flex-start; flex-direction: column; }
+  .additional-rom-actions { width: 100%; justify-content: flex-end; }
+}
