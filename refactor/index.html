@@ -173,16 +173,18 @@
     <div class="dialog-body" id="recentBody"></div>
   </dialog>
 
-  <script id="checksumImportMap" type="importmap">
+  <script id="runtimeImportMap" type="importmap">
     {
       "imports": {
-        "/refactor/src/ui/checksumTools.js": "/refactor/src/ui/checksumTools.js?v=20260717-md5-2"
+        "/refactor/src/ui/checksumTools.js": "/refactor/src/ui/checksumTools.js?v=20260717-cleanup-1",
+        "/refactor/src/services/buildPersistence.js": "/refactor/src/services/buildPersistence.js?v=20260717-cleanup-1",
+        "/refactor/src/controllers/databaseStatusController.js": "/refactor/src/controllers/databaseStatusController.js?v=20260717-cleanup-1"
       }
     }
   </script>
-  <script type="module" src="/refactor/src/bootstrap.js?v=20260717-md5-2"></script>
+  <script type="module" src="/refactor/src/bootstrap.js?v=20260717-cleanup-1"></script>
   <script>
-    document.getElementById('checksumImportMap')?.remove();
+    document.getElementById('runtimeImportMap')?.remove();
     document.currentScript.remove();
   </script>
 </body>
