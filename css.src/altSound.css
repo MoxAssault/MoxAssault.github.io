@@ -1,0 +1,65 @@
+/* Complete Alt Sound configuration mirrors the PUP Pack panel. */
+
+.field-grid-altSound {
+  grid-template-columns: minmax(140px, 0.8fr) minmax(190px, 1.2fr);
+  grid-template-areas:
+    "alt-id alt-checksum"
+    "alt-notes alt-notes"
+    "alt-url alt-url"
+    "alt-version alt-format"
+    "alt-authors alt-authors"
+    "alt-root alt-bundled";
+}
+
+.field-grid-altSound .field:has(#field-altSoundVPSId) { grid-area: alt-id; }
+.field-grid-altSound .field:has(#field-altSoundChecksum) { grid-area: alt-checksum; }
+.field-grid-altSound .field:has(#field-altSoundNotes) { grid-area: alt-notes; }
+.field-grid-altSound .field:has(#field-altSoundUrlOverride) { grid-area: alt-url; }
+.field-grid-altSound .field:has(#field-altSoundVersionOverride) { grid-area: alt-version; }
+.field-grid-altSound .field:has(#field-altSoundArchiveFormat) { grid-area: alt-format; }
+.field-grid-altSound .field:has(#field-altSoundAuthorsOverride) { grid-area: alt-authors; }
+.field-grid-altSound .field:has(#field-altSoundArchiveRoot) { grid-area: alt-root; }
+.field-grid-altSound .field:has(#field-altSoundBundled) {
+  grid-area: alt-bundled;
+  align-self: center;
+}
+
+.field-grid-altSound .field:has(#field-altSoundNotes) textarea {
+  min-height: 72px;
+  height: 72px;
+  resize: vertical;
+}
+
+.field-grid-altSound .field:has(#field-altSoundBundled) .checkbox-row {
+  min-height: 36px;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  white-space: nowrap;
+}
+
+#field-altSoundArchiveRoot:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.field-alt-sound-checksum .checksum-drop-hint {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .field-grid-altSound {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "alt-id"
+      "alt-checksum"
+      "alt-notes"
+      "alt-url"
+      "alt-version"
+      "alt-format"
+      "alt-authors"
+      "alt-root"
+      "alt-bundled";
+  }
+}
