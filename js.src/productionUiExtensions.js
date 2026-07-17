@@ -135,6 +135,20 @@
     return result;
   };
 
+  function observeConfiguration() {
+    const root = document.getElementById('accordionStack');
+    if (!root || typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(schedule);
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['disabled']
+    });
+  }
+
   document.addEventListener('input', schedule, true);
   document.addEventListener('change', schedule, true);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observeConfiguration, { once: true });
+  else observeConfiguration();
 })();
