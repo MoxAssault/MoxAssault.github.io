@@ -1,0 +1,141 @@
+/* Final production corrections for shared controls and panel layouts. */
+textarea { resize: none !important; }
+
+/* Main row: ID | FPS | Tutorial | Wizard Disabled. */
+.field-grid-main {
+  grid-template-columns: minmax(0, 1fr) 68px minmax(150px, 0.62fr) 92px;
+  grid-template-areas:
+    "game fps tutorial enabled"
+    "tagline tagline tagline tagline"
+    "notes notes testers testers";
+}
+.field-main-tutorial { grid-area: tutorial; width: auto !important; max-width: none !important; }
+.field-main-enabled { min-width: 0; }
+.field-main-enabled .checkbox-row {
+  min-height: 38px;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.05;
+  white-space: normal;
+}
+.field-main-enabled .checkbox-row > span:not(.control-tooltip) {
+  display: inline-block;
+  width: 54px;
+  text-align: left;
+}
+
+/* PUP: version precedes URL, then root and format share the next row. */
+.field-grid-pup {
+  grid-template-columns: minmax(0, 1fr) minmax(135px, 0.42fr);
+  grid-template-areas:
+    "id checksum"
+    "notes notes"
+    "version url"
+    "root format"
+    "required required";
+}
+.field-pup-id { grid-area: id; }
+.field-pup-checksum { grid-area: checksum; }
+.field-pup-notes { grid-area: notes; }
+.field-pup-version { grid-area: version; }
+.field-pup-url { grid-area: url; min-width: 0; }
+.field-pup-root { grid-area: root; }
+.field-pup-format { grid-area: format; }
+.field-pup-required { grid-area: required; }
+
+/* Alt Sound mirrors PUP without exposing the bundled checkbox in the tab. */
+.field-grid-altSound {
+  grid-template-columns: minmax(0, 1fr) minmax(135px, 0.42fr);
+  grid-template-areas:
+    "id checksum"
+    "notes notes"
+    "root format";
+}
+.field-alt-sound-id { grid-area: id; }
+.field-alt-sound-checksum { grid-area: checksum; }
+.field-alt-sound-notes { grid-area: notes; }
+.field-alt-sound-root { grid-area: root; }
+.field-alt-sound-format { grid-area: format; }
+.alt-sound-directory-select { width: 100%; margin-top: 7px; }
+.advanced-grid-altSound {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "authors"
+    "url"
+    "version";
+}
+.field-alt-sound-authors { grid-area: authors; }
+.field-alt-sound-url { grid-area: url; }
+.field-alt-sound-version { grid-area: version; }
+
+/* Keep the Alt Sound checksum marker identical to all other field markers. */
+.field-alt-sound-checksum.feature-has-field-error::after,
+.field-alt-sound-checksum.has-field-error > .field-error-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-width: 2px !important;
+}
+
+/* Single Additional ROM summary icon. */
+.additional-rom-info-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 800 12px/1 "Inter", sans-serif;
+}
+.additional-rom-info-icon + .additional-rom-add { margin-left: 6px; }
+.additional-rom-info-icon::after {
+  position: absolute;
+  z-index: 600;
+  right: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: min(360px, 70vw);
+  padding: 7px 9px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 600 10.5px/1.35 "Inter", sans-serif;
+  text-align: left;
+  white-space: normal;
+}
+.additional-rom-info-icon:hover::after,
+.additional-rom-info-icon:focus-visible::after { display: block; }
+.additional-rom-add:disabled { opacity: 0.45; cursor: not-allowed; }
+.additional-rom-controls:empty { display: none; }
+
+@media (max-width: 760px) {
+  .field-grid-main {
+    grid-template-columns: minmax(110px, 1fr) 64px;
+    grid-template-areas:
+      "game fps"
+      "tutorial tutorial"
+      "enabled enabled"
+      "tagline tagline"
+      "notes notes"
+      "testers testers";
+  }
+  .field-grid-pup,
+  .field-grid-altSound {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "id"
+      "checksum"
+      "notes"
+      "version"
+      "url"
+      "root"
+      "format"
+      "required";
+  }
+}
