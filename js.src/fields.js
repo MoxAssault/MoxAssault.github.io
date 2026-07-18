@@ -144,8 +144,7 @@
           placeholder: 'Alt Sound Checksum(s)'
         },
         { name: 'Alt Sound Notes', yml_field: 'altSoundNotes', type: 'str', multiline: true, wide: true },
-        { name: 'Alt Sound URL Override', yml_field: 'altSoundUrlOverride', type: 'url', wide: true },
-        { name: 'Alt Sound Version Override', yml_field: 'altSoundVersionOverride', type: 'str' },
+        { name: 'Alt Sound Archive Root', yml_field: 'altSoundArchiveRoot', type: 'str' },
         {
           name: 'Alt Sound Archive Format', yml_field: 'altSoundArchiveFormat', type: 'select', hideLabel: true,
           options: [
@@ -155,12 +154,12 @@
             { label: '7Z', value: '7z' }
           ]
         },
-        { name: 'Alt Sound Authors Override', yml_field: 'altSoundAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name' },
         {
-          name: 'Alt Sound Archive Root', yml_field: 'altSoundArchiveRoot', type: 'select', hideLabel: true,
-          options: [{ label: 'Drop an Alt Sound archive to browse directories', value: '' }]
+          name: 'Alt Sound Authors Override', yml_field: 'altSoundAuthorsOverride', type: 'array', wide: true,
+          placeholder: 'name, name, name', advanced: true
         },
-        { name: 'Alt Sound Bundled', yml_field: 'altSoundBundled', type: 'bool' },
+        { name: 'Alt Sound URL Override', yml_field: 'altSoundUrlOverride', type: 'url', wide: true, advanced: true },
+        { name: 'Alt Sound Version Override', yml_field: 'altSoundVersionOverride', type: 'str', wide: true, advanced: true },
         { name: 'Alt Sound Archive Directories', yml_field: '__altSoundArchiveDirectories', type: 'str', customRenderer: true }
       ]
     },

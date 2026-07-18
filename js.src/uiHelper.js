@@ -557,14 +557,10 @@
     }
     if (stepId === 'altSound') {
       if (name === 'altSoundVPSId') return ' field-alt-id field-id-standard';
-      if (name === 'altSoundChecksum') return ' field-alt-checksum field-checksum-standard';
+      if (name === 'altSoundChecksum') return ' field-alt-checksum field-checksum-standard field-alt-sound-checksum checksum-drop-field';
       if (name === 'altSoundNotes') return ' field-alt-notes field-textarea-two';
-      if (name === 'altSoundUrlOverride') return ' field-alt-url';
-      if (name === 'altSoundVersionOverride') return ' field-alt-version';
       if (name === 'altSoundArchiveFormat') return ' field-alt-format';
-      if (name === 'altSoundAuthorsOverride') return ' field-alt-authors';
       if (name === 'altSoundArchiveRoot') return ' field-alt-root';
-      if (name === 'altSoundBundled') return ' field-alt-bundled field-checkbox-plain';
     }
     if (field.readonly) return ' field-compact-id field-id-standard';
     if (/Checksum/i.test(field.name)) return ' field-checksum field-checksum-standard';

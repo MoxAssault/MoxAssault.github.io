@@ -5,26 +5,17 @@
   grid-template-areas:
     "alt-id alt-checksum"
     "alt-notes alt-notes"
-    "alt-url alt-url"
-    "alt-version alt-format"
-    "alt-authors alt-authors"
-    "alt-root alt-bundled";
+    "alt-root alt-format"
+    "alt-directory alt-directory";
 }
 
 .field-alt-id { grid-area: alt-id; }
 .field-alt-checksum { grid-area: alt-checksum; }
 .field-alt-notes { grid-area: alt-notes; }
-.field-alt-url { grid-area: alt-url; }
-.field-alt-version { grid-area: alt-version; }
 .field-alt-format { grid-area: alt-format; }
-.field-alt-authors { grid-area: alt-authors; }
 .field-alt-root { grid-area: alt-root; }
-.field-alt-bundled { grid-area: alt-bundled; align-self: center; }
-
-#field-altSoundArchiveRoot:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+.field-alt-directory { grid-area: alt-directory; }
+.field-alt-directory .archive-directory-select { margin-top: 0; }
 
 .field-alt-sound-checksum .checksum-drop-hint {
   min-width: 0;
@@ -37,11 +28,8 @@
       "alt-id"
       "alt-checksum"
       "alt-notes"
-      "alt-url"
-      "alt-version"
-      "alt-format"
-      "alt-authors"
       "alt-root"
-      "alt-bundled";
+      "alt-format"
+      "alt-directory";
   }
 }

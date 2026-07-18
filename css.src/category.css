@@ -673,11 +673,13 @@
 .advanced-grid-b2s,
 .advanced-grid-rom,
 .advanced-grid-coloredRom,
-.advanced-grid-vpuPatch { grid-template-columns: 1fr; }
+.advanced-grid-vpuPatch,
+.advanced-grid-altSound { grid-template-columns: 1fr; }
 .advanced-grid-b2s .field-wide,
 .advanced-grid-rom .field-wide,
 .advanced-grid-coloredRom .field-wide,
-.advanced-grid-vpuPatch .field-wide { grid-column: 1; }
+.advanced-grid-vpuPatch .field-wide,
+.advanced-grid-altSound .field-wide { grid-column: 1; }
 
 @media (max-width: 760px) {
   .field-grid-pup {
