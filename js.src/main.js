@@ -339,7 +339,7 @@
     const baseValues = options.values ? {} : (state.carryValues || {});
     state.record = record;
     state.selections = options.selections ? { ...options.selections } : {};
-    state.values = migrateBuildValues({ enabled: false, ...baseValues, ...(options.values || {}), tableVPSId: record.id || '' });
+    state.values = migrateBuildValues({ ...baseValues, ...(options.values || {}), tableVPSId: record.id || '' });
     state.openAssetDetails = new Set(options.openAssetDetails || []);
     state.openSteps = new Set();
     state.activeStep = options.activeStep || state.activeStep || 'main';

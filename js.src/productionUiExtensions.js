@@ -32,7 +32,8 @@
         .filter(field => !field.conditionalRecordArray || Boolean(record?.[field.conditionalRecordArray]?.length))
         .map(field => {
           if (!field.dynamicOptionsSource) return field;
-          const items = Array.isArray(record?.[field.dynamicOptionsSource]) ? record[field.dynamicOptionsSource] : [];
+          const rawItems = Array.isArray(record?.[field.dynamicOptionsSource]) ? record[field.dynamicOptionsSource] : [];
+          const items = (utils.sortByUpdatedDesc ? utils.sortByUpdatedDesc(rawItems) : rawItems);
           return {
             ...field,
             options: [
@@ -73,7 +74,9 @@
 
     input.disabled = false;
     input.removeAttribute('aria-disabled');
-    input.checked = values.enabled !== true;
+    // Checkbox is off by default. It is only checked when the user has
+    // explicitly opted in to "Disable for Wizard" (values.enabled === false).
+    input.checked = values.enabled === false;
     const row = input.closest('.checkbox-row');
     const label = row?.querySelector('span:not(.control-tooltip)');
     if (label && label.textContent !== 'Disable for Wizard') label.textContent = 'Disable for Wizard';
@@ -91,7 +94,13 @@
       input.dataset.disableWizardBound = 'true';
       input.addEventListener('change', event => {
         event.stopImmediatePropagation();
-        callbacks.onChange('enabled', event.isTrusted ? !input.checked : input.checked, definition);
+        // Trusted change events fire *after* the checkbox has flipped to its
+        // new state, so `input.checked` already reflects the target. Untrusted
+        // (programmatic) dispatches happen before the flip, so we invert.
+        const targetChecked = event.isTrusted ? input.checked : !input.checked;
+        // Checked  = "Disable for Wizard" ON  -> enabled: false written to YAML
+        // Unchecked = "Disable for Wizard" OFF -> enabled omitted from YAML
+        callbacks.onChange('enabled', targetChecked ? false : undefined, definition);
       }, true);
     }
   }
