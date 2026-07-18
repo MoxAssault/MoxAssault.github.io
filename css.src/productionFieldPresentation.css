@@ -8,13 +8,15 @@ textarea { resize: none !important; }
     "tagline tagline tagline tagline"
     "notes notes testers testers";
 }
-.field-main-tutorial {
+.field-main-tutorial,
+.field-grid-main .field:has(#field-tutorialVPSId) {
   grid-area: tutorial;
   min-width: 0;
   width: auto;
   max-width: none;
 }
-.field-main-tutorial select { width: 100%; }
+.field-main-tutorial select,
+.field-grid-main .field:has(#field-tutorialVPSId) select { width: 100%; }
 .field-main-enabled { min-width: 0; }
 .field-main-enabled .checkbox-row {
   height: 100%;
@@ -96,7 +98,19 @@ textarea { resize: none !important; }
 .additional-rom-add:focus-visible::after { display: block; }
 .additional-rom-controls,
 .additional-rom-empty { display: none !important; }
-.additional-rom-tools.feature-has-field-error::after { top: -4px; right: -4px; }
+.additional-rom-tools.feature-has-field-error::before {
+  position: absolute;
+  z-index: 520;
+  top: -5px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--panel-raised);
+  border-radius: 50%;
+  background: var(--state-red);
+  box-shadow: 0 0 0 3px var(--state-red-soft);
+  content: '';
+}
 
 @media (max-width: 760px) {
   .field-grid-main {
