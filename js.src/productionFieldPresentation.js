@@ -134,24 +134,20 @@
     ).trim();
   }
 
-  function decorateAdditionalRomRows() {
+  function decorateAdditionalRomIndicator() {
     const entries = window.VPS_ADDITIONAL_ROMS?.entries?.() || [];
-    const items = assetItems('romFiles');
-    const itemMap = new Map(items.map(item => [optionId(item), item]));
+    const indicator = document.querySelector('.additional-rom-indicator');
+    const entry = entries[0];
+    if (!indicator || !entry) return;
 
-    document.querySelectorAll('.additional-rom-list .additional-rom-item').forEach((row, index) => {
-      const entry = entries[index] || {};
-      const item = itemMap.get(String(entry.vpsId || ''));
-      const title = row.querySelector('strong');
-      const details = row.querySelector('small');
-      const name = additionalRomName(item, entry, index);
-      if (title && title.textContent !== name) title.textContent = name;
-      if (details) {
-        const parts = [String(entry.vpsId || '').trim(), String(entry.checksum || '').trim()].filter(Boolean);
-        const detailText = parts.length ? parts.join(' · ') : 'Checksum missing';
-        if (details.textContent !== detailText) details.textContent = detailText;
-      }
-    });
+    const items = assetItems('romFiles');
+    const item = items.find(candidate => optionId(candidate) === String(entry.vpsId || ''));
+    const name = additionalRomName(item, entry, 0);
+    const detail = String(entry.checksum || '').trim() || 'Checksum missing';
+    const tooltip = `${name} · ${detail}`;
+    if (indicator.dataset.tooltip !== tooltip) indicator.dataset.tooltip = tooltip;
+    const label = `Additional ROM: ${name}. Activate to edit.`;
+    if (indicator.getAttribute('aria-label') !== label) indicator.setAttribute('aria-label', label);
   }
 
   function applyPresentation() {
@@ -161,7 +157,7 @@
     sortAdditionalRomSelect();
     hideNewFieldLabels();
     correctAltSoundPlaceholder();
-    decorateAdditionalRomRows();
+    decorateAdditionalRomIndicator();
   }
 
   function schedulePresentation() {
