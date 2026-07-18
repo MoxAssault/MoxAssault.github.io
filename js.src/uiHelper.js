@@ -555,6 +555,17 @@
       if (name === 'pupArchiveRoot') return ' field-pup-root';
       if (name === 'pupRequired') return ' field-pup-required field-checkbox-plain';
     }
+    if (stepId === 'altSound') {
+      if (name === 'altSoundVPSId') return ' field-alt-id field-id-standard';
+      if (name === 'altSoundChecksum') return ' field-alt-checksum field-checksum-standard';
+      if (name === 'altSoundNotes') return ' field-alt-notes field-textarea-two';
+      if (name === 'altSoundUrlOverride') return ' field-alt-url';
+      if (name === 'altSoundVersionOverride') return ' field-alt-version';
+      if (name === 'altSoundArchiveFormat') return ' field-alt-format';
+      if (name === 'altSoundAuthorsOverride') return ' field-alt-authors';
+      if (name === 'altSoundArchiveRoot') return ' field-alt-root';
+      if (name === 'altSoundBundled') return ' field-alt-bundled field-checkbox-plain';
+    }
     if (field.readonly) return ' field-compact-id field-id-standard';
     if (/Checksum/i.test(field.name)) return ' field-checksum field-checksum-standard';
     if (field.multiline) return ' field-wide field-textarea-three';
@@ -573,10 +584,19 @@
       input.id = controlId;
       input.name = field.yml_field;
       input.type = 'checkbox';
-      input.checked = value === true;
+      // invertBoolean fields (e.g. "Disable for Wizard" backed by `enabled`)
+      // display the opposite sense of the stored value: checked means the
+      // underlying field is explicitly false, and checking the box writes
+      // false while unchecking it omits the key entirely.
+      input.checked = field.invertBoolean ? value === false : value === true;
       input.disabled = Boolean(field.disabledUnless && values[field.disabledUnless] !== true);
       input.setAttribute('aria-label', field.name);
-      input.addEventListener('change', () => onChange(field.yml_field, input.checked, field));
+      input.addEventListener('change', () => {
+        const nextValue = field.invertBoolean
+          ? (input.checked ? false : undefined)
+          : input.checked;
+        onChange(field.yml_field, nextValue, field);
+      });
       row.append(input, element('span', '', field.name));
       wrapper.appendChild(row);
       return wrapper;
