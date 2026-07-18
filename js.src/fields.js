@@ -2,21 +2,11 @@
   'use strict';
 
   const CATEGORY_CONFIG = {
-    tableFiles: {
-      label: 'VPX', singular: 'VPX file', stepId: 'vpx', idField: 'vpxVPSId', required: true, supportsImage: true
-    },
-    b2sFiles: {
-      label: 'B2S', singular: 'B2S file', stepId: 'b2s', idField: 'backglassVPSId', bundleField: 'backglassBundled', supportsImage: true
-    },
-    romFiles: {
-      label: 'ROM', singular: 'ROM file', stepId: 'rom', idField: 'romVPSId', bundleField: 'romBundled'
-    },
-    altColorFiles: {
-      label: 'Color ROM', singular: 'Color ROM file', stepId: 'coloredRom', idField: 'coloredROMVPSId', bundleField: 'coloredROMBundled'
-    },
-    pupPackFiles: {
-      label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled'
-    },
+    tableFiles: { label: 'VPX', singular: 'VPX file', stepId: 'vpx', idField: 'vpxVPSId', required: true, supportsImage: true },
+    b2sFiles: { label: 'B2S', singular: 'B2S file', stepId: 'b2s', idField: 'backglassVPSId', bundleField: 'backglassBundled', supportsImage: true },
+    romFiles: { label: 'ROM', singular: 'ROM file', stepId: 'rom', idField: 'romVPSId', bundleField: 'romBundled' },
+    altColorFiles: { label: 'Color ROM', singular: 'Color ROM file', stepId: 'coloredRom', idField: 'coloredROMVPSId', bundleField: 'coloredROMBundled' },
+    pupPackFiles: { label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled' },
     altSoundFiles: {
       label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId', bundleField: 'altSoundBundled',
       sourceFields: ['altSoundFiles'], optionFormat: 'id-version-author'
@@ -43,7 +33,12 @@
         { name: 'Game VPS ID', yml_field: 'tableVPSId', type: 'str', readonly: true },
         { name: 'FPS', yml_field: 'fps', type: 'int', min: 1, max: 99, maxlength: 2 },
         {
-          name: 'Disable for Wizard', yml_field: 'enabled', type: 'bool', invertBoolean: true,
+          name: 'Tutorial VPS ID', yml_field: 'tutorialVPSId', type: 'select', wide: true,
+          dynamicOptionsSource: 'tutorialFiles', optionFormat: 'id-author',
+          options: [{ label: 'No tutorials available', value: '' }]
+        },
+        {
+          name: 'Wizard Disabled', yml_field: 'enabled', type: 'bool', invertBoolean: true,
           tooltip: 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.'
         },
         { name: 'Tagline', yml_field: 'tagline', type: 'str', wide: true, responsiveTextarea: true },
@@ -51,12 +46,7 @@
         { name: 'Testers', yml_field: 'testers', type: 'array', multiline: true, wide: true, placeholder: 'name, name, name' },
         { name: 'Table Name Override', yml_field: 'tableNameOverride', type: 'str', wide: true, advanced: true },
         { name: 'Table Manufacturer Override', yml_field: 'tableManufacturerOverride', type: 'str', advanced: true },
-        { name: 'Year Override', yml_field: 'tableYearOverride', type: 'int', maxlength: 4, advanced: true },
-        {
-          name: 'Tutorial VPS ID', yml_field: 'tutorialVPSId', type: 'select', wide: true, advanced: true,
-          dynamicOptionsSource: 'tutorialFiles', optionFormat: 'id-author', conditionalRecordArray: 'tutorialFiles',
-          options: [{ label: 'Select a tutorial', value: '' }]
-        }
+        { name: 'Year Override', yml_field: 'tableYearOverride', type: 'int', maxlength: 4, advanced: true }
       ]
     },
     {
@@ -95,11 +85,7 @@
         { name: 'Color ROM ID', yml_field: 'coloredROMVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'Color ROM Checksum', yml_field: 'coloredROMChecksum', type: 'str', wide: true,
-          checksumExtensionsByFlag: {
-            field: 'coloredROMPin2DMD',
-            false: ['.crz', '.pal', '.pac'],
-            true: ['.pal', '.vni']
-          }
+          checksumExtensionsByFlag: { field: 'coloredROMPin2DMD', false: ['.crz', '.pal', '.pac'], true: ['.pal', '.vni'] }
         },
         { name: 'PAL/VNI', yml_field: 'coloredROMPin2DMD', type: 'bool' },
         {
@@ -115,13 +101,11 @@
       id: 'pup', label: 'PUP Pack', legend: 'PUP Pack', category: 'pupPackFiles', bundleField: 'pupBundled',
       fields: [
         { name: 'PUP Pack ID', yml_field: 'pupVPSId', type: 'str', readonly: true, wide: true },
-        {
-          name: 'PUP Pack Checksum', yml_field: 'pupChecksum', type: 'str', wide: true,
-          checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true
-        },
+        { name: 'PUP Pack Checksum', yml_field: 'pupChecksum', type: 'str', wide: true, checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true },
         { name: 'PUP Pack Notes', yml_field: 'pupNotes', type: 'str', multiline: true, wide: true },
-        { name: 'PUP Pack URL', yml_field: 'pupFileUrl', type: 'url', wide: true },
         { name: 'PUP Pack Version', yml_field: 'pupVersion', type: 'str' },
+        { name: 'PUP Pack URL', yml_field: 'pupFileUrl', type: 'url', wide: true },
+        { name: 'PUP Pack Archive Root', yml_field: 'pupArchiveRoot', type: 'str', directoryPicker: true },
         {
           name: 'PUP Pack Archive Format', yml_field: 'pupArchiveFormat', type: 'select', hideLabel: true,
           options: [
@@ -131,7 +115,6 @@
             { label: '7Z', value: '7z' }
           ]
         },
-        { name: 'PUP Pack Archive Root', yml_field: 'pupArchiveRoot', type: 'str', directoryPicker: true },
         { name: 'PUP Pack Required', yml_field: 'pupRequired', type: 'bool' }
       ]
     },
@@ -139,13 +122,9 @@
       id: 'altSound', label: 'Alt Sound', legend: 'Alt Sound', category: 'altSoundFiles', bundleField: 'altSoundBundled',
       fields: [
         { name: 'Alt Sound ID', yml_field: 'altSoundVPSId', type: 'str', readonly: true, wide: true },
-        {
-          name: 'Alt Sound Checksum(s)', yml_field: 'altSoundChecksum', type: 'array', wide: true,
-          placeholder: 'Alt Sound Checksum(s)'
-        },
+        { name: 'Alt Sound Checksum(s)', yml_field: 'altSoundChecksum', type: 'array', wide: true, placeholder: 'Alt Sound Checksum(s)' },
         { name: 'Alt Sound Notes', yml_field: 'altSoundNotes', type: 'str', multiline: true, wide: true },
-        { name: 'Alt Sound URL Override', yml_field: 'altSoundUrlOverride', type: 'url', wide: true },
-        { name: 'Alt Sound Version Override', yml_field: 'altSoundVersionOverride', type: 'str' },
+        { name: 'Alt Sound Archive Root', yml_field: 'altSoundArchiveRoot', type: 'str', wide: true },
         {
           name: 'Alt Sound Archive Format', yml_field: 'altSoundArchiveFormat', type: 'select', hideLabel: true,
           options: [
@@ -155,13 +134,10 @@
             { label: '7Z', value: '7z' }
           ]
         },
-        { name: 'Alt Sound Authors Override', yml_field: 'altSoundAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name' },
-        {
-          name: 'Alt Sound Archive Root', yml_field: 'altSoundArchiveRoot', type: 'select', hideLabel: true,
-          options: [{ label: 'Drop an Alt Sound archive to browse directories', value: '' }]
-        },
-        { name: 'Alt Sound Bundled', yml_field: 'altSoundBundled', type: 'bool' },
-        { name: 'Alt Sound Archive Directories', yml_field: '__altSoundArchiveDirectories', type: 'str', customRenderer: true }
+        { name: 'Alt Sound Directory Select', yml_field: '__altSoundArchiveDirectorySelect', type: 'select', hideLabel: true, options: [{ label: 'Drop an Alt Sound archive to browse directories', value: '' }] },
+        { name: 'Alt Sound Authors Override', yml_field: 'altSoundAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name', advanced: true },
+        { name: 'Alt Sound URL Override', yml_field: 'altSoundUrlOverride', type: 'url', wide: true, advanced: true },
+        { name: 'Alt Sound Version Override', yml_field: 'altSoundVersionOverride', type: 'str', wide: true, advanced: true }
       ]
     },
     {
@@ -181,15 +157,10 @@
     'coloredROMChecksumSecondary',
     '__pupArchiveDirectories',
     '__altSoundArchiveDirectories',
+    '__altSoundArchiveDirectorySelect',
     '__checksumSources'
   ]);
-  const PRESET_FIELDS = new Set(['enabled', 'fps', 'testers', 'pupArchiveFormat', 'altSoundArchiveFormat']);
+  const PRESET_FIELDS = new Set(['enabled', 'fps', 'testers', 'pupArchiveFormat']);
 
-  window.VPS_YML_FIELDS = {
-    CATEGORY_CONFIG,
-    BUNDLE_FIELDS,
-    WIZARD_STEPS,
-    OMIT_FROM_YAML,
-    PRESET_FIELDS
-  };
+  window.VPS_YML_FIELDS = { CATEGORY_CONFIG, BUNDLE_FIELDS, WIZARD_STEPS, OMIT_FROM_YAML, PRESET_FIELDS };
 })();
