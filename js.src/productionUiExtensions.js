@@ -6,7 +6,7 @@
   const runtime = window.VPS_FEATURE_RUNTIME;
   if (!UI || !fields || !utils || !runtime) return;
 
-  const { CATEGORY_CONFIG, WIZARD_STEPS } = fields;
+  const { CATEGORY_CONFIG } = fields;
   const { getCategoryItems, getItemLabel, isItemBroken, normalizeArray } = utils;
   const renderAssets = UI.renderAssetMatrix.bind(UI);
   const renderConfig = UI.renderAccordions.bind(UI);
@@ -31,14 +31,24 @@
         .filter(field => !field.customRenderer)
         .map(field => {
           if (!field.dynamicOptionsSource) return field;
-          const items = Array.isArray(record?.[field.dynamicOptionsSource]) ? record[field.dynamicOptionsSource] : [];
+          const rawItems = Array.isArray(record?.[field.dynamicOptionsSource]) ? record[field.dynamicOptionsSource] : [];
+          const items = (utils.sortByUpdatedDesc ? utils.sortByUpdatedDesc(rawItems) : rawItems);
+          const isEmpty = items.length === 0;
           return {
             ...field,
+            disabled: isEmpty,
             options: [
-              { label: items.length ? `Select ${field.name.replace(/ VPS ID$/i, '')}` : 'No tutorials available', value: '' },
-              ...items.map(item => ({ label: optionLabel(item, field.optionFormat), value: String(item?.id || '') }))
-            ],
-            disabledWhenEmpty: items.length === 0
+              {
+                label: isEmpty
+                  ? `No ${field.name.replace(/ VPS ID$/i, '')}s available`
+                  : `Select ${field.name.replace(/ VPS ID$/i, '')}`,
+                value: ''
+              },
+              ...items.map(item => ({
+                label: optionLabel(item, field.optionFormat),
+                value: String(item?.id || '')
+              }))
+            ]
           };
         })
     }));
@@ -47,7 +57,7 @@
   function relabelAssetOptions(container, record, selections) {
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
       if (!config.optionFormat) return;
-      const select = container.querySelector(`.asset-row[data-category="${CSS.escape(category)}"] select`);
+      const select = container.querySelector(`.asset-row[data-category="${utils.cssEscape(category)}"] select`);
       if (!select) return;
       const items = getCategoryItems(record, category, config, { selections });
       [...select.options].slice(1).forEach(option => {
@@ -58,55 +68,9 @@
     });
   }
 
-  function enabledDefinition() {
-    return WIZARD_STEPS.find(step => step.id === 'main')?.fields.find(field => field.yml_field === 'enabled') || { yml_field: 'enabled', type: 'bool' };
-  }
-
-  function applyDisableControl() {
-    const { values, callbacks } = runtime.state;
-    const input = document.getElementById('field-enabled');
-    if (!input || !values || !callbacks) return;
-
-    input.disabled = false;
-    input.removeAttribute('aria-disabled');
-    input.checked = values.enabled !== true;
-    const row = input.closest('.checkbox-row');
-    const label = row?.querySelector('span:not(.control-tooltip)');
-    if (label) {
-      label.classList.add('wizard-disabled-label');
-      label.innerHTML = '<span>Wizard</span><span>Disabled</span>';
-    }
-
-    const tooltipText = 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.';
-    const definition = enabledDefinition();
-    definition.name = 'Wizard Disabled';
-    definition.tooltip = tooltipText;
-    if (row) {
-      row.classList.add('has-control-tooltip');
-      row.dataset.disableWizardTooltip = tooltipText;
-    }
-
-    if (input.dataset.disableWizardBound !== 'true') {
-      input.dataset.disableWizardBound = 'true';
-      input.addEventListener('change', event => {
-        event.stopImmediatePropagation();
-        callbacks.onChange('enabled', event.isTrusted ? !input.checked : input.checked, definition);
-      }, true);
-    }
-  }
-
-  function applyTutorialState() {
-    const select = document.getElementById('field-tutorialVPSId');
-    if (!select) return;
-    const available = Array.isArray(runtime.state.record?.tutorialFiles) && runtime.state.record.tutorialFiles.length > 0;
-    select.disabled = !available;
-    select.setAttribute('aria-disabled', available ? 'false' : 'true');
-  }
-
   function applyControlCorrections() {
     controlFrame = 0;
-    applyDisableControl();
-    applyTutorialState();
+    document.getElementById('field-tutorialVPSId')?.closest('.field')?.classList.add('field-main-tutorial');
     window.VPS_FEATURE_VALIDATION?.refresh?.();
   }
 
@@ -132,16 +96,7 @@
 
   UI.renderAccordions = function (container, steps, values, callbacks) {
     runtime.update({ values, callbacks });
-    const displayValues = new Proxy(values, {
-      get(target, property, receiver) {
-        return property === 'enabled' ? false : Reflect.get(target, property, receiver);
-      },
-      set(target, property, value, receiver) {
-        if (property === 'enabled') return true;
-        return Reflect.set(target, property, value, receiver);
-      }
-    });
-    const result = renderConfig(container, renderableSteps(steps, runtime.state.record), displayValues, callbacks);
+    const result = renderConfig(container, renderableSteps(steps, runtime.state.record), values, callbacks);
     refreshFeatureUi();
     return result;
   };
@@ -149,5 +104,8 @@
   document.addEventListener('input', refreshFeatureUi, true);
   document.addEventListener('change', refreshFeatureUi, true);
 
-  window.VPS_PRODUCTION_UI_EXTENSIONS = Object.freeze({ refresh: refreshFeatureUi, scheduleControlCorrections });
+  window.VPS_PRODUCTION_UI_EXTENSIONS = Object.freeze({
+    refresh: refreshFeatureUi,
+    scheduleControlCorrections
+  });
 })();
