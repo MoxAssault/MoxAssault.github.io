@@ -8,7 +8,8 @@
     isItemBroken,
     getCategoryItems,
     getAssetState,
-    extractArchiveDirectories
+    extractArchiveDirectories,
+    listArchiveEntryPaths
   } = window.VPS_UTILS;
   const { CATEGORY_CONFIG } = window.VPS_YML_FIELDS;
 
@@ -67,62 +68,89 @@
   }
 
   function createMd5Worker() {
+    // Streaming MD5 worker. Accepts incremental chunks so files larger than the
+    // single-ArrayBuffer allocation limit (~2 GB in Chrome) can still be hashed.
+    // Protocol:
+    //   { type: 'init' }                    -> reset state
+    //   { type: 'chunk', buffer: ArrayBuffer } -> feed bytes (transferable)
+    //   { type: 'finish' }                  -> emit { checksum } or { error }
     const workerSource = `
+      'use strict';
+      let a0, b0, c0, d0;
+      let buffered = new Uint8Array(0);
+      let totalLength = 0;
+      const shifts = new Uint8Array([7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21]);
+      const constants = new Uint32Array(64);
+      for (let i = 0; i < 64; i += 1) constants[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 0x100000000) >>> 0;
+      function rotate(value, amount) { return ((value << amount) | (value >>> (32 - amount))) >>> 0; }
+      function processBlocks(bytes, byteCount) {
+        const view = new DataView(bytes.buffer, bytes.byteOffset, byteCount);
+        const words = new Uint32Array(16);
+        for (let offset = 0; offset < byteCount; offset += 64) {
+          for (let i = 0; i < 16; i += 1) words[i] = view.getUint32(offset + i * 4, true);
+          let a = a0, b = b0, c = c0, d = d0;
+          for (let i = 0; i < 64; i += 1) {
+            let f, g;
+            if (i < 16) { f = (b & c) | (~b & d); g = i; }
+            else if (i < 32) { f = (d & b) | (~d & c); g = (5 * i + 1) & 15; }
+            else if (i < 48) { f = b ^ c ^ d; g = (3 * i + 5) & 15; }
+            else { f = c ^ (b | ~d); g = (7 * i) & 15; }
+            const nextD = d;
+            d = c; c = b;
+            b = (b + rotate((a + f + constants[i] + words[g]) >>> 0, shifts[i])) >>> 0;
+            a = nextD;
+          }
+          a0 = (a0 + a) >>> 0;
+          b0 = (b0 + b) >>> 0;
+          c0 = (c0 + c) >>> 0;
+          d0 = (d0 + d) >>> 0;
+        }
+      }
+      function reset() {
+        a0 = 0x67452301; b0 = 0xefcdab89; c0 = 0x98badcfe; d0 = 0x10325476;
+        buffered = new Uint8Array(0);
+        totalLength = 0;
+      }
+      reset();
       self.onmessage = function (event) {
         try {
-          const buffer = event.data;
-          const bytes = new Uint8Array(buffer);
-          const length = bytes.length;
-          const paddedLength = (((length + 8) >>> 6) + 1) * 64;
-          const data = new Uint8Array(paddedLength);
-          data.set(bytes);
-          data[length] = 0x80;
-          const bitLength = length * 8;
-          const view = new DataView(data.buffer);
-          view.setUint32(paddedLength - 8, bitLength >>> 0, true);
-          view.setUint32(paddedLength - 4, Math.floor(bitLength / 0x100000000), true);
-
-          let a0 = 0x67452301;
-          let b0 = 0xefcdab89;
-          let c0 = 0x98badcfe;
-          let d0 = 0x10325476;
-          const shifts = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
-          const constants = Array.from({ length: 64 }, function (_, index) {
-            return Math.floor(Math.abs(Math.sin(index + 1)) * 0x100000000) >>> 0;
-          });
-          const rotateLeft = function (value, amount) {
-            return ((value << amount) | (value >>> (32 - amount))) >>> 0;
-          };
-
-          for (let offset = 0; offset < paddedLength; offset += 64) {
-            const words = Array.from({ length: 16 }, function (_, index) {
-              return view.getUint32(offset + index * 4, true);
-            });
-            let a = a0, b = b0, c = c0, d = d0;
-            for (let index = 0; index < 64; index += 1) {
-              let f, g;
-              if (index < 16) { f = (b & c) | (~b & d); g = index; }
-              else if (index < 32) { f = (d & b) | (~d & c); g = (5 * index + 1) % 16; }
-              else if (index < 48) { f = b ^ c ^ d; g = (3 * index + 5) % 16; }
-              else { f = c ^ (b | ~d); g = (7 * index) % 16; }
-              const nextD = d;
-              d = c;
-              c = b;
-              b = (b + rotateLeft((a + f + constants[index] + words[g]) >>> 0, shifts[index])) >>> 0;
-              a = nextD;
+          const message = event.data;
+          if (message && message.type === 'init') { reset(); return; }
+          if (message && message.type === 'chunk') {
+            const chunk = new Uint8Array(message.buffer);
+            totalLength += chunk.length;
+            let combined;
+            if (buffered.length === 0) {
+              combined = chunk;
+            } else {
+              combined = new Uint8Array(buffered.length + chunk.length);
+              combined.set(buffered, 0);
+              combined.set(chunk, buffered.length);
             }
-            a0 = (a0 + a) >>> 0;
-            b0 = (b0 + b) >>> 0;
-            c0 = (c0 + c) >>> 0;
-            d0 = (d0 + d) >>> 0;
+            const completeBytes = combined.length - (combined.length % 64);
+            if (completeBytes > 0) processBlocks(combined, completeBytes);
+            const leftover = combined.subarray(completeBytes);
+            buffered = leftover.length > 0 ? new Uint8Array(leftover) : new Uint8Array(0);
+            return;
           }
-
-          const checksum = [a0, b0, c0, d0].map(function (value) {
-            return [0, 8, 16, 24].map(function (shift) {
-              return ((value >>> shift) & 0xff).toString(16).padStart(2, '0');
+          if (message && message.type === 'finish') {
+            const bitLength = totalLength * 8;
+            const remaining = buffered.length;
+            const paddedLength = (((remaining + 8) >>> 6) + 1) * 64;
+            const padded = new Uint8Array(paddedLength);
+            padded.set(buffered);
+            padded[remaining] = 0x80;
+            const view = new DataView(padded.buffer);
+            view.setUint32(paddedLength - 8, bitLength >>> 0, true);
+            view.setUint32(paddedLength - 4, Math.floor(bitLength / 0x100000000), true);
+            processBlocks(padded, paddedLength);
+            const checksum = [a0, b0, c0, d0].map(function (value) {
+              return [0, 8, 16, 24].map(function (shift) {
+                return ((value >>> shift) & 0xff).toString(16).padStart(2, '0');
+              }).join('');
             }).join('');
-          }).join('');
-          self.postMessage({ checksum: checksum });
+            self.postMessage({ checksum: checksum });
+          }
         } catch (error) {
           self.postMessage({ error: error && error.message ? error.message : 'MD5 calculation failed.' });
         }
@@ -134,28 +162,54 @@
     return worker;
   }
 
-  function calculateMd5InBackground(buffer) {
+  function calculateMd5FromBlob(blob) {
     return new Promise((resolve, reject) => {
-      if (typeof Worker === 'undefined') {
-        window.setTimeout(() => {
-          try { resolve(md5ArrayBuffer(buffer)); }
-          catch (error) { reject(error); }
-        }, 0);
+      if (typeof Worker === 'undefined' || typeof blob?.stream !== 'function') {
+        // Fallback: slurp whole file (only works for files under ~2 GB in Chrome).
+        blob.arrayBuffer()
+          .then(buffer => resolve(md5ArrayBuffer(buffer)))
+          .catch(reject);
         return;
       }
 
       const worker = createMd5Worker();
-      const cleanup = () => worker.terminate();
+      let settled = false;
+      const done = value => { if (settled) return; settled = true; worker.terminate(); resolve(value); };
+      const fail = error => { if (settled) return; settled = true; worker.terminate(); reject(error); };
+
       worker.addEventListener('message', event => {
-        cleanup();
-        if (event.data?.error) reject(new Error(event.data.error));
-        else resolve(event.data?.checksum || '');
-      }, { once: true });
+        if (event.data?.error) fail(new Error(event.data.error));
+        else if (event.data?.checksum !== undefined) done(event.data.checksum);
+      });
       worker.addEventListener('error', event => {
-        cleanup();
-        reject(event.error || new Error(event.message || 'MD5 worker failed.'));
-      }, { once: true });
-      worker.postMessage(buffer, [buffer]);
+        fail(event.error || new Error(event.message || 'MD5 worker failed.'));
+      });
+
+      worker.postMessage({ type: 'init' });
+
+      (async () => {
+        let reader;
+        try {
+          reader = blob.stream().getReader();
+          while (!settled) {
+            const { done: streamDone, value } = await reader.read();
+            if (streamDone) break;
+            const buffer = (value.byteOffset === 0 && value.byteLength === value.buffer.byteLength)
+              ? value.buffer
+              : value.slice().buffer;
+            worker.postMessage({ type: 'chunk', buffer: buffer }, [buffer]);
+          }
+          if (!settled) worker.postMessage({ type: 'finish' });
+        } catch (error) {
+          const sizeMb = blob?.size ? (blob.size / (1024 * 1024)).toFixed(1) : '?';
+          const reason = error?.name === 'NotReadableError'
+            ? `browser could not read the file (${sizeMb} MB) \u2014 file may be locked, on a slow drive, or the download is incomplete`
+            : (error?.message || error?.name || 'unknown read error');
+          fail(new Error(`MD5 read failed: ${reason}`));
+        } finally {
+          try { reader?.releaseLock?.(); } catch (_) { /* ignore */ }
+        }
+      })();
     });
   }
 
@@ -179,8 +233,36 @@
   }
 
   async function readArchiveDirectories(file) {
+    // Fast path: streaming header parsers (currently RAR5) that work for archives
+    // of any size — they never load the whole file into memory.
+    try {
+      const streamedEntries = await listArchiveEntryPaths(file);
+      if (streamedEntries && streamedEntries.length > 0) {
+        return extractArchiveDirectories(streamedEntries);
+      }
+    } catch (error) {
+      console.warn('Streaming archive parse failed, falling back to libarchive:', error);
+    }
+
     const Archive = await loadArchiveModule();
-    const archive = await Archive.open(file);
+    // Fallback path: libarchive.js. It requires the whole file in a single
+    // ArrayBuffer, which fails for files larger than ~2 GB. Reading here (on
+    // the main thread) lets us catch the NotReadableError with useful info
+    // instead of it surfacing as an uncaught rejection inside the worker.
+    let source;
+    try {
+      const buffer = await file.arrayBuffer();
+      source = new Blob([buffer], { type: file.type || 'application/octet-stream' });
+    } catch (error) {
+      const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
+      const reason = error?.name === 'NotReadableError'
+        ? `archive is too large to browse in-browser (${sizeMb} MB) \u2014 enter the directory manually`
+        : (error?.message || error?.name || 'unknown read error');
+      const friendly = new Error(`Could not browse "${file?.name || 'archive'}": ${reason}.`);
+      friendly.cause = error;
+      throw friendly;
+    }
+    const archive = await Archive.open(source);
     try {
       const entries = await archive.getFilesArray();
       return extractArchiveDirectories(entries);
@@ -663,7 +745,7 @@
         dropHint.textContent = `Processing ${file.name}…`;
         setLoading(true);
 
-        const checksumTask = file.arrayBuffer().then(buffer => calculateMd5InBackground(buffer));
+        const checksumTask = calculateMd5FromBlob(file);
         const archiveTask = field.archiveBrowser
           ? readArchiveDirectories(file)
           : Promise.resolve(null);
@@ -678,8 +760,10 @@
           onChange('__checksumSources', sources, { uiOnly: true });
           messages.push('MD5 calculated');
         } else {
-          messages.push('MD5 failed');
+          const reason = checksumResult.reason?.message || 'MD5 failed';
+          messages.push(reason);
           dropHint.classList.add('error');
+          console.warn('MD5 failed:', checksumResult.reason);
         }
 
         if (field.archiveBrowser) {
@@ -691,8 +775,10 @@
               ? `${directories.length} director${directories.length === 1 ? 'y' : 'ies'} loaded`
               : 'no directories found');
           } else {
-            messages.push('directory browse failed');
+            const reason = archiveResult.reason?.message || 'directory browse failed';
+            messages.push(reason);
             dropHint.classList.add('error');
+            console.warn('Archive browse failed:', archiveResult.reason);
           }
         }
 

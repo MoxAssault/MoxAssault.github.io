@@ -377,6 +377,150 @@
       });
   }
 
+  // -----------------------------------------------------------------------
+  // Streaming RAR5 entry lister.
+  //
+  // Walks the archive header-by-header using `blob.slice()` reads so it never
+  // has to load the whole file into memory. This is the only way to browse
+  // archives larger than ~2 GB in-browser (Chrome's Blob.arrayBuffer limit).
+  // Returns an array of `{ path }` entries compatible with
+  // `extractArchiveDirectories`, or `null` if the blob isn't a RAR5 archive.
+  // -----------------------------------------------------------------------
+
+  function readRarVint(bytes, offset) {
+    let value = 0n;
+    let shift = 0n;
+    let pos = offset;
+    while (pos < bytes.length) {
+      const b = bytes[pos];
+      pos += 1;
+      value |= BigInt(b & 0x7f) << shift;
+      if ((b & 0x80) === 0) return { value, next: pos };
+      shift += 7n;
+      if (shift > 63n) throw new Error('vint overflow');
+    }
+    throw new Error('vint truncated');
+  }
+
+  async function readSlice(blob, offset, length) {
+    const buf = await blob.slice(offset, offset + length).arrayBuffer();
+    return new Uint8Array(buf);
+  }
+
+  async function listRar5EntryPaths(blob) {
+    if (!blob || typeof blob.slice !== 'function' || typeof blob.arrayBuffer !== 'function') return null;
+    const total = blob.size;
+    if (total < 8) return null;
+
+    const sig = await readSlice(blob, 0, 8);
+    // RAR5 signature: 52 61 72 21 1A 07 01 00
+    const isRar5 = sig[0] === 0x52 && sig[1] === 0x61 && sig[2] === 0x72 && sig[3] === 0x21
+                && sig[4] === 0x1A && sig[5] === 0x07 && sig[6] === 0x01 && sig[7] === 0x00;
+    if (!isRar5) return null;
+
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    const entries = [];
+    let offset = 8;
+    let iterations = 0;
+    const MAX_ITERATIONS = 200000; // safety cap
+    const MAX_HEADER_BYTES = 1024 * 1024; // any single header block
+
+    while (offset < total && iterations < MAX_ITERATIONS) {
+      iterations += 1;
+
+      // Start with a small window, then grow if the header body doesn't fit.
+      let windowSize = 512;
+      let bytes = await readSlice(blob, offset, Math.min(windowSize, total - offset));
+      if (bytes.length < 5) break;
+
+      let headerSize;
+      let headerBodyStart;
+      let attempts = 0;
+      while (true) {
+        try {
+          const info = readRarVint(bytes, 4); // skip 4-byte CRC
+          headerSize = Number(info.value);
+          headerBodyStart = info.next;
+          break;
+        } catch (_) {
+          attempts += 1;
+          if (attempts > 3) return entries; // give up gracefully
+          windowSize *= 4;
+          if (windowSize > MAX_HEADER_BYTES) return entries;
+          bytes = await readSlice(blob, offset, Math.min(windowSize, total - offset));
+          if (bytes.length < 5) return entries;
+        }
+      }
+
+      const headerEnd = headerBodyStart + headerSize;
+      if (headerSize < 0 || headerEnd > MAX_HEADER_BYTES) return entries;
+
+      if (headerEnd > bytes.length) {
+        const need = Math.min(headerEnd, total - offset);
+        bytes = await readSlice(blob, offset, need);
+        if (bytes.length < headerEnd) return entries;
+      }
+
+      let pos = headerBodyStart;
+      let headerType;
+      let headerFlags;
+      let dataSize = 0;
+      try {
+        const typeInfo = readRarVint(bytes, pos); pos = typeInfo.next;
+        const flagsInfo = readRarVint(bytes, pos); pos = flagsInfo.next;
+        headerType = Number(typeInfo.value);
+        headerFlags = Number(flagsInfo.value);
+        if (headerFlags & 0x01) { // HF_EXTRA
+          const extraInfo = readRarVint(bytes, pos); pos = extraInfo.next;
+        }
+        if (headerFlags & 0x02) { // HF_DATA
+          const dataInfo = readRarVint(bytes, pos); pos = dataInfo.next;
+          const raw = dataInfo.value;
+          // Cap at Number.MAX_SAFE_INTEGER; for realistic archives this is fine.
+          dataSize = raw > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(raw);
+        }
+      } catch (_) {
+        return entries;
+      }
+
+      // Type 2 = file header, has a filename we care about.
+      if (headerType === 2) {
+        try {
+          const fileFlagsInfo = readRarVint(bytes, pos); pos = fileFlagsInfo.next;
+          const fileFlags = Number(fileFlagsInfo.value);
+          const unpackedInfo = readRarVint(bytes, pos); pos = unpackedInfo.next; // unpacked size
+          const attrInfo = readRarVint(bytes, pos); pos = attrInfo.next;         // attributes
+          if (fileFlags & 0x02) pos += 4; // mtime
+          if (fileFlags & 0x04) pos += 4; // data CRC32
+          const compInfo = readRarVint(bytes, pos); pos = compInfo.next;         // compression info
+          const hostOsInfo = readRarVint(bytes, pos); pos = hostOsInfo.next;     // host OS
+          const nameLenInfo = readRarVint(bytes, pos); pos = nameLenInfo.next;
+          const nameLen = Number(nameLenInfo.value);
+          if (nameLen > 0 && pos + nameLen <= bytes.length) {
+            const name = decoder.decode(bytes.subarray(pos, pos + nameLen));
+            if (name) entries.push({ path: name });
+          }
+        } catch (_) { /* skip malformed entry */ }
+      }
+
+      if (headerType === 5) break; // End of archive marker
+
+      offset += headerEnd + dataSize;
+    }
+
+    return entries;
+  }
+
+  async function listArchiveEntryPaths(blob) {
+    // Try format-specific streaming parsers first (works for archives of any size).
+    // Returns null if the format isn't one we can stream — caller should fall back.
+    try {
+      const rar5 = await listRar5EntryPaths(blob);
+      if (rar5) return rar5;
+    } catch (_) { /* fall through to null */ }
+    return null;
+  }
+
   window.VPS_UTILS = {
     escapeHtml,
     humanize,
@@ -399,6 +543,7 @@
     formatDateDMY,
     isMd5Hash,
     normalizeChecksumValue,
-    extractArchiveDirectories
+    extractArchiveDirectories,
+    listArchiveEntryPaths
   };
 })();
