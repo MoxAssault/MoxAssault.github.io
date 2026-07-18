@@ -1,20 +1,124 @@
-/* Production field presentation: compact tutorials and placeholder-only new controls. */
+/* Production field presentation and compact panel layout. */
+textarea { resize: none !important; }
 
-/* Tutorials occupy roughly one-third of their previous full-row width. */
-.advanced-grid-main .field-main-tutorial {
-  width: 34%;
-  max-width: 34%;
+.field-grid-main {
+  grid-template-columns: minmax(145px, 1fr) 58px minmax(135px, .9fr) minmax(92px, .55fr);
+  grid-template-areas:
+    "game fps tutorial enabled"
+    "tagline tagline tagline tagline"
+    "notes notes testers testers";
+}
+.field-main-tutorial {
+  grid-area: tutorial;
   min-width: 0;
-  justify-self: start;
+  width: auto;
+  max-width: none;
 }
+.field-main-tutorial select { width: 100%; }
+.field-main-enabled { min-width: 0; }
+.field-main-enabled .checkbox-row {
+  height: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+}
+.wizard-disabled-label {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.02;
+  white-space: normal;
+}
+.wizard-disabled-label > span { display: block; }
 
-.advanced-grid-main .field-main-tutorial select {
-  width: 100%;
+.field-grid-pup {
+  grid-template-columns: minmax(130px, .72fr) minmax(210px, 1.28fr);
+  grid-template-areas:
+    "pup-id pup-checksum"
+    "pup-notes pup-notes"
+    "pup-version pup-url"
+    "pup-root pup-format"
+    "pup-required pup-required";
 }
+.field-pup-version { grid-area: pup-version; }
+.field-pup-url { grid-area: pup-url; }
+.field-pup-root { grid-area: pup-root; }
+.field-pup-format { grid-area: pup-format; }
+.field-pup-required { grid-area: pup-required; }
+
+.additional-rom-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  position: relative;
+}
+.additional-rom-info,
+.additional-rom-add {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  color: var(--accent);
+  font-weight: 800;
+}
+.additional-rom-info { font-size: 13px; }
+.additional-rom-add { font-size: 18px; line-height: 1; }
+.additional-rom-add:disabled { opacity: .45; cursor: not-allowed; }
+.additional-rom-info::after,
+.additional-rom-add::after {
+  position: absolute;
+  z-index: 560;
+  right: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: max-content;
+  max-width: 320px;
+  padding: 7px 9px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 600 10px/1.35 "Inter", sans-serif;
+  white-space: pre-line;
+  text-align: left;
+}
+.additional-rom-info:hover::after,
+.additional-rom-info:focus-visible::after,
+.additional-rom-add:hover::after,
+.additional-rom-add:focus-visible::after { display: block; }
+.additional-rom-controls,
+.additional-rom-empty { display: none !important; }
+.additional-rom-tools.feature-has-field-error::after { top: -4px; right: -4px; }
 
 @media (max-width: 760px) {
-  .advanced-grid-main .field-main-tutorial {
-    width: 100%;
-    max-width: none;
+  .field-grid-main {
+    grid-template-columns: minmax(105px, 1fr) 58px;
+    grid-template-areas:
+      "game fps"
+      "tutorial tutorial"
+      "enabled enabled"
+      "tagline tagline"
+      "notes notes"
+      "testers testers";
+  }
+  .field-grid-pup {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "pup-id"
+      "pup-checksum"
+      "pup-notes"
+      "pup-version"
+      "pup-url"
+      "pup-root"
+      "pup-format"
+      "pup-required";
   }
 }
