@@ -27,7 +27,8 @@
   function prepareData(values, omit) {
     const data = { ...values };
 
-    if (typeof data.enabled !== 'boolean') data.enabled = false;
+    // `enabled` is only written to YAML when the user opts in to "Disable for
+    // Wizard" (enabled === false). Any other state is omitted from output.
     delete data.bass;
     delete data.applyFixes;
 
@@ -96,7 +97,7 @@
     if (Array.isArray(value)) return value.length > 0;
     if (typeof value === 'string') return value.trim() !== '';
     if (typeof value === 'number') return Number.isFinite(value);
-    if (typeof value === 'boolean') return value === true || key === 'enabled';
+    if (typeof value === 'boolean') return key === 'enabled' ? value === false : value === true;
     if (value && typeof value === 'object') return Object.keys(value).length > 0;
     return false;
   }

@@ -73,18 +73,10 @@
 
   UI.renderAccordions = function renderAccordionsV090(container, steps, values, callbacks) {
     latestValues = values;
-    const enabledField = WIZARD_STEPS.find(step => step.id === 'main')?.fields
-      .find(field => field.yml_field === 'enabled');
-    const resetEnabled = values.enabled === true;
-    values.enabled = false;
 
     const result = baseRenderAccordions(container, steps, values, callbacks);
     latestAccordion = { container, steps, values, callbacks };
     queueRefresh();
-
-    if (resetEnabled && enabledField) {
-      window.queueMicrotask(() => callbacks.onChange('enabled', false, enabledField));
-    }
     return result;
   };
 
