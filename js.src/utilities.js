@@ -10,6 +10,17 @@
       .replace(/'/g, '&#039;');
   }
 
+  // Wraps CSS.escape with a manual fallback (same approach the CSSOM spec's
+  // own polyfill uses) for browsers that don't implement it, so selector
+  // lookups by ID/name degrade instead of throwing a ReferenceError.
+  function cssEscape(value) {
+    const input = String(value ?? '');
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(input);
+    }
+    return input.replace(/([^a-zA-Z0-9_-])/g, '\\$1');
+  }
+
   function humanize(key) {
     return String(key ?? '')
       .replace(/([A-Z])/g, ' $1')
@@ -570,6 +581,7 @@
     isMd5Hash,
     normalizeChecksumValue,
     extractArchiveDirectories,
-    listArchiveEntryPaths
+    listArchiveEntryPaths,
+    cssEscape
   };
 })();

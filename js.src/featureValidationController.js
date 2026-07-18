@@ -79,13 +79,6 @@
         wrapper.removeAttribute('data-error-count');
       }
     });
-
-    document.querySelectorAll('.config-tab.feature-has-error').forEach(tab => {
-      tab.classList.remove('feature-has-error');
-      tab.removeAttribute('data-feature-error-count');
-      if (tab.dataset.featureAddedError === 'true') tab.classList.remove('has-error');
-      delete tab.dataset.featureAddedError;
-    });
   }
 
   function presentField(wrapper, messages) {
@@ -116,14 +109,6 @@
       const messages = grouped.get(key) || [];
       if (!messages.includes(error.message)) messages.push(error.message);
       grouped.set(key, messages);
-
-      const tab = document.getElementById(`config-tab-${error.stepId}`);
-      if (tab) {
-        if (!tab.classList.contains('has-error')) tab.dataset.featureAddedError = 'true';
-        tab.classList.add('has-error', 'feature-has-error');
-        const count = Number.parseInt(tab.dataset.featureErrorCount || '0', 10) + 1;
-        tab.dataset.featureErrorCount = String(count);
-      }
     });
 
     grouped.forEach((messages, key) => {

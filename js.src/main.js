@@ -521,11 +521,19 @@
     });
   }
 
+  function getExtendedStepErrors(stepId) {
+    const featureErrors = window.VPS_FEATURE_VALIDATION?.errors?.() || [];
+    const v090Errors = window.VPS_V090_VALIDATION?.errors?.() || [];
+    return [...featureErrors, ...v090Errors].filter(entry => entry.stepId === stepId);
+  }
+
   function getSectionStatus(step) {
     if (!isStepEnabled(step)) return { label: 'Not included', className: 'disabled' };
     const stepErrors = state.validation.errors.filter(entry => entry.stepId === step.id);
     const stepWarnings = state.validation.warnings.filter(entry => entry.stepId === step.id);
-    if (stepErrors.length) return { label: `${stepErrors.length} error${stepErrors.length === 1 ? '' : 's'}`, className: 'error' };
+    const extendedErrorCount = getExtendedStepErrors(step.id).length;
+    const errorCount = stepErrors.length + extendedErrorCount;
+    if (errorCount) return { label: `${errorCount} error${errorCount === 1 ? '' : 's'}`, className: 'error' };
     if (stepWarnings.length) return { label: `${stepWarnings.length} warning${stepWarnings.length === 1 ? '' : 's'}`, className: 'warning' };
 
     const keys = [];
@@ -641,7 +649,7 @@
       addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.');
     }
 
-    const pupOffered = Boolean(state.selections.pupPackFiles || hasText(state.values.pupFileUrl));
+    const pupOffered = Boolean(state.selections.pupPackFiles || hasText(state.values.pupFileUrl) || state.values.pupBundled === true);
     validateChecksum('pupChecksum', 'pup', 'PUP Pack Checksum', { required: pupOffered });
     if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup')) && state.values.pupRequired === true && !hasText(state.values.pupFileUrl) && !state.selections.pupPackFiles) {
       addError('pup', 'Required PUP Pack needs a source', 'Select a PUP Pack VPS entry or add the PUP Pack URL.');

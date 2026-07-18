@@ -2,6 +2,7 @@
   'use strict';
 
   const UI = window.VPS_UI;
+  const utils = window.VPS_UTILS;
   if (!UI) return;
 
   const originalRenderTableStrip = UI.renderTableStrip.bind(UI);
@@ -134,8 +135,8 @@
   }
 
   function findFieldWrapper(container, fieldName) {
-    const control = container?.querySelector(`#field-${CSS.escape(fieldName)}`)
-      || container?.querySelector(`[name="${CSS.escape(fieldName)}"]`);
+    const control = container?.querySelector(`#field-${utils.cssEscape(fieldName)}`)
+      || container?.querySelector(`[name="${utils.cssEscape(fieldName)}"]`);
     return control?.closest('.field') || null;
   }
 
@@ -171,7 +172,7 @@
       if (addFieldErrorDot(container, fieldName, messages)) added += 1;
     });
 
-    const tab = container.querySelector(`.config-tab[data-step="${CSS.escape(step.id)}"]`);
+    const tab = container.querySelector(`.config-tab[data-step="${utils.cssEscape(step.id)}"]`);
     if (!added && tab?.classList.contains('has-error')) {
       const fallback = step.fields.find(field => field.readonly)
         || step.fields.find(field => !field.advanced)
