@@ -173,7 +173,18 @@
     });
 
     const tab = container.querySelector(`.config-tab[data-step="${utils.cssEscape(step.id)}"]`);
-    if (!added && tab?.classList.contains('has-error')) {
+    // Steps validated exclusively by the newer feature-validation layer (e.g.
+    // Alt Sound) have no case in getFieldErrors above, so `added` is always 0
+    // for them. Query that layer's errors directly (a pure read of current
+    // state) rather than checking for its `.feature-has-field-error` DOM
+    // marker — that marker is applied by an independently rAF-scheduled
+    // pass and isn't guaranteed to have run yet on this same frame.
+    const extendedErrors = [
+      ...(window.VPS_FEATURE_VALIDATION?.errors?.() || []),
+      ...(window.VPS_V090_VALIDATION?.errors?.() || [])
+    ];
+    const hasExtendedFieldError = extendedErrors.some(entry => entry.stepId === step.id);
+    if (!added && !hasExtendedFieldError && tab?.classList.contains('has-error')) {
       const fallback = step.fields.find(field => field.readonly)
         || step.fields.find(field => !field.advanced)
         || step.fields[0];

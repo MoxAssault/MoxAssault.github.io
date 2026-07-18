@@ -5,53 +5,40 @@
   if (!runtime || !utils) return;
   const { isMd5Hash, normalizeArray } = utils;
 
-  const bundledNotes = {
-    backglassBundled: ['b2s', 'backglassNotes', 'Backglass Notes'],
-    romBundled: ['rom', 'romNotes', 'ROM Notes'],
-    coloredROMBundled: ['coloredRom', 'coloredROMNotes', 'Color ROM Notes'],
-    pupBundled: ['pup', 'pupNotes', 'PUP Pack Notes'],
-    altSoundBundled: ['altSound', 'altSoundNotes', 'Alt Sound Notes'],
-    diffBundled: ['vpuPatch', 'diffNotes', 'VPU Patch Notes']
-  };
-
   function errors() {
     const output = [];
     const add = (stepId, fieldName, title, message) => output.push({ stepId, fieldName, title, message });
     const { selections, values } = runtime.state;
 
-    Object.entries(bundledNotes).forEach(([bundleField, [stepId, notesField, label]]) => {
-      if (values?.[bundleField] === true && !String(values?.[notesField] || '').trim()) {
-        add(stepId, notesField, `${label} are required`, `${label} are required when this asset is bundled.`);
-      }
-    });
+    const altSoundSelected = Boolean(selections?.altSoundFiles || values?.altSoundVPSId);
+    const altSoundBundled = values?.altSoundBundled === true;
+    const altSoundUrl = String(values?.altSoundUrlOverride || '').trim();
+    const altSoundVersion = String(values?.altSoundVersionOverride || '').trim();
+    const altSoundActive = altSoundSelected || altSoundBundled || Boolean(altSoundUrl || altSoundVersion);
 
-    const altActive = Boolean(
-      selections?.altSoundFiles || values?.altSoundVPSId || values?.altSoundBundled ||
-      values?.altSoundUrlOverride || values?.altSoundVersionOverride
-    );
-    if (altActive) {
+    if (altSoundActive) {
       const checksums = normalizeArray(values?.altSoundChecksum);
       if (!checksums.length) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value for the Alt Sound.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value whenever Alt Sound is selected, overridden, or bundled.');
       } else if (checksums.some(checksum => !isMd5Hash(checksum))) {
         add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is invalid', 'Every Alt Sound checksum must contain exactly 32 hexadecimal characters.');
       }
     }
 
-    const altId = String(values?.altSoundVPSId || '').trim();
-    const altUrl = String(values?.altSoundUrlOverride || '').trim();
-    const altVersion = String(values?.altSoundVersionOverride || '').trim();
-    if (altId && altUrl) {
-      add('altSound', 'altSoundUrlOverride', 'Alt Sound source conflict', 'Use either Alt Sound VPS ID or URL Override, not both.');
+    if (altSoundSelected && altSoundUrl) {
+      add('altSound', 'altSoundUrlOverride', 'Choose one Alt Sound source', 'Use either Alt Sound VPS ID or Alt Sound URL Override, not both.');
     }
-    if (altUrl && !altVersion) {
-      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Version Override is required when URL Override is used.');
+    if (altSoundUrl && !altSoundVersion) {
+      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Add Alt Sound Version Override whenever Alt Sound URL Override is used.');
     }
-    if (altVersion && !altUrl) {
-      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'URL Override is required when Version Override is used.');
+    if (altSoundVersion && !altSoundUrl) {
+      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add Alt Sound URL Override whenever Alt Sound Version Override is used.');
     }
-    if (values?.altSoundBundled === true && !String(values?.altSoundArchiveRoot || '').trim()) {
-      add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose a directory or enter the Alt Sound archive root when bundled.');
+    if (altSoundBundled && !String(values?.altSoundNotes || '').trim()) {
+      add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
+    }
+    if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {
+      add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
     }
 
     const tutorialId = String(values?.tutorialVPSId || '').trim();
@@ -83,19 +70,14 @@
       wrapper.classList.remove('feature-has-field-error');
       wrapper.removeAttribute('data-feature-error-message');
       wrapper.removeAttribute('data-feature-error-count');
-      const control = wrapper.querySelector('input, textarea, select, button, .readonly-id');
+      const control = wrapper.matches('.additional-rom-controls')
+        ? wrapper.querySelector('.additional-rom-add')
+        : wrapper.querySelector('input, textarea, select, button, .readonly-id');
       restoreControlLabel(control);
       if (!wrapper.querySelector('.field-error-dot')) {
         wrapper.classList.remove('has-field-error');
         wrapper.removeAttribute('data-error-count');
       }
-    });
-
-    document.querySelectorAll('.config-tab.feature-has-error').forEach(tab => {
-      tab.classList.remove('feature-has-error');
-      tab.removeAttribute('data-feature-error-count');
-      if (tab.dataset.featureAddedError === 'true') tab.classList.remove('has-error');
-      delete tab.dataset.featureAddedError;
     });
   }
 
@@ -106,7 +88,9 @@
     wrapper.dataset.featureErrorCount = String(messages.length);
     wrapper.dataset.featureErrorMessage = messages.join(' ');
 
-    const control = wrapper.querySelector('input, textarea, select, button, .readonly-id');
+    const control = wrapper.matches('.additional-rom-controls')
+      ? wrapper.querySelector('.additional-rom-add')
+      : wrapper.querySelector('input, textarea, select, button, .readonly-id');
     if (!control) return;
     if (control.dataset.featureOriginalAriaLabel === undefined) {
       control.dataset.featureOriginalAriaLabel = control.getAttribute('aria-label') || '';
@@ -125,18 +109,12 @@
       const messages = grouped.get(key) || [];
       if (!messages.includes(error.message)) messages.push(error.message);
       grouped.set(key, messages);
-
-      const tab = document.getElementById(`config-tab-${error.stepId}`);
-      if (tab) {
-        if (!tab.classList.contains('has-error')) tab.dataset.featureAddedError = 'true';
-        tab.classList.add('has-error', 'feature-has-error');
-      }
     });
 
     grouped.forEach((messages, key) => {
       const fieldName = key.slice(key.indexOf(':') + 1);
       const wrapper = fieldName === 'additionalRoms'
-        ? document.querySelector('.additional-rom-tools')
+        ? document.querySelector('.additional-rom-controls')
         : document.getElementById(`field-${fieldName}`)?.closest('.field');
       presentField(wrapper, messages);
     });

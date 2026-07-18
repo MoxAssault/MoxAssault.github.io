@@ -1,44 +1,24 @@
-/* Alt Sound configuration: PUP-parity layout with independent archive selection. */
+/* Complete Alt Sound configuration mirrors the PUP Pack panel. */
+
 .field-grid-altSound {
-  grid-template-columns: minmax(140px, .8fr) minmax(190px, 1.2fr);
+  grid-template-columns: minmax(140px, 0.8fr) minmax(190px, 1.2fr);
   grid-template-areas:
     "alt-id alt-checksum"
     "alt-notes alt-notes"
     "alt-root alt-format"
     "alt-directory alt-directory";
 }
+
 .field-alt-id { grid-area: alt-id; }
 .field-alt-checksum { grid-area: alt-checksum; }
 .field-alt-notes { grid-area: alt-notes; }
-.field-alt-root { grid-area: alt-root; }
 .field-alt-format { grid-area: alt-format; }
-.field-grid-altSound .field:has(#field-__altSoundArchiveDirectorySelect) { grid-area: alt-directory; }
-#field-__altSoundArchiveDirectorySelect { width: 100%; }
+.field-alt-root { grid-area: alt-root; }
+.field-alt-directory { grid-area: alt-directory; }
+.field-alt-directory .archive-directory-select { margin-top: 0; }
 
-.field-alt-sound-checksum { transition: none !important; }
-.field-alt-sound-checksum.feature-has-field-error::after,
-.field-alt-sound-checksum > .field-error-dot {
-  width: 7px !important;
-  height: 7px !important;
-  border-width: 2px !important;
-}
-.field-alt-sound-checksum:not(.checksum-drop-active) { outline: none !important; }
-
-.advanced-grid-altSound {
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "alt-authors"
-    "alt-url"
-    "alt-version";
-}
-.advanced-grid-altSound .field-alt-authors { grid-area: alt-authors; }
-.advanced-grid-altSound .field-alt-url { grid-area: alt-url; }
-.advanced-grid-altSound .field-alt-version { grid-area: alt-version; }
-
-#config-panel-altSound,
-#config-tab-altSound {
-  transition: none !important;
-  animation: none !important;
+.field-alt-sound-checksum .checksum-drop-hint {
+  min-width: 0;
 }
 
 @media (max-width: 760px) {
