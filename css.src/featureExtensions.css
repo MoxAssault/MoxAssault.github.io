@@ -2,15 +2,16 @@
 
 /* Match the Main ID width to the standard ID column while preserving compact controls. */
 .field-grid-main {
-  grid-template-columns: minmax(0, calc(50% - 5px)) 72px minmax(150px, 1fr);
+  grid-template-columns: minmax(0, 1fr) 64px minmax(110px, 0.85fr) minmax(120px, 0.7fr);
   grid-template-areas:
-    "game fps enabled"
-    "tagline tagline tagline"
-    "notes notes testers";
+    "game fps tutorial enabled"
+    "tagline tagline tagline tagline"
+    "notes notes notes testers";
 }
 .field-main-id { min-width: 0; }
 .field-main-fps { min-width: 0; }
-.field-main-enabled { min-width: 150px; }
+.field-main-tutorial { grid-area: tutorial; min-width: 0; }
+.field-main-enabled { min-width: 120px; }
 .field-main-enabled .checkbox-row {
   justify-content: flex-start;
   width: max-content;
@@ -22,10 +23,8 @@
   grid-template-columns: minmax(0, 1fr) minmax(150px, 0.42fr);
   grid-template-areas:
     "table-name table-name"
-    "manufacturer year"
-    "tutorial tutorial";
+    "manufacturer year";
 }
-.advanced-grid-main .field-main-tutorial { grid-area: tutorial; }
 .advanced-grid-main .field-main-year-override { min-width: 150px; }
 .advanced-grid-main .field-main-manufacturer-override { min-width: 0; }
 
@@ -152,6 +151,7 @@
     grid-template-columns: minmax(110px, 1fr) 64px;
     grid-template-areas:
       "game fps"
+      "tutorial tutorial"
       "enabled enabled"
       "tagline tagline"
       "notes notes"
@@ -163,8 +163,7 @@
     grid-template-areas:
       "table-name"
       "manufacturer"
-      "year"
-      "tutorial";
+      "year";
   }
   .advanced-grid-main .field-main-year-override { min-width: 0; }
   .field-grid-altSound { grid-template-columns: 1fr; }

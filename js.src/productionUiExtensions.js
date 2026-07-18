@@ -29,15 +29,21 @@
       ...step,
       fields: (step.fields || [])
         .filter(field => !field.customRenderer)
-        .filter(field => !field.conditionalRecordArray || Boolean(record?.[field.conditionalRecordArray]?.length))
         .map(field => {
           if (!field.dynamicOptionsSource) return field;
           const rawItems = Array.isArray(record?.[field.dynamicOptionsSource]) ? record[field.dynamicOptionsSource] : [];
           const items = (utils.sortByUpdatedDesc ? utils.sortByUpdatedDesc(rawItems) : rawItems);
+          const isEmpty = items.length === 0;
           return {
             ...field,
+            disabled: isEmpty,
             options: [
-              { label: `Select ${field.name.replace(/ VPS ID$/i, '')}`, value: '' },
+              {
+                label: isEmpty
+                  ? `No ${field.name.replace(/ VPS ID$/i, '')}s available`
+                  : `Select ${field.name.replace(/ VPS ID$/i, '')}`,
+                value: ''
+              },
               ...items.map(item => ({
                 label: optionLabel(item, field.optionFormat),
                 value: String(item?.id || '')

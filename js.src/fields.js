@@ -43,7 +43,7 @@
         { name: 'Game VPS ID', yml_field: 'tableVPSId', type: 'str', readonly: true },
         { name: 'FPS', yml_field: 'fps', type: 'int', min: 1, max: 99, maxlength: 2 },
         {
-          name: 'Disable for Wizard', yml_field: 'enabled', type: 'bool', invertBoolean: true,
+          name: 'Wizard Disabled', yml_field: 'enabled', type: 'bool', invertBoolean: true, stackedLabel: true,
           tooltip: 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.'
         },
         { name: 'Tagline', yml_field: 'tagline', type: 'str', wide: true, responsiveTextarea: true },
@@ -53,8 +53,8 @@
         { name: 'Table Manufacturer Override', yml_field: 'tableManufacturerOverride', type: 'str', advanced: true },
         { name: 'Year Override', yml_field: 'tableYearOverride', type: 'int', maxlength: 4, advanced: true },
         {
-          name: 'Tutorial VPS ID', yml_field: 'tutorialVPSId', type: 'select', wide: true, advanced: true,
-          dynamicOptionsSource: 'tutorialFiles', optionFormat: 'id-author', conditionalRecordArray: 'tutorialFiles',
+          name: 'Tutorial VPS ID', yml_field: 'tutorialVPSId', type: 'select',
+          dynamicOptionsSource: 'tutorialFiles', optionFormat: 'id-author',
           options: [{ label: 'Select a tutorial', value: '' }]
         }
       ]

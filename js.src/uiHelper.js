@@ -597,7 +597,10 @@
           : input.checked;
         onChange(field.yml_field, nextValue, field);
       });
-      row.append(input, element('span', '', field.name));
+      const label = field.stackedLabel
+        ? element('span', 'checkbox-label-stacked', field.name.replace(' ', '\n'))
+        : element('span', '', field.name);
+      row.append(input, label);
       wrapper.appendChild(row);
       return wrapper;
     }
@@ -686,7 +689,7 @@
     input.id = controlId;
     input.value = Array.isArray(value) ? (value[0] || '') : value;
     input.setAttribute('aria-label', field.name);
-    input.disabled = Boolean(field.disabledUnless && values[field.disabledUnless] !== true);
+    input.disabled = Boolean(field.disabled) || Boolean(field.disabledUnless && values[field.disabledUnless] !== true);
     if (usesPlaceholderLabel) {
       const hint = field.placeholder || (field.type === 'array' ? 'comma-separated' : '');
       input.placeholder = hint ? `${field.name} — ${hint}` : field.name;
