@@ -640,9 +640,9 @@
   grid-template-areas:
     "pup-id pup-checksum"
     "pup-notes pup-notes"
-    "pup-url pup-url"
-    "pup-version pup-format"
-    "pup-root pup-required";
+    "pup-version pup-url"
+    "pup-root pup-format"
+    "pup-required pup-required";
 }
 .field-pup-id { grid-area: pup-id; }
 .field-pup-checksum { grid-area: pup-checksum; }
@@ -686,10 +686,10 @@
       "pup-id"
       "pup-checksum"
       "pup-notes"
-      "pup-url"
       "pup-version"
-      "pup-format"
+      "pup-url"
       "pup-root"
+      "pup-format"
       "pup-required";
   }
   .advanced-grid-main {

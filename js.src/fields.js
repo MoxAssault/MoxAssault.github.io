@@ -120,8 +120,9 @@
           checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true
         },
         { name: 'PUP Pack Notes', yml_field: 'pupNotes', type: 'str', multiline: true, wide: true },
-        { name: 'PUP Pack URL', yml_field: 'pupFileUrl', type: 'url', wide: true },
         { name: 'PUP Pack Version', yml_field: 'pupVersion', type: 'str' },
+        { name: 'PUP Pack URL', yml_field: 'pupFileUrl', type: 'url' },
+        { name: 'PUP Pack Archive Root', yml_field: 'pupArchiveRoot', type: 'str', directoryPicker: true },
         {
           name: 'PUP Pack Archive Format', yml_field: 'pupArchiveFormat', type: 'select', hideLabel: true,
           options: [
@@ -131,7 +132,6 @@
             { label: '7Z', value: '7z' }
           ]
         },
-        { name: 'PUP Pack Archive Root', yml_field: 'pupArchiveRoot', type: 'str', directoryPicker: true },
         { name: 'PUP Pack Required', yml_field: 'pupRequired', type: 'bool' }
       ]
     },
