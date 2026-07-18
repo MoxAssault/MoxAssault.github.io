@@ -11,30 +11,20 @@
   const baseRenderAssetMatrix = UI.renderAssetMatrix.bind(UI);
   const baseRenderAccordions = UI.renderAccordions.bind(UI);
   const NEW_FIELD_IDS = [
-    'tutorialVPSId',
-    'altSoundVPSId',
-    'altSoundChecksum',
-    'diffNotes',
-    'diffAuthorsOverride'
+    'tutorialVPSId', 'altSoundVPSId', 'altSoundChecksum', 'altSoundNotes',
+    'altSoundArchiveRoot', 'altSoundArchiveFormat', '__altSoundArchiveDirectorySelect',
+    'altSoundAuthorsOverride', 'altSoundUrlOverride', 'altSoundVersionOverride',
+    'diffNotes', 'diffAuthorsOverride'
   ];
-  const DATE_KEYS = [
-    'updatedAt',
-    'modifiedAt',
-    'lastUpdated',
-    'updated',
-    'createdAt'
-  ];
-
-  let presentationFrame = 0;
+  const DATE_KEYS = ['updatedAt', 'modifiedAt', 'lastUpdated', 'updated', 'createdAt'];
+  let frame = 0;
 
   function dateValue(item) {
     if (!item || typeof item !== 'object') return 0;
     for (const key of DATE_KEYS) {
       const raw = item[key];
       if (raw === undefined || raw === null || raw === '') continue;
-      if (typeof raw === 'number' && Number.isFinite(raw)) {
-        return raw < 100000000000 ? raw * 1000 : raw;
-      }
+      if (typeof raw === 'number' && Number.isFinite(raw)) return raw < 100000000000 ? raw * 1000 : raw;
       const parsed = Date.parse(String(raw));
       if (Number.isFinite(parsed)) return parsed;
     }
@@ -54,22 +44,21 @@
 
   function reorderSelect(select, items) {
     if (!select || !Array.isArray(items) || items.length < 2) return;
-
     const options = [...select.options];
     const emptyOptions = options.filter(option => option.value === '');
     const optionMap = new Map(options
       .filter(option => option.value !== '')
       .map(option => [String(option.value), option]));
-
     const sortedOptions = sortRecentlyUpdated(items)
       .map(item => optionMap.get(optionId(item)))
       .filter(Boolean);
     const sortedSet = new Set(sortedOptions);
-    const remaining = options.filter(option => option.value !== '' && !sortedSet.has(option));
-    const desired = [...emptyOptions, ...sortedOptions, ...remaining];
-
+    const desired = [
+      ...emptyOptions,
+      ...sortedOptions,
+      ...options.filter(option => option.value !== '' && !sortedSet.has(option))
+    ];
     if (desired.length !== options.length || desired.every((option, index) => option === options[index])) return;
-
     const selectedValue = select.value;
     select.replaceChildren(...desired);
     select.value = selectedValue;
@@ -77,127 +66,103 @@
 
   function assetItems(category) {
     const config = CATEGORY_CONFIG[category];
-    if (!config) return [];
-    return utils.getCategoryItems(
-      runtime.state.record,
-      category,
-      config,
-      { selections: runtime.state.selections || {} }
-    );
+    return config
+      ? utils.getCategoryItems(runtime.state.record, category, config, { selections: runtime.state.selections || {} })
+      : [];
   }
 
-  function sortAssetSelects() {
+  function sortSelects() {
     document.querySelectorAll('#assetMatrix .asset-row[data-category]').forEach(row => {
       reorderSelect(row.querySelector('select'), assetItems(row.dataset.category));
     });
-  }
-
-  function sortTutorialSelect() {
-    reorderSelect(
-      document.getElementById('field-tutorialVPSId'),
-      runtime.state.record?.tutorialFiles || []
-    );
-  }
-
-  function sortAdditionalRomSelect() {
+    reorderSelect(document.getElementById('field-tutorialVPSId'), runtime.state.record?.tutorialFiles || []);
     reorderSelect(document.getElementById('additionalRomVpsId'), assetItems('romFiles'));
   }
 
-  function hideNewFieldLabels() {
-    NEW_FIELD_IDS.forEach(fieldId => {
-      const control = document.getElementById(`field-${fieldId}`);
-      const wrapper = control?.closest('.field');
-      wrapper?.querySelector(':scope > label')?.classList.add('visually-hidden');
-      if (fieldId === 'tutorialVPSId') wrapper?.classList.add('field-main-tutorial');
+  function hideLabels() {
+    NEW_FIELD_IDS.forEach(id => {
+      document.getElementById(`field-${id}`)?.closest('.field')
+        ?.querySelector(':scope > label')?.classList.add('visually-hidden');
     });
-
     document.querySelectorAll('#additionalRomDialog .field > label')
       .forEach(label => label.classList.add('visually-hidden'));
   }
 
-  function correctAltSoundPlaceholder() {
-    const input = document.getElementById('field-altSoundChecksum');
-    if (input && input.placeholder !== 'Alt Sound Checksum(s)') {
-      input.placeholder = 'Alt Sound Checksum(s)';
+  function moveTutorial() {
+    const tutorial = document.getElementById('field-tutorialVPSId')?.closest('.field');
+    const mainGrid = document.querySelector('#config-panel-main > .field-grid-main');
+    if (!tutorial || !mainGrid) return;
+    tutorial.classList.add('field-main-tutorial');
+    if (tutorial.parentElement !== mainGrid) {
+      const enabled = document.getElementById('field-enabled')?.closest('.field');
+      mainGrid.insertBefore(tutorial, enabled || null);
     }
+    const available = Array.isArray(runtime.state.record?.tutorialFiles) && runtime.state.record.tutorialFiles.length > 0;
+    tutorial.querySelector('select')?.toggleAttribute('disabled', !available);
   }
 
-  function additionalRomName(item, entry, index) {
-    return String(
-      item?.name
-      || item?.romName
-      || item?.title
-      || item?.version
-      || item?.fileName
-      || entry?.vpsId
-      || `Additional ROM ${index + 1}`
-    ).trim();
+  function cleanAltIdError() {
+    const control = document.getElementById('field-altSoundVPSId');
+    if (!control || !String(control.textContent || control.value || '').trim()) return;
+    const wrapper = control.closest('.field');
+    wrapper?.classList.remove('has-field-error', 'feature-has-field-error');
+    wrapper?.querySelectorAll(':scope > .field-error-dot').forEach(dot => dot.remove());
+    control.removeAttribute('aria-invalid');
   }
 
   function decorateAdditionalRomRows() {
     const entries = window.VPS_ADDITIONAL_ROMS?.entries?.() || [];
     const items = assetItems('romFiles');
     const itemMap = new Map(items.map(item => [optionId(item), item]));
-
     document.querySelectorAll('.additional-rom-list .additional-rom-item').forEach((row, index) => {
       const entry = entries[index] || {};
       const item = itemMap.get(String(entry.vpsId || ''));
+      const name = String(
+        item?.name || item?.romName || item?.title || item?.version || item?.fileName ||
+        entry.vpsId || `Additional ROM ${index + 1}`
+      ).trim();
       const title = row.querySelector('strong');
       const details = row.querySelector('small');
-      const name = additionalRomName(item, entry, index);
       if (title && title.textContent !== name) title.textContent = name;
-      if (details) {
-        const parts = [String(entry.vpsId || '').trim(), String(entry.checksum || '').trim()].filter(Boolean);
-        const detailText = parts.length ? parts.join(' · ') : 'Checksum missing';
-        if (details.textContent !== detailText) details.textContent = detailText;
-      }
+      const detailText = [entry.vpsId, entry.checksum].filter(Boolean).join(' · ') || 'Checksum missing';
+      if (details && details.textContent !== detailText) details.textContent = detailText;
     });
   }
 
-  function applyPresentation() {
-    presentationFrame = 0;
-    sortAssetSelects();
-    sortTutorialSelect();
-    sortAdditionalRomSelect();
-    hideNewFieldLabels();
-    correctAltSoundPlaceholder();
+  function apply() {
+    frame = 0;
+    sortSelects();
+    hideLabels();
+    moveTutorial();
+    cleanAltIdError();
     decorateAdditionalRomRows();
   }
 
-  function schedulePresentation() {
-    if (presentationFrame) return;
-    presentationFrame = window.requestAnimationFrame(applyPresentation);
+  function schedule() {
+    if (!frame) frame = window.requestAnimationFrame(apply);
   }
 
-  UI.renderAssetMatrix = function renderAssetMatrixWithPresentation(...args) {
+  UI.renderAssetMatrix = function (...args) {
     const result = baseRenderAssetMatrix(...args);
-    schedulePresentation();
+    schedule();
     return result;
   };
 
-  UI.renderAccordions = function renderAccordionsWithPresentation(...args) {
+  UI.renderAccordions = function (...args) {
     const result = baseRenderAccordions(...args);
-    schedulePresentation();
+    schedule();
     return result;
   };
 
   function init() {
-    document.addEventListener('click', schedulePresentation, true);
-    document.addEventListener('input', schedulePresentation, true);
-    document.addEventListener('change', schedulePresentation, true);
-
+    ['click', 'input', 'change'].forEach(type => document.addEventListener(type, schedule, true));
     if (typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver(schedulePresentation);
-      observer.observe(document.body, { childList: true, subtree: true });
+      new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
     }
-    schedulePresentation();
+    schedule();
   }
 
-  window.VPS_PRODUCTION_FIELD_PRESENTATION = Object.freeze({
-    sortRecentlyUpdated,
-    refresh: schedulePresentation
-  });
-
+  window.VPS_PRODUCTION_FIELD_PRESENTATION = Object.freeze({ sortRecentlyUpdated, refresh: schedule });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
