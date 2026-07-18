@@ -29,10 +29,10 @@
     );
   }
 
-  function choices(editIndex = -1) {
+  function choices(index = -1) {
     const primary = String(runtime.state.selections?.romFiles || runtime.state.values?.romVPSId || '');
     const used = new Set(entries()
-      .filter((_, index) => index !== editIndex)
+      .filter((_, candidateIndex) => candidateIndex !== index)
       .map(entry => String(entry.vpsId || ''))
       .filter(Boolean));
     return allRoms()
@@ -50,7 +50,7 @@
     if (entry.versionOverride && !entry.urlOverride) errors.push('URL Override is required when Version Override is used.');
 
     const primary = String(runtime.state.selections?.romFiles || runtime.state.values?.romVPSId || '');
-    if (entry.vpsId && entry.vpsId === primary) errors.push('The primary ROM cannot also be an Additional ROM.');
+    if (entry.vpsId === primary) errors.push('The primary ROM cannot also be an Additional ROM.');
     if (entry.vpsId && !allRoms().some(item => String(item?.id || '') === entry.vpsId)) {
       errors.push('The selected Additional ROM is not available for this table.');
     }
@@ -76,8 +76,7 @@
     const rotate = (value, amount) => ((value << amount) | (value >>> (32 - amount))) >>> 0;
     let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
     for (let offset = 0; offset < total; offset += 64) {
-      const words = new Uint32Array(16);
-      for (let index = 0; index < 16; index += 1) words[index] = view.getUint32(offset + index * 4, true);
+      const words = Array.from({ length: 16 }, (_, index) => view.getUint32(offset + index * 4, true));
       let a = a0, b = b0, c = c0, d = d0;
       for (let index = 0; index < 64; index += 1) {
         let f, g;
@@ -96,7 +95,7 @@
       c0 = (c0 + c) >>> 0;
       d0 = (d0 + d) >>> 0;
     }
-    return [a0, b0, c0, d0].map(value => [0,8,16,24]
+    return [a0, b0, c0, d0].map(value => [0, 8, 16, 24]
       .map(shift => ((value >>> shift) & 0xff).toString(16).padStart(2, '0')).join('')).join('');
   }
 
@@ -181,6 +180,7 @@
   }
 
   function open(index = -1) {
+    if (index < 0 && entries().length >= 1) return;
     const node = dialog();
     editingIndex = index;
     const current = index >= 0 ? entries()[index] || {} : {};
@@ -219,11 +219,19 @@
     }
     const next = entries();
     if (editingIndex >= 0) next[editingIndex] = entry;
-    else next.push(entry);
+    else next.splice(0, next.length, entry);
     runtime.state.callbacks?.onChange?.('additionalRoms', next, definition());
     node.close();
     render();
     runtime.schedule();
+  }
+
+  function displayName(entry) {
+    const item = allRoms().find(candidate => String(candidate?.id || '') === String(entry?.vpsId || ''));
+    return String(
+      item?.name || item?.romName || item?.title || item?.version || item?.fileName ||
+      entry?.vpsId || 'Additional ROM'
+    ).trim();
   }
 
   function render() {
@@ -232,61 +240,57 @@
     const summary = advanced?.querySelector(':scope > summary');
     if (!advanced || !summary || !runtime.state.callbacks) return;
 
-    let add = summary.querySelector('.additional-rom-add');
-    if (!add) {
-      add = document.createElement('button');
-      add.type = 'button';
-      add.className = 'additional-rom-add';
-      add.textContent = '+';
-      add.dataset.tooltip = 'ADD ADDITIONAL ROM';
-      add.setAttribute('aria-label', 'Add Additional ROM');
-      add.addEventListener('click', event => {
+    let tools = summary.querySelector('.additional-rom-tools');
+    if (!tools) {
+      tools = document.createElement('span');
+      tools.className = 'additional-rom-tools';
+      summary.appendChild(tools);
+    }
+    tools.replaceChildren();
+
+    const current = entries();
+    if (current.length) {
+      const entry = current[0];
+      const icon = document.createElement('button');
+      icon.type = 'button';
+      icon.className = 'additional-rom-info';
+      icon.textContent = 'ⓘ';
+      icon.setAttribute('aria-label', 'Edit additional ROM');
+      icon.dataset.tooltip = [
+        displayName(entry),
+        `VPS ID: ${entry.vpsId || '—'}`,
+        `Checksum: ${entry.checksum || '—'}`,
+        entry.versionOverride ? `Version: ${entry.versionOverride}` : '',
+        entry.urlOverride ? `URL: ${entry.urlOverride}` : ''
+      ].filter(Boolean).join('\n');
+      icon.addEventListener('click', event => {
         event.preventDefault();
         event.stopPropagation();
-        open();
+        open(0);
       });
-      summary.appendChild(add);
+      tools.appendChild(icon);
     }
 
-    let controls = advanced.querySelector('.additional-rom-controls');
-    if (!controls) {
-      controls = document.createElement('div');
-      controls.className = 'additional-rom-controls';
-      advanced.appendChild(controls);
-    }
-    controls.querySelector('.additional-rom-list')?.remove();
-    const list = document.createElement('div');
-    list.className = 'additional-rom-list';
-    controls.prepend(list);
-    const current = entries();
-    if (!current.length) {
-      list.innerHTML = '<p class="additional-rom-empty">No additional ROMs configured.</p>';
-      return;
-    }
-    current.forEach((entry, index) => {
-      const row = document.createElement('div');
-      row.className = 'additional-rom-item';
-      row.innerHTML = '<div><strong></strong><small></small></div><div class="additional-rom-actions"></div>';
-      row.querySelector('strong').textContent = entry.vpsId || `Additional ROM ${index + 1}`;
-      row.querySelector('small').textContent = entry.checksum || 'Checksum missing';
-      const actions = row.querySelector('.additional-rom-actions');
-      const edit = Object.assign(document.createElement('button'), { type: 'button', className: 'text-btn', textContent: 'Edit' });
-      edit.addEventListener('click', () => open(index));
-      const remove = Object.assign(document.createElement('button'), { type: 'button', className: 'text-btn danger-btn', textContent: 'Remove' });
-      remove.addEventListener('click', () => {
-        const next = entries();
-        next.splice(index, 1);
-        runtime.state.callbacks.onChange('additionalRoms', next, definition());
-        render();
-        runtime.schedule();
-      });
-      actions.append(edit, remove);
-      list.appendChild(row);
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'additional-rom-add';
+    add.textContent = '+';
+    add.dataset.tooltip = current.length
+      ? 'Only one Additional ROM is currently supported'
+      : 'ADD ADDITIONAL ROM';
+    add.setAttribute('aria-label', current.length ? 'Additional ROM limit reached' : 'Add Additional ROM');
+    add.disabled = current.length >= 1;
+    add.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      open();
     });
+    tools.appendChild(add);
+
+    advanced.querySelector('.additional-rom-controls')?.remove();
   }
 
-  const api = Object.freeze({ entries, validateEntry, open, render });
-  window.VPS_ADDITIONAL_ROMS = api;
+  window.VPS_ADDITIONAL_ROMS = Object.freeze({ entries, validateEntry, open, render });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dialog, { once: true });
   else dialog();
 })();
