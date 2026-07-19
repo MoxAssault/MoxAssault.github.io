@@ -417,7 +417,6 @@
     if (itemId) {
       state.selections[category] = itemId;
       state.values[config.idField] = itemId;
-      if (state.values.nsfw === true && config.nsfwField) state.values[config.nsfwField] = true;
     } else {
       delete state.selections[category];
       delete state.values[config.idField];
@@ -448,10 +447,6 @@
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
       if (config?.nsfwField) delete state.values[config.nsfwField];
     }
-    if (checked && state.values.nsfw === true) {
-      const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
-      if (config?.nsfwField) state.values[config.nsfwField] = true;
-    }
     renderWorkspace();
     markChanged();
   }
@@ -460,10 +455,10 @@
     if (checked) state.values[fieldName] = true;
     else delete state.values[fieldName];
     if (fieldName === 'nsfw' && checked) {
-      Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
-        if (!config.nsfwField) return;
-        const inUse = Boolean(state.selections[category]) || (config.bundleField && state.values[config.bundleField] === true);
-        if (inUse) state.values[config.nsfwField] = true;
+      // The table-level flag is exclusive: it replaces the per-asset flags,
+      // which are cleared so they never coexist with `nsfw: true` in the YAML.
+      Object.values(CATEGORY_CONFIG).forEach(config => {
+        if (config.nsfwField) delete state.values[config.nsfwField];
       });
     }
     renderWorkspace();
