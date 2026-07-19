@@ -117,12 +117,7 @@
         break;
       }
       case 'pup': {
-        const hasSource = hasText(values.pupVPSId) || hasText(values.pupFileUrl);
         validateChecksum('pupChecksum', 'PUP Pack Checksum', { required: true });
-        if (values.pupRequired === true && !hasSource) {
-          add('pupVPSId', 'A required PUP Pack needs a VPS entry or file URL.');
-          add('pupFileUrl', 'A required PUP Pack needs a VPS entry or file URL.');
-        }
         if (!hasText(values.pupNotes)) add('pupNotes', 'PUP Pack Notes are required.');
         if (!hasText(values.pupVersion)) add('pupVersion', 'PUP Pack Version is required.');
         if (!hasText(values.pupFileUrl)) add('pupFileUrl', 'PUP Pack URL is required.');
