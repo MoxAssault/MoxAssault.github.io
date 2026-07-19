@@ -17,9 +17,9 @@
   width: max-content;
   max-width: 100%;
 }
-/* Notes cedes 50px of its track to Testers. */
-.field-grid-main .field-main-notes { width: calc(100% - 50px); }
-.field-grid-main .field-main-testers { width: calc(100% + 50px); margin-left: -50px; }
+/* Notes cedes 100px of its track to Testers. */
+.field-grid-main .field-main-notes { width: calc(100% - 100px); }
+.field-grid-main .field-main-testers { width: calc(100% + 100px); margin-left: -100px; }
 
 /* Give Year Override enough room for its complete placeholder. */
 .advanced-grid-main {
@@ -139,18 +139,12 @@
 .additional-rom-dialog { width: min(640px, calc(100% - 28px)); }
 .additional-rom-body { display: grid; gap: 12px; }
 .additional-rom-grid { grid-template-columns: 1fr; padding-top: 0; }
-.additional-rom-errors {
-  display: grid;
-  gap: 4px;
-  padding: 9px 10px;
-  border: 1px solid color-mix(in srgb, var(--state-red) 55%, var(--panel-line));
-  border-radius: 8px;
-  background: var(--danger-soft);
-  color: var(--text);
-  font-size: 11px;
-}
-.additional-rom-errors[hidden] { display: none; }
 .additional-rom-advanced { margin: 0; }
+/* Modal required fields use the app-wide red border + error dot system. */
+#additionalRomDialog .field.has-field-error > select,
+#additionalRomDialog .field.has-field-error > input {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
+}
 .additional-rom-dialog-actions {
   display: flex;
   justify-content: flex-end;

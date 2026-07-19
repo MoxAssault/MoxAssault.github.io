@@ -344,6 +344,10 @@
     state.openAssetDetails = new Set(options.openAssetDetails || []);
     state.openSteps = new Set();
     state.activeStep = options.activeStep || state.activeStep || 'main';
+    // Fresh tables start with "Wizard Disabled" checked (enabled: false).
+    // Restored drafts, recents, and imports pass options.values and keep
+    // whatever state they carried.
+    if (!options.values && state.values.enabled === undefined) state.values.enabled = false;
     sanitizeAssetSelections();
 
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
@@ -490,10 +494,16 @@
     state.values[key] = value;
 
     if (key === 'coloredROMPin2DMD' && previous !== value) {
-      delete state.values.coloredROMChecksum;
-      delete state.values.coloredROMChecksumSecondary;
       const sources = { ...(state.values.__checksumSources || {}) };
-      delete sources.coloredROMChecksum;
+      // A .pal checksum is valid in both modes, so it survives the toggle;
+      // anything else (or a typed checksum with unknown provenance) is
+      // cleared along with the secondary slot.
+      const keepPrimary = String(sources.coloredROMChecksum?.extension || '').toLowerCase() === '.pal';
+      if (!keepPrimary) {
+        delete state.values.coloredROMChecksum;
+        delete sources.coloredROMChecksum;
+      }
+      delete state.values.coloredROMChecksumSecondary;
       delete sources.coloredROMChecksumSecondary;
       state.values.__checksumSources = sources;
       UI.syncConditionalFields(state.values);
@@ -526,6 +536,9 @@
     if (Object.keys(checksumSources).length) state.values.__checksumSources = checksumSources;
     else delete state.values.__checksumSources;
     if (step.id === 'pup') delete state.values.__pupArchiveDirectories;
+    // Clearing the Main section restores its onLoad state, which includes
+    // "Wizard Disabled" being checked.
+    if (step.id === 'main') state.values.enabled = false;
     if (!preserveBundle && step.bundleField) delete state.values[step.bundleField];
 
     if (options.rerender !== false) {

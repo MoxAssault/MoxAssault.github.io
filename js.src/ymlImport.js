@@ -469,12 +469,17 @@
   }
 
   async function setField(field, value) {
-    if (field.readonly || field.disabled || value === undefined) return;
+    // invertBoolean fields (Wizard Disabled backed by `enabled`) must be
+    // driven even when the key is absent from the YML: absence means "not
+    // disabled", which has to override the checked-by-default checkbox.
+    if (field.readonly || field.disabled || (value === undefined && !field.invertBoolean)) return;
     const control = document.getElementById(`field-${field.yml_field}`);
     if (!control || control.disabled) return;
 
     if (field.type === 'bool') {
-      const checked = value === true || String(value).toLowerCase() === 'true';
+      const checked = field.invertBoolean
+        ? (value === false || String(value).toLowerCase() === 'false')
+        : (value === true || String(value).toLowerCase() === 'true');
       if (control.checked !== checked) {
         control.checked = checked;
         control.dispatchEvent(new Event('change', { bubbles: true }));
