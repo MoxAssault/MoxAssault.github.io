@@ -167,7 +167,7 @@
       if (typeof Worker === 'undefined' || typeof blob?.stream !== 'function') {
         // Fallback: slurp whole file (only works for files under ~2 GB in Chrome).
         blob.arrayBuffer()
-          .then(buffer => resolve(md5ArrayBuffer(buffer)))
+          .then(buffer => resolve(md5ArrayBuffer(buffer).toUpperCase()))
           .catch(reject);
         return;
       }
@@ -179,7 +179,7 @@
 
       worker.addEventListener('message', event => {
         if (event.data?.error) fail(new Error(event.data.error));
-        else if (event.data?.checksum !== undefined) done(event.data.checksum);
+        else if (event.data?.checksum !== undefined) done(String(event.data.checksum).toUpperCase());
       });
       worker.addEventListener('error', event => {
         fail(event.error || new Error(event.message || 'MD5 worker failed.'));
@@ -822,8 +822,10 @@
     label.appendChild(element('span', '', field.name));
     wrapper.appendChild(label);
 
+    const isChecksumField = /checksum/i.test(field.yml_field);
     input.id = controlId;
     input.value = Array.isArray(value) ? (value[0] || '') : value;
+    if (isChecksumField && input.value) input.value = String(input.value).toUpperCase();
     input.setAttribute('aria-label', field.name);
     input.disabled = Boolean(field.disabled) || Boolean(field.disabledUnless && values[field.disabledUnless] !== true);
     if (usesPlaceholderLabel) {
@@ -839,6 +841,16 @@
       if (field.type === 'int') {
         nextValue = nextValue.replace(/\D+/g, '').slice(0, field.maxlength || 3);
         input.value = nextValue;
+      }
+      if (isChecksumField) {
+        const upper = nextValue.toUpperCase();
+        if (upper !== nextValue) {
+          const selectionStart = input.selectionStart;
+          const selectionEnd = input.selectionEnd;
+          input.value = upper;
+          try { input.setSelectionRange(selectionStart, selectionEnd); } catch (_) { /* selects unsupported */ }
+        }
+        nextValue = upper;
       }
       onChange(field.yml_field, nextValue, field);
     });
@@ -1015,19 +1027,32 @@
     return wrapper;
   }
 
+  // Runs when PAL/VNI is toggled: it hard-resets the Color ROM checksum pair
+  // to match state — clearing any input whose value was just dropped from
+  // state and restoring both drop hints to their instructions.
   function syncConditionalFields(values) {
     const pin2dmd = values?.coloredROMPin2DMD === true;
+    const primary = document.getElementById('field-coloredROMChecksum');
     const secondary = document.getElementById('field-coloredROMChecksumSecondary');
-    if (secondary) secondary.disabled = !pin2dmd;
+    if (primary && !values?.coloredROMChecksum) primary.value = '';
+    if (secondary) {
+      secondary.disabled = !pin2dmd;
+      if (!values?.coloredROMChecksumSecondary) secondary.value = '';
+    }
 
     const primaryHint = document.querySelector('.field-color-checksum .checksum-drop-hint');
-    if (primaryHint && !primaryHint.classList.contains('error')) {
-      primaryHint.textContent = `Drop ${pin2dmd ? '.pal' : '.crz'} file to calculate MD5`;
+    if (primaryHint) {
+      primaryHint.classList.remove('error');
+      const allowed = pin2dmd ? ['.pal', '.vni'] : ['.crz', '.pal', '.pac', '.cromc'];
+      primaryHint.textContent = `Drop ${[...allowed, ...ARCHIVE_EXTENSIONS].join(' / ')} file to calculate MD5`;
     }
 
     const secondaryHint = document.querySelector('.field-color-secondary .checksum-drop-hint');
-    if (secondaryHint && !secondaryHint.classList.contains('error')) {
-      secondaryHint.textContent = 'Drop .vni file to calculate MD5';
+    if (secondaryHint) {
+      secondaryHint.classList.remove('error');
+      secondaryHint.textContent = pin2dmd
+        ? 'Drop .vni file to calculate MD5'
+        : 'Enable PAL/VNI to use a second checksum';
     }
   }
 

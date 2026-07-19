@@ -247,6 +247,17 @@
       if (checksums.length > 1) values.coloredROMPin2DMD = true;
     }
 
+    // Checksums are uppercase throughout the app; normalise imported ones so
+    // the fields and regenerated YAML agree.
+    [
+      'vpxChecksum', 'backglassChecksum', 'romChecksum', 'coloredROMChecksum',
+      'coloredROMChecksumSecondary', 'pupChecksum', 'diffChecksum', 'altSoundChecksum'
+    ].forEach(key => {
+      const value = values[key];
+      if (typeof value === 'string') values[key] = value.toUpperCase();
+      else if (Array.isArray(value)) values[key] = value.map(item => String(item).toUpperCase());
+    });
+
     // Preserve `enabled: false` from the imported YAML (checkbox will render
     // as checked). Anything else (missing, or `enabled: true`) is normalised
     // to "not disabled" and left absent from `values`, so it never round-trips

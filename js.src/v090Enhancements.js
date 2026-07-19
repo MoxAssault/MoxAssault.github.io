@@ -194,13 +194,17 @@
     ];
     fields.forEach(([fieldName, hint]) => {
       if (!hint || fieldName === preserveField) return;
+      // Never clobber an in-flight or completed drop status — this runs on
+      // every DOM refresh, and rewriting these made drops look unresponsive.
+      if (hint.classList.contains('error')
+        || /^Processing /.test(hint.textContent)
+        || /MD5 calculated/.test(hint.textContent)) return;
       const allowed = allowedColorExtensions(fieldName);
       // The primary field also accepts archives, which are scanned for the
       // Color ROM file(s) inside.
       const display = fieldName === 'coloredROMChecksum' && allowed.length
         ? [...allowed, '.zip', '.rar', '.7z']
         : allowed;
-      hint.classList.remove('error');
       hint.textContent = display.length
         ? `Drop ${display.join(' / ')} file to calculate MD5`
         : 'Enable PAL/VNI to use a second checksum';

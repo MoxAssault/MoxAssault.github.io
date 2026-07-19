@@ -140,7 +140,7 @@
       d0 = (d0 + d) >>> 0;
     }
     return [a0, b0, c0, d0].map(value => [0,8,16,24]
-      .map(shift => ((value >>> shift) & 0xff).toString(16).padStart(2, '0')).join('')).join('');
+      .map(shift => ((value >>> shift) & 0xff).toString(16).padStart(2, '0')).join('')).join('').toUpperCase();
   }
 
   function dialog() {
@@ -183,6 +183,15 @@
     node.addEventListener('click', event => { if (event.target === node) node.close(); });
     node.querySelector('#additionalRomSave').addEventListener('click', save);
     node.querySelector('#additionalRomRemove').addEventListener('click', removeEditing);
+    const checksumInput = node.querySelector('#additionalRomChecksum');
+    checksumInput.addEventListener('input', () => {
+      const upper = checksumInput.value.toUpperCase();
+      if (upper === checksumInput.value) return;
+      const selectionStart = checksumInput.selectionStart;
+      const selectionEnd = checksumInput.selectionEnd;
+      checksumInput.value = upper;
+      try { checksumInput.setSelectionRange(selectionStart, selectionEnd); } catch (_) { /* no-op */ }
+    });
     bindDrop(node);
     return node;
   }

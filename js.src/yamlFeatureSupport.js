@@ -16,12 +16,25 @@
       if (!entry || typeof entry !== 'object') return null;
       const normalized = {
         vpsId: String(entry.vpsId || '').trim(),
-        checksum: String(entry.checksum || '').trim(),
+        checksum: String(entry.checksum || '').trim().toUpperCase(),
         versionOverride: String(entry.versionOverride || '').trim(),
         urlOverride: String(entry.urlOverride || '').trim()
       };
       return normalized.vpsId ? normalized : null;
     }).filter(Boolean);
+  }
+
+  const CHECKSUM_KEYS = [
+    'vpxChecksum', 'backglassChecksum', 'romChecksum', 'coloredROMChecksum',
+    'coloredROMChecksumSecondary', 'pupChecksum', 'diffChecksum', 'altSoundChecksum'
+  ];
+
+  function uppercaseChecksums(data) {
+    CHECKSUM_KEYS.forEach(key => {
+      const value = data[key];
+      if (typeof value === 'string') data[key] = value.toUpperCase();
+      else if (Array.isArray(value)) data[key] = value.map(item => String(item).toUpperCase());
+    });
   }
 
   function prepareData(values, omit) {
@@ -31,6 +44,8 @@
     // Wizard" (enabled === false). Any other state is omitted from output.
     delete data.bass;
     delete data.applyFixes;
+
+    uppercaseChecksums(data);
 
     // The table-level NSFW flag is exclusive: when set, per-asset NSFW keys
     // must never appear alongside it (covers imported YAML that has both).

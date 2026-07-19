@@ -89,7 +89,7 @@
       const source = blob instanceof Blob ? blob : new Blob([blob]);
       if (typeof Worker === 'undefined' || typeof source.stream !== 'function') {
         source.arrayBuffer()
-          .then(buffer => resolve(md5ArrayBuffer(buffer)))
+          .then(buffer => resolve(md5ArrayBuffer(buffer).toUpperCase()))
           .catch(reject);
         return;
       }
@@ -101,7 +101,7 @@
 
       worker.addEventListener('message', event => {
         if (event.data?.error) fail(new Error(event.data.error));
-        else if (event.data?.checksum !== undefined) done(event.data.checksum);
+        else if (event.data?.checksum !== undefined) done(String(event.data.checksum).toUpperCase());
       });
       worker.addEventListener('error', event => {
         fail(event.error || new Error(event.message || 'MD5 worker failed.'));
@@ -259,7 +259,8 @@
     const wrapper = input?.closest('.field');
     if (!input || !wrapper) return;
 
-    const displayed = Array.isArray(checksumValues()) ? checksumValues().join(', ') : checksumValues();
+    const rawDisplayed = Array.isArray(checksumValues()) ? checksumValues().join(', ') : checksumValues();
+    const displayed = String(rawDisplayed).toUpperCase();
     if (input.value !== displayed) input.value = displayed;
     input.placeholder = 'Alt Sound Checksum(s)';
 
