@@ -156,7 +156,6 @@
         <button class="dialog-close" data-additional-rom-close type="button" aria-label="Close additional ROM">×</button>
       </div>
       <div class="dialog-body additional-rom-body">
-        <div class="additional-rom-errors" id="additionalRomErrors" role="alert" hidden></div>
         <div class="field-grid additional-rom-grid">
           <div class="field field-wide"><label for="additionalRomVpsId"><span>VPS ID</span></label><select id="additionalRomVpsId"></select></div>
           <div class="field field-wide checksum-drop-field" id="additionalRomChecksumField">
@@ -249,7 +248,6 @@
     node.querySelector('#additionalRomChecksum').value = String(current.checksum || '');
     node.querySelector('#additionalRomVersionOverride').value = String(current.versionOverride || '');
     node.querySelector('#additionalRomUrlOverride').value = String(current.urlOverride || '');
-    node.querySelector('#additionalRomErrors').hidden = true;
     clearFieldErrorPresentation(node);
     node.querySelector('#additionalRomTitle').textContent = index >= 0 ? 'Edit Additional ROM' : 'Add Additional ROM';
     node.querySelector('#additionalRomRemove').hidden = index < 0;
@@ -278,11 +276,11 @@
       urlOverride: node.querySelector('#additionalRomUrlOverride').value.trim()
     };
     const detailedErrors = validateEntryDetailed(entry, editingIndex);
-    const box = node.querySelector('#additionalRomErrors');
     if (detailedErrors.length) {
-      box.hidden = false;
-      box.replaceChildren(...detailedErrors.map(error => Object.assign(document.createElement('div'), { textContent: error.message })));
       presentFieldErrors(node, detailedErrors);
+      const firstInvalid = ['vpsId', 'checksum', 'versionOverride', 'urlOverride']
+        .find(name => detailedErrors.some(error => error.field === name));
+      if (firstInvalid) node.querySelector(`#${FIELD_CONTROL_IDS[firstInvalid]}`)?.focus();
       return;
     }
     clearFieldErrorPresentation(node);

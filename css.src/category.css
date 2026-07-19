@@ -655,7 +655,9 @@
 .config-tab.has-warning .config-tab-alert { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .config-tab.active:not(.has-error):not(.has-warning) { box-shadow: inset 0 3px 0 var(--success); }
 .config-tab.active.has-error { box-shadow: inset 0 3px 0 var(--danger); }
-.config-tab.active.has-warning { box-shadow: inset 0 3px 0 var(--accent); }
+/* The active tab's top strip stays green whenever it has no errors —
+   warnings keep their dot marker but don't recolor the strip. */
+.config-tab.active.has-warning { box-shadow: inset 0 3px 0 var(--success); }
 
 /* Descriptions were removed; keep the fixed panel comfortably padded. */
 .config-tab-panel > .field-grid { padding-top: 12px; }
@@ -673,7 +675,8 @@
 }
 .field-main-enabled .checkbox-row { justify-content: center; }
 
-/* PUP Pack corrected layout */
+/* PUP Pack corrected layout — the root field (input + directory select)
+   spans two rows; Required sits to the right of the directory select. */
 .field-grid-pup {
   grid-template-columns: minmax(140px, 0.8fr) minmax(190px, 1.2fr);
   grid-template-areas:
@@ -681,7 +684,7 @@
     "pup-notes pup-notes"
     "pup-version pup-url"
     "pup-root pup-format"
-    "pup-required pup-required";
+    "pup-root pup-required";
 }
 .field-pup-id { grid-area: pup-id; }
 .field-pup-checksum { grid-area: pup-checksum; }

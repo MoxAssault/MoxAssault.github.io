@@ -926,25 +926,23 @@
             const vni = results.find(result => result.extension === '.vni');
             const palVniMode = Boolean(vni);
             if (palVniMode !== (values.coloredROMPin2DMD === true)) {
+              // The mode-change handler resets both inputs and hints to match
+              // surviving state (a kept .pal checksum stays put).
               onChange('coloredROMPin2DMD', palVniMode, { yml_field: 'coloredROMPin2DMD', type: 'bool' });
               const flag = document.getElementById('field-coloredROMPin2DMD');
               if (flag) flag.checked = palVniMode;
-              // The mode flip cleared both checksums in state; mirror that in
-              // the DOM before writing the freshly calculated values.
-              input.value = '';
-              const staleSecondary = document.getElementById('field-coloredROMChecksumSecondary');
-              if (staleSecondary) staleSecondary.value = '';
             }
             const primaryResult = pal || (palVniMode ? null : results[0]);
             const sources = { ...(values.__checksumSources || {}) };
-            const parts = [];
             if (primaryResult) {
               input.value = primaryResult.checksum;
               onChange(field.yml_field, primaryResult.checksum, field);
               sources[field.yml_field] = { name: primaryResult.name, extension: primaryResult.extension };
-              parts.push(primaryResult.name);
+              dropHint.textContent = `MD5 calculated (${primaryResult.name}) from ${file.name}`;
             } else {
-              input.value = '';
+              // Lone .vni drop: restore the primary field's own state-driven
+              // subtext instead of leaving "Processing…" behind.
+              syncConditionalFields(values);
             }
             if (vni) {
               const secondaryInput = document.getElementById('field-coloredROMChecksumSecondary');
@@ -954,10 +952,13 @@
               }
               onChange('coloredROMChecksumSecondary', vni.checksum, { yml_field: 'coloredROMChecksumSecondary', type: 'str' });
               sources.coloredROMChecksumSecondary = { name: vni.name, extension: '.vni' };
-              parts.push(vni.name);
+              const secondaryHint = document.querySelector('.field-color-secondary .checksum-drop-hint');
+              if (secondaryHint) {
+                secondaryHint.classList.remove('error');
+                secondaryHint.textContent = `MD5 calculated (${vni.name}) from ${file.name}`;
+              }
             }
             onChange('__checksumSources', sources, { uiOnly: true });
-            dropHint.textContent = `MD5 calculated (${parts.join(' + ')}) from ${file.name}`;
           } catch (error) {
             dropHint.classList.add('error');
             dropHint.textContent = error?.message || 'Archive scan failed.';
@@ -1028,31 +1029,40 @@
   }
 
   // Runs when PAL/VNI is toggled: it hard-resets the Color ROM checksum pair
-  // to match state — clearing any input whose value was just dropped from
-  // state and restoring both drop hints to their instructions.
+  // to match state — surviving values (a kept .pal checksum) stay visible with
+  // their calculated-from subtext, everything else returns to instructions.
   function syncConditionalFields(values) {
     const pin2dmd = values?.coloredROMPin2DMD === true;
+    const sources = values?.__checksumSources || {};
     const primary = document.getElementById('field-coloredROMChecksum');
     const secondary = document.getElementById('field-coloredROMChecksumSecondary');
-    if (primary && !values?.coloredROMChecksum) primary.value = '';
+    if (primary) primary.value = values?.coloredROMChecksum ? String(values.coloredROMChecksum).toUpperCase() : '';
     if (secondary) {
       secondary.disabled = !pin2dmd;
-      if (!values?.coloredROMChecksumSecondary) secondary.value = '';
+      secondary.value = values?.coloredROMChecksumSecondary ? String(values.coloredROMChecksumSecondary).toUpperCase() : '';
     }
 
     const primaryHint = document.querySelector('.field-color-checksum .checksum-drop-hint');
     if (primaryHint) {
       primaryHint.classList.remove('error');
-      const allowed = pin2dmd ? ['.pal', '.vni'] : ['.crz', '.pal', '.pac', '.cromc'];
-      primaryHint.textContent = `Drop ${[...allowed, ...ARCHIVE_EXTENSIONS].join(' / ')} file to calculate MD5`;
+      if (values?.coloredROMChecksum && sources.coloredROMChecksum?.name) {
+        primaryHint.textContent = `MD5 calculated from ${sources.coloredROMChecksum.name}`;
+      } else {
+        const allowed = pin2dmd ? ['.pal', '.vni'] : ['.crz', '.pal', '.pac', '.cromc'];
+        primaryHint.textContent = `Drop ${[...allowed, ...ARCHIVE_EXTENSIONS].join(' / ')} file to calculate MD5`;
+      }
     }
 
     const secondaryHint = document.querySelector('.field-color-secondary .checksum-drop-hint');
     if (secondaryHint) {
       secondaryHint.classList.remove('error');
-      secondaryHint.textContent = pin2dmd
-        ? 'Drop .vni file to calculate MD5'
-        : 'Enable PAL/VNI to use a second checksum';
+      if (pin2dmd && values?.coloredROMChecksumSecondary && sources.coloredROMChecksumSecondary?.name) {
+        secondaryHint.textContent = `MD5 calculated from ${sources.coloredROMChecksumSecondary.name}`;
+      } else {
+        secondaryHint.textContent = pin2dmd
+          ? 'Drop .vni file to calculate MD5'
+          : 'Enable PAL/VNI to use a second checksum';
+      }
     }
   }
 

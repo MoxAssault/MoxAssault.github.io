@@ -64,7 +64,7 @@
       fields: [
         { name: 'VPX ID', yml_field: 'vpxVPSId', type: 'str', readonly: true, wide: true },
         {
-          name: 'VPX Checksum', yml_field: 'vpxChecksum', type: 'str', wide: true,
+          name: 'VPX Checksum', yml_field: 'vpxChecksum', type: 'str', wide: true, maxlength: 32,
           checksumExtensions: ['.vpx', '.zip', '.rar', '.7z'], archiveScanExtension: '.vpx'
         },
         { name: 'VPX Notes', yml_field: 'tableNotes', type: 'str', multiline: true, wide: true }
@@ -75,7 +75,7 @@
       fields: [
         { name: 'Backglass ID', yml_field: 'backglassVPSId', type: 'str', readonly: true, wide: true },
         {
-          name: 'Backglass Checksum', yml_field: 'backglassChecksum', type: 'str', wide: true,
+          name: 'Backglass Checksum', yml_field: 'backglassChecksum', type: 'str', wide: true, maxlength: 32,
           checksumExtensions: ['.directb2s', '.zip', '.rar', '.7z'], archiveScanExtension: '.directb2s'
         },
         { name: 'Backglass Notes', yml_field: 'backglassNotes', type: 'str', multiline: true, wide: true },
@@ -88,7 +88,7 @@
       id: 'rom', label: 'ROM', legend: 'ROM File', category: 'romFiles', bundleField: 'romBundled',
       fields: [
         { name: 'ROM ID', yml_field: 'romVPSId', type: 'str', readonly: true, wide: true },
-        { name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, checksumExtensions: ['.zip', '.rar', '.7z'] },
+        { name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, maxlength: 32, checksumExtensions: ['.zip', '.rar', '.7z'] },
         { name: 'ROM Notes', yml_field: 'romNotes', type: 'str', multiline: true, wide: true },
         { name: 'ROM URL Override', yml_field: 'romUrlOverride', type: 'url', wide: true, advanced: true },
         { name: 'ROM Version Override', yml_field: 'romVersionOverride', type: 'str', wide: true, advanced: true },
@@ -100,7 +100,7 @@
       fields: [
         { name: 'Color ROM ID', yml_field: 'coloredROMVPSId', type: 'str', readonly: true, wide: true },
         {
-          name: 'Color ROM Checksum', yml_field: 'coloredROMChecksum', type: 'str', wide: true,
+          name: 'Color ROM Checksum', yml_field: 'coloredROMChecksum', type: 'str', wide: true, maxlength: 32,
           colorRomArchiveScan: true,
           checksumExtensionsByFlag: {
             field: 'coloredROMPin2DMD',
@@ -110,7 +110,7 @@
         },
         { name: 'PAL/VNI', yml_field: 'coloredROMPin2DMD', type: 'bool' },
         {
-          name: 'Color ROM Checksum #2', yml_field: 'coloredROMChecksumSecondary', type: 'str', wide: true,
+          name: 'Color ROM Checksum #2', yml_field: 'coloredROMChecksumSecondary', type: 'str', wide: true, maxlength: 32,
           checksumExtensions: ['.pal', '.vni'], disabledUnless: 'coloredROMPin2DMD', omitFromYaml: true, inlineHint: 'ROM name'
         },
         { name: 'Color ROM Notes', yml_field: 'coloredROMNotes', type: 'str', multiline: true, wide: true },
@@ -123,7 +123,7 @@
       fields: [
         { name: 'PUP Pack ID', yml_field: 'pupVPSId', type: 'str', readonly: true, wide: true },
         {
-          name: 'PUP Pack Checksum', yml_field: 'pupChecksum', type: 'str', wide: true,
+          name: 'PUP Pack Checksum', yml_field: 'pupChecksum', type: 'str', wide: true, maxlength: 32,
           checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true, archiveFormatField: 'pupArchiveFormat'
         },
         { name: 'PUP Pack Notes', yml_field: 'pupNotes', type: 'str', multiline: true, wide: true },
@@ -175,7 +175,7 @@
       fields: [
         { name: 'VPU Patch ID', yml_field: 'diffVPSId', type: 'str', readonly: true, wide: true },
         {
-          name: 'VPU Patch Checksum', yml_field: 'diffChecksum', type: 'str', wide: true,
+          name: 'VPU Patch Checksum', yml_field: 'diffChecksum', type: 'str', wide: true, maxlength: 32,
           checksumExtensions: ['.dif', '.zip', '.rar', '.7z'], archiveScanExtension: '.dif'
         },
         { name: 'Patch Notes', yml_field: 'diffNotes', type: 'str', multiline: true, wide: true },
