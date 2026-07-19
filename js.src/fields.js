@@ -147,7 +147,11 @@
       fields: [
         { name: 'Alt Sound ID', yml_field: 'altSoundVPSId', type: 'str', readonly: true, wide: true },
         {
-          name: 'Alt Sound Checksum(s)', yml_field: 'altSoundChecksum', type: 'array', wide: true,
+          // Single-checksum entry (capped at MD5 length) — the YAML layer
+          // still emits a list when an imported build carries multiple, and a
+          // dedicated second field will be added if the schema ever requires
+          // one (Color ROM's Checksum #2 pattern).
+          name: 'Alt Sound Checksum(s)', yml_field: 'altSoundChecksum', type: 'array', wide: true, maxlength: 32,
           placeholder: 'Alt Sound Checksum(s)'
         },
         { name: 'Alt Sound Notes', yml_field: 'altSoundNotes', type: 'str', multiline: true, wide: true },
