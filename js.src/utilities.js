@@ -54,6 +54,14 @@
     return false;
   }
 
+  function getItemUrl(item) {
+    if (!item || typeof item !== 'object') return '';
+    const urls = item.urls;
+    const list = Array.isArray(urls) ? urls : (urls && typeof urls === 'object' ? Object.values(urls) : []);
+    const usable = list.find(entry => entry && typeof entry.url === 'string' && entry.url.trim() && entry.broken !== true && entry.broken !== 'true');
+    return (usable || list.find(entry => entry && typeof entry.url === 'string' && entry.url.trim()))?.url?.trim() || '';
+  }
+
   const EXCLUDED_VPX_FORMATS = new Set(['FP', 'FX', 'FX2', 'FX3']);
 
   function normalizeList(value) {
@@ -562,6 +570,7 @@
     humanize,
     formatDate,
     isItemBroken,
+    getItemUrl,
     isExcludedVpxFormat,
     isVpuPatchItem,
     getParentId,

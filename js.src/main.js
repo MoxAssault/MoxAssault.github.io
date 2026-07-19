@@ -692,9 +692,6 @@
 
     const pupOffered = Boolean(state.selections.pupPackFiles || hasText(state.values.pupFileUrl) || state.values.pupBundled === true);
     validateChecksum('pupChecksum', 'pup', 'PUP Pack Checksum', { required: pupOffered });
-    if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup')) && state.values.pupRequired === true && !hasText(state.values.pupFileUrl) && !state.selections.pupPackFiles) {
-      addError('pup', 'Required PUP Pack needs a source', 'Select a PUP Pack VPS entry or add the PUP Pack URL.');
-    }
     if (state.values.pupBundled === true && !hasText(state.values.pupNotes)) {
       addError('pup', 'Bundled PUP Pack needs notes', 'Describe the bundled PUP Pack and where it is located.');
     }

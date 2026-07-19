@@ -6,6 +6,7 @@
     getCoverUrl,
     getItemLabel,
     isItemBroken,
+    getItemUrl,
     getCategoryItems,
     getAssetState,
     extractArchiveDirectories,
@@ -577,7 +578,18 @@
 
       const row = element('div', `asset-row${selectedItem ? ' has-selection' : ''}${detailOpen ? ' details-open' : ''}`);
       row.dataset.category = category;
-      row.appendChild(element('div', 'asset-name', config.label));
+      const selectedItemUrl = selectedItem ? getItemUrl(selectedItem) : '';
+      if (selectedItemUrl) {
+        const nameLink = document.createElement('a');
+        nameLink.className = 'asset-name';
+        nameLink.href = selectedItemUrl;
+        nameLink.target = '_blank';
+        nameLink.rel = 'noopener noreferrer';
+        nameLink.textContent = config.label;
+        row.appendChild(nameLink);
+      } else {
+        row.appendChild(element('div', 'asset-name', config.label));
+      }
 
       const select = document.createElement('select');
       select.setAttribute('aria-label', `Select ${config.singular}`);
