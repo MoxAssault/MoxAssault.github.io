@@ -182,7 +182,7 @@
 
   function allowedColorExtensions(fieldName) {
     const paired = document.getElementById('field-coloredROMPin2DMD')?.checked === true;
-    if (!paired) return fieldName === 'coloredROMChecksum' ? ['.crz', '.pal', '.pac'] : [];
+    if (!paired) return fieldName === 'coloredROMChecksum' ? ['.crz', '.pal', '.pac', '.cromc'] : [];
     const otherExtension = colorExtensions[otherColorField(fieldName)];
     return ['.pal', '.vni'].filter(extension => extension !== otherExtension);
   }
@@ -195,9 +195,14 @@
     fields.forEach(([fieldName, hint]) => {
       if (!hint || fieldName === preserveField) return;
       const allowed = allowedColorExtensions(fieldName);
+      // The primary field also accepts archives, which are scanned for the
+      // Color ROM file(s) inside.
+      const display = fieldName === 'coloredROMChecksum' && allowed.length
+        ? [...allowed, '.zip', '.rar', '.7z']
+        : allowed;
       hint.classList.remove('error');
-      hint.textContent = allowed.length
-        ? `Drop ${allowed.join(' / ')} file to calculate MD5`
+      hint.textContent = display.length
+        ? `Drop ${display.join(' / ')} file to calculate MD5`
         : 'Enable PAL/VNI to use a second checksum';
     });
   }

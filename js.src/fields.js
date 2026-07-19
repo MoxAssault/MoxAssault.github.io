@@ -74,7 +74,10 @@
       id: 'b2s', label: 'Backglass', legend: 'Backglass (B2S)', category: 'b2sFiles', bundleField: 'backglassBundled',
       fields: [
         { name: 'Backglass ID', yml_field: 'backglassVPSId', type: 'str', readonly: true, wide: true },
-        { name: 'Backglass Checksum', yml_field: 'backglassChecksum', type: 'str', wide: true, checksumExtensions: ['.directb2s'] },
+        {
+          name: 'Backglass Checksum', yml_field: 'backglassChecksum', type: 'str', wide: true,
+          checksumExtensions: ['.directb2s', '.zip', '.rar', '.7z'], archiveScanExtension: '.directb2s'
+        },
         { name: 'Backglass Notes', yml_field: 'backglassNotes', type: 'str', multiline: true, wide: true },
         { name: 'Backglass Authors Override', yml_field: 'backglassAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name', advanced: true },
         { name: 'Backglass Image Override', yml_field: 'backglassImageOverride', type: 'str', wide: true, advanced: true },
@@ -98,9 +101,10 @@
         { name: 'Color ROM ID', yml_field: 'coloredROMVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'Color ROM Checksum', yml_field: 'coloredROMChecksum', type: 'str', wide: true,
+          colorRomArchiveScan: true,
           checksumExtensionsByFlag: {
             field: 'coloredROMPin2DMD',
-            false: ['.crz', '.pal', '.pac'],
+            false: ['.crz', '.pal', '.pac', '.cromc'],
             true: ['.pal', '.vni']
           }
         },
@@ -170,7 +174,10 @@
       id: 'vpuPatch', label: 'VPU Patch', legend: 'VPU Patch', category: 'vpuPatchFiles', bundleField: 'diffBundled',
       fields: [
         { name: 'VPU Patch ID', yml_field: 'diffVPSId', type: 'str', readonly: true, wide: true },
-        { name: 'VPU Patch Checksum', yml_field: 'diffChecksum', type: 'str', wide: true, checksumExtensions: ['.dif'] },
+        {
+          name: 'VPU Patch Checksum', yml_field: 'diffChecksum', type: 'str', wide: true,
+          checksumExtensions: ['.dif', '.zip', '.rar', '.7z'], archiveScanExtension: '.dif'
+        },
         { name: 'Patch Notes', yml_field: 'diffNotes', type: 'str', multiline: true, wide: true },
         { name: 'Patch Authors Override', yml_field: 'diffAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name', advanced: true },
         { name: 'Patch URL Override', yml_field: 'diffUrlOverride', type: 'url', wide: true, advanced: true },

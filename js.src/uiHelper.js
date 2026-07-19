@@ -292,25 +292,24 @@
     return unrarModulePromise;
   }
 
-  async function extractRarEntryChecksum(file, targetExtension) {
+  async function extractRarEntries(file, selectNames) {
     const { module, wasmBinary } = await loadUnrarModule();
     const data = await file.arrayBuffer();
     const extractor = await module.createExtractorFromData({ wasmBinary, data });
-    const wanted = String(targetExtension).toLowerCase();
-    const headers = [...extractor.getFileList().fileHeaders];
-    const target = headers.find(header => !header.flags?.directory && String(header.name || '').toLowerCase().endsWith(wanted));
-    if (!target) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
-    const extracted = [...extractor.extract({ files: [target.name] }).files];
-    const bytes = extracted.find(entry => entry?.extraction)?.extraction;
-    if (!bytes) throw new Error(`Could not extract "${target.name}" from "${file.name}".`);
-    const checksum = await calculateMd5FromBlob(new Blob([bytes]));
-    return { checksum, entryName: target.name.split('/').pop() };
+    const names = [...extractor.getFileList().fileHeaders]
+      .filter(header => !header.flags?.directory)
+      .map(header => String(header.name || ''));
+    const wanted = selectNames(names);
+    if (!wanted.length) return [];
+    const extracted = [...extractor.extract({ files: wanted }).files];
+    return wanted.map(name => {
+      const entry = extracted.find(candidate => String(candidate?.fileHeader?.name || '') === name && candidate?.extraction);
+      if (!entry) throw new Error(`Could not extract "${name}" from "${file.name}".`);
+      return { name, blob: new Blob([entry.extraction]) };
+    });
   }
 
-  async function extractArchiveEntryChecksum(file, targetExtension) {
-    if (getFileExtension(file.name) === '.rar') {
-      return extractRarEntryChecksum(file, targetExtension);
-    }
+  async function extractLibarchiveEntries(file, selectNames) {
     const Archive = await loadArchiveModule();
     let source;
     try {
@@ -319,7 +318,7 @@
     } catch (error) {
       const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
       const reason = error?.name === 'NotReadableError'
-        ? `archive is too large to scan in-browser (${sizeMb} MB) — drop the ${targetExtension} file directly`
+        ? `archive is too large to scan in-browser (${sizeMb} MB) — drop the contained file directly`
         : (error?.message || error?.name || 'unknown read error');
       const friendly = new Error(`Could not scan "${file?.name || 'archive'}": ${reason}.`);
       friendly.cause = error;
@@ -327,16 +326,65 @@
     }
     const archive = await Archive.open(source);
     try {
-      const entries = await archive.getFilesArray();
-      const wanted = String(targetExtension).toLowerCase();
-      const target = (entries || []).find(entry => String(entry?.file?.name || '').toLowerCase().endsWith(wanted));
-      if (!target) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
-      const blob = typeof target.file.extract === 'function' ? await target.file.extract() : target.file;
-      const checksum = await calculateMd5FromBlob(blob);
-      return { checksum, entryName: target.file.name };
+      const entries = (await archive.getFilesArray()) || [];
+      const entryName = entry => `${String(entry?.path || '')}${String(entry?.file?.name || '')}`;
+      const wanted = selectNames(entries.map(entryName));
+      const output = [];
+      for (const name of wanted) {
+        const entry = entries.find(candidate => entryName(candidate) === name);
+        if (!entry) throw new Error(`Could not extract "${name}" from "${file.name}".`);
+        const blob = typeof entry.file.extract === 'function' ? await entry.file.extract() : entry.file;
+        output.push({ name, blob });
+      }
+      return output;
     } finally {
       try { await archive.close(); } catch (_) { /* worker may already be closed */ }
     }
+  }
+
+  // selectNames receives every file entry name in the archive and returns the
+  // names to extract (it may throw a user-facing Error instead).
+  function extractArchiveEntries(file, selectNames) {
+    return getFileExtension(file.name) === '.rar'
+      ? extractRarEntries(file, selectNames)
+      : extractLibarchiveEntries(file, selectNames);
+  }
+
+  async function extractArchiveEntryChecksum(file, targetExtension) {
+    const wanted = String(targetExtension).toLowerCase();
+    const matches = await extractArchiveEntries(file, names => {
+      const target = names.find(name => name.toLowerCase().endsWith(wanted));
+      if (!target) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
+      return [target];
+    });
+    const { name, blob } = matches[0];
+    const checksum = await calculateMd5FromBlob(blob);
+    return { checksum, entryName: name.split('/').pop() };
+  }
+
+  const COLOR_ROM_EXTENSIONS = ['.pal', '.vni', '.crz', '.pac', '.cromc'];
+
+  async function extractColorRomArchiveChecksums(file) {
+    const entries = await extractArchiveEntries(file, names => {
+      const matches = names.filter(name => COLOR_ROM_EXTENSIONS.includes(getFileExtension(name)));
+      if (!matches.length) {
+        throw new Error(`No Color ROM file (${COLOR_ROM_EXTENSIONS.join(' / ')}) found inside "${file.name}".`);
+      }
+      const pal = matches.find(name => getFileExtension(name) === '.pal');
+      const vni = matches.find(name => getFileExtension(name) === '.vni');
+      if (pal && vni) return [pal, vni];
+      if (matches.length === 1) return matches;
+      throw new Error(`"${file.name}" contains multiple Color ROM files — expected one file or a .pal/.vni pair.`);
+    });
+    const results = [];
+    for (const entry of entries) {
+      results.push({
+        name: entry.name.split('/').pop(),
+        extension: getFileExtension(entry.name),
+        checksum: await calculateMd5FromBlob(entry.blob)
+      });
+    }
+    return results;
   }
 
   function getChecksumExtensions(field, values) {
@@ -818,7 +866,8 @@
       const loadingTrack = element('span', 'checksum-loading-track');
       loadingTrack.setAttribute('aria-hidden', 'true');
       loadingTrack.appendChild(element('span', 'checksum-loading-dot'));
-      const dropHint = element('span', 'checksum-drop-hint', `Drop ${allowed.join(' / ')} file to calculate MD5${field.archiveBrowser ? ' and browse folders' : ''}`);
+      const hintExtensions = field.colorRomArchiveScan ? [...allowed, ...ARCHIVE_EXTENSIONS] : allowed;
+      const dropHint = element('span', 'checksum-drop-hint', `Drop ${hintExtensions.join(' / ')} file to calculate MD5${field.archiveBrowser ? ' and browse folders' : ''}`);
       statusRow.append(loadingTrack, dropHint);
       const setDropState = active => wrapper.classList.toggle('checksum-drop-active', active);
       const setLoading = active => {
@@ -847,14 +896,64 @@
         if (!file) return;
         const extension = getFileExtension(file.name);
         const currentAllowed = getChecksumExtensions(field, values);
-        if (!currentAllowed.includes(extension)) {
-          dropHint.textContent = `Invalid file type. Allowed: ${currentAllowed.join(', ')}`;
+        const isColorArchiveDrop = Boolean(field.colorRomArchiveScan) && ARCHIVE_EXTENSIONS.includes(extension);
+        if (!currentAllowed.includes(extension) && !isColorArchiveDrop) {
+          const accepted = field.colorRomArchiveScan ? [...currentAllowed, ...ARCHIVE_EXTENSIONS] : currentAllowed;
+          dropHint.textContent = `Invalid file type. Allowed: ${accepted.join(', ')}`;
           dropHint.classList.add('error');
           return;
         }
         dropHint.classList.remove('error');
         dropHint.textContent = `Processing ${file.name}…`;
         setLoading(true);
+
+        if (isColorArchiveDrop) {
+          try {
+            const results = await extractColorRomArchiveChecksums(file);
+            const pal = results.find(result => result.extension === '.pal');
+            const vni = results.find(result => result.extension === '.vni');
+            const palVniMode = Boolean(vni);
+            if (palVniMode !== (values.coloredROMPin2DMD === true)) {
+              onChange('coloredROMPin2DMD', palVniMode, { yml_field: 'coloredROMPin2DMD', type: 'bool' });
+              const flag = document.getElementById('field-coloredROMPin2DMD');
+              if (flag) flag.checked = palVniMode;
+              // The mode flip cleared both checksums in state; mirror that in
+              // the DOM before writing the freshly calculated values.
+              input.value = '';
+              const staleSecondary = document.getElementById('field-coloredROMChecksumSecondary');
+              if (staleSecondary) staleSecondary.value = '';
+            }
+            const primaryResult = pal || (palVniMode ? null : results[0]);
+            const sources = { ...(values.__checksumSources || {}) };
+            const parts = [];
+            if (primaryResult) {
+              input.value = primaryResult.checksum;
+              onChange(field.yml_field, primaryResult.checksum, field);
+              sources[field.yml_field] = { name: primaryResult.name, extension: primaryResult.extension };
+              parts.push(primaryResult.name);
+            } else {
+              input.value = '';
+            }
+            if (vni) {
+              const secondaryInput = document.getElementById('field-coloredROMChecksumSecondary');
+              if (secondaryInput) {
+                secondaryInput.value = vni.checksum;
+                secondaryInput.disabled = false;
+              }
+              onChange('coloredROMChecksumSecondary', vni.checksum, { yml_field: 'coloredROMChecksumSecondary', type: 'str' });
+              sources.coloredROMChecksumSecondary = { name: vni.name, extension: '.vni' };
+              parts.push(vni.name);
+            }
+            onChange('__checksumSources', sources, { uiOnly: true });
+            dropHint.textContent = `MD5 calculated (${parts.join(' + ')}) from ${file.name}`;
+          } catch (error) {
+            dropHint.classList.add('error');
+            dropHint.textContent = error?.message || 'Archive scan failed.';
+            console.warn('Color ROM archive scan failed:', error);
+          }
+          setLoading(false);
+          return;
+        }
 
         if (field.archiveFormatField && ARCHIVE_EXTENSIONS.includes(extension)) {
           const format = extension.slice(1);
