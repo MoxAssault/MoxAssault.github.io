@@ -46,6 +46,16 @@
   white-space: nowrap;
 }
 .bundle-toggle input { accent-color: var(--accent); }
+.asset-toggle-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+  gap: 2px;
+}
+.asset-toggle-stack .bundle-toggle { line-height: 1; }
+/* Every collapsed asset row shares one exact height. */
+.asset-row:not(.details-open) { height: 52px; }
 .asset-status {
   display: flex;
   align-items: center;
@@ -306,6 +316,7 @@
 
 @media (max-width: 760px) {
   .asset-row { grid-template-columns: 72px minmax(0, 1fr) auto auto; }
+  .asset-row:not(.details-open) { height: auto; }
   .asset-thumbnail-preview {
     right: 0;
     left: auto;
@@ -318,7 +329,7 @@
     transform: scale(1);
   }
   .asset-select-wrap { grid-column: 2; }
-  .bundle-toggle { grid-column: 2; }
+  .asset-toggle-stack { grid-column: 2; }
   .asset-status { grid-column: 3; grid-row: 1 / span 2; }
   .asset-info-button { grid-column: 4; grid-row: 1 / span 2; }
   .asset-detail { grid-column: 1 / -1; }
@@ -332,7 +343,7 @@
   .asset-row { grid-template-columns: 1fr auto auto; }
   .asset-name { grid-column: 1; }
   .asset-select-wrap { grid-column: 1 / -1; grid-row: 2; }
-  .bundle-toggle { grid-column: 1; grid-row: 3; }
+  .asset-toggle-stack { grid-column: 1; grid-row: 3; }
   .asset-status { grid-column: 2; grid-row: 1; }
   .asset-info-button { grid-column: 3; grid-row: 1; }
   .config-accordion summary { grid-template-columns: 22px minmax(0, 1fr); }
@@ -530,17 +541,45 @@
   background: var(--success-soft);
 }
 .checksum-drop-status {
+  position: relative;
   display: flex;
   align-items: center;
   min-width: 0;
   gap: 6px;
 }
 .checksum-drop-hint {
+  overflow: hidden;
   color: var(--text-faint);
   font-size: 10px;
   line-height: 1.25;
   min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+/* Overflowing hint text gets a hover tooltip with the full message
+   (data-tooltip is set on the status row only when the hint is truncated). */
+.checksum-drop-status[data-tooltip] .checksum-drop-hint { cursor: help; }
+.checksum-drop-status[data-tooltip]::after {
+  position: absolute;
+  z-index: 520;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: none;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 5px 7px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 600 10.5px/1.35 "Inter", sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+.checksum-drop-status[data-tooltip]:hover::after { display: block; }
 .checksum-drop-hint.error { color: var(--danger); }
 .checksum-loading-track {
   display: none;

@@ -237,14 +237,12 @@
     select.disabled = directories.length === 0;
   }
 
-  function ensureDefaultFormat() {
-    const { values, selections, callbacks } = runtime.state;
-    if (!values || !callbacks) return;
-    const active = Boolean(selections?.altSoundFiles || values.altSoundVPSId || values.altSoundBundled || values.altSoundUrlOverride);
-    if (active && !values.altSoundArchiveFormat) {
-      callbacks.onChange('altSoundArchiveFormat', 'zip', { yml_field: 'altSoundArchiveFormat', type: 'select' });
-      return;
-    }
+  // The format select intentionally starts on its placeholder ("Alt Sound
+  // Archive Format") and is only populated by the user or by an archive drop —
+  // never forced to a default value.
+  function syncFormatSelect() {
+    const { values } = runtime.state;
+    if (!values) return;
     const select = document.getElementById('field-altSoundArchiveFormat');
     if (select && values.altSoundArchiveFormat && select.value !== values.altSoundArchiveFormat) {
       select.value = values.altSoundArchiveFormat;
@@ -312,6 +310,13 @@
       hint.textContent = `Processing ${file.name}…`;
       setLoading(true);
 
+      const format = extension.slice(1);
+      runtime.state.callbacks?.onChange?.('altSoundArchiveFormat', format, {
+        yml_field: 'altSoundArchiveFormat', type: 'select'
+      });
+      const formatSelect = document.getElementById('field-altSoundArchiveFormat');
+      if (formatSelect) formatSelect.value = format;
+
       const checksumTask = calculateMd5(file);
       const directoryTask = readDirectories(file);
       const [checksumResult, directoryResult] = await Promise.allSettled([checksumTask, directoryTask]);
@@ -357,7 +362,7 @@
     refreshFrame = 0;
     decorateChecksumField();
     populateRootSelect();
-    ensureDefaultFormat();
+    syncFormatSelect();
   }
 
   function schedule() {

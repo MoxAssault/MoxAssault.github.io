@@ -1,8 +1,9 @@
 /* Production feature extension: Main layout, Alt Sound, Tutorials, and Additional ROMs. */
 
-/* Match the Main ID width to the standard ID column while preserving compact controls. */
+/* Game VPS ID absorbs the row's free space; Wizard Disabled sizes to its
+   single-line label; Tutorial keeps a workable minimum. */
 .field-grid-main {
-  grid-template-columns: minmax(0, 1fr) 64px minmax(110px, 0.85fr) minmax(120px, 0.7fr);
+  grid-template-columns: minmax(0, 1fr) 64px minmax(150px, 0.55fr) auto;
   grid-template-areas:
     "game fps tutorial enabled"
     "tagline tagline tagline tagline"
@@ -11,12 +12,14 @@
 .field-main-id { min-width: 0; }
 .field-main-fps { min-width: 0; }
 .field-main-tutorial { grid-area: tutorial; min-width: 0; }
-.field-main-enabled { min-width: 120px; }
 .field-main-enabled .checkbox-row {
   justify-content: flex-start;
   width: max-content;
   max-width: 100%;
 }
+/* Notes cedes 50px of its track to Testers. */
+.field-grid-main .field-main-notes { width: calc(100% - 50px); }
+.field-grid-main .field-main-testers { width: calc(100% + 50px); margin-left: -50px; }
 
 /* Give Year Override enough room for its complete placeholder. */
 .advanced-grid-main {
@@ -176,6 +179,8 @@
       "testers testers";
   }
   .field-main-enabled { min-width: 0; }
+  .field-grid-main .field-main-notes { width: 100%; }
+  .field-grid-main .field-main-testers { width: 100%; margin-left: 0; }
   .advanced-grid-main {
     grid-template-columns: 1fr;
     grid-template-areas:

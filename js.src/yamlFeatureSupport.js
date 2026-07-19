@@ -32,6 +32,14 @@
     delete data.bass;
     delete data.applyFixes;
 
+    // The table-level NSFW flag is exclusive: when set, per-asset NSFW keys
+    // must never appear alongside it (covers imported YAML that has both).
+    if (data.nsfw === true) {
+      Object.values(window.VPS_YML_FIELDS?.CATEGORY_CONFIG || {}).forEach(config => {
+        if (config.nsfwField) delete data[config.nsfwField];
+      });
+    }
+
     const primaryColorChecksum = Array.isArray(data.coloredROMChecksum)
       ? data.coloredROMChecksum[0]
       : data.coloredROMChecksum;
@@ -61,16 +69,6 @@
     if (altSoundChecksums.length === 1) data.altSoundChecksum = altSoundChecksums[0];
     else if (altSoundChecksums.length > 1) data.altSoundChecksum = altSoundChecksums;
     else delete data.altSoundChecksum;
-
-    const hasAltSound = Boolean(
-      data.altSoundVPSId
-      || data.altSoundUrlOverride
-      || data.altSoundBundled === true
-      || data.altSoundChecksum
-    );
-    if (hasAltSound && !String(data.altSoundArchiveFormat || '').trim()) {
-      data.altSoundArchiveFormat = 'zip';
-    }
 
     const additionalRoms = normalizeAdditionalRoms(data.additionalRoms);
     if (additionalRoms.length) data.additionalRoms = additionalRoms;

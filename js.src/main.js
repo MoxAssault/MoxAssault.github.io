@@ -291,6 +291,7 @@
     if (!config) return;
     delete state.selections[category];
     delete state.values[config.idField];
+    if (config.nsfwField && state.values[config.bundleField] !== true) delete state.values[config.nsfwField];
     state.openAssetDetails.delete(category);
     const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
     if (step) clearStepData(step, { preserveId: false, preserveBundle: true, rerender: false });
@@ -364,10 +365,11 @@
     dom.workspace.hidden = !hasRecord;
     if (!hasRecord) return;
 
-    UI.renderTableStrip(dom.tableStrip, state.record, state.selections, state.values, dom.tableBadges, { onJump: activateConfigTab });
+    UI.renderTableStrip(dom.tableStrip, state.record, state.selections, state.values, dom.tableBadges, { onJump: activateConfigTab, onNsfw: handleNsfwChange });
     UI.renderAssetMatrix(dom.assetMatrix, state.record, state.selections, state.values, {
       onSelect: handleAssetSelection,
       onBundle: handleBundleChange,
+      onNsfw: handleNsfwChange,
       onToggleDetail: toggleAssetDetail,
       isDetailOpen: category => state.openAssetDetails.has(category)
     });
@@ -418,6 +420,7 @@
     } else {
       delete state.selections[category];
       delete state.values[config.idField];
+      if (config.nsfwField && state.values[config.bundleField] !== true) delete state.values[config.nsfwField];
       state.openAssetDetails.delete(category);
     }
 
@@ -441,6 +444,22 @@
     const step = WIZARD_STEPS.find(candidate => candidate.bundleField === fieldName);
     if (!checked && step && !state.selections[step.category]) {
       clearStepData(step, { preserveId: false, preserveBundle: false, rerender: false });
+      const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
+      if (config?.nsfwField) delete state.values[config.nsfwField];
+    }
+    renderWorkspace();
+    markChanged();
+  }
+
+  function handleNsfwChange(fieldName, checked) {
+    if (checked) state.values[fieldName] = true;
+    else delete state.values[fieldName];
+    if (fieldName === 'nsfw' && checked) {
+      // The table-level flag is exclusive: it replaces the per-asset flags,
+      // which are cleared so they never coexist with `nsfw: true` in the YAML.
+      Object.values(CATEGORY_CONFIG).forEach(config => {
+        if (config.nsfwField) delete state.values[config.nsfwField];
+      });
     }
     renderWorkspace();
     markChanged();
@@ -480,7 +499,7 @@
       UI.syncConditionalFields(state.values);
     }
 
-    UI.renderTableStrip(dom.tableStrip, state.record, state.selections, state.values, dom.tableBadges, { onJump: activateConfigTab });
+    UI.renderTableStrip(dom.tableStrip, state.record, state.selections, state.values, dom.tableBadges, { onJump: activateConfigTab, onNsfw: handleNsfwChange });
     updatePreview();
     updateValidationSummary();
     refreshTabStatuses();
@@ -615,6 +634,9 @@
     if (state.values.backglassBundled === true && !hasText(state.values.backglassNotes)) {
       addError('b2s', 'Bundled Backglass needs notes', 'Describe the bundled Backglass and where it is located.');
     }
+    if (hasText(state.values.backglassUrlOverride) && !hasText(state.values.backglassNotes)) {
+      addError('b2s', 'Backglass Notes are required', 'Add Backglass Notes when using Backglass URL Override.');
+    }
 
     const romOffered = Boolean(
       state.selections.romFiles || hasText(state.values.romUrlOverride) || state.values.romBundled === true
@@ -628,6 +650,9 @@
     }
     if (hasText(state.values.romUrlOverride) && !hasText(state.values.romVersionOverride)) {
       addError('rom', 'ROM version override is required', 'Add ROM Version Override when using ROM URL Override.');
+    }
+    if (hasText(state.values.romUrlOverride) && !hasText(state.values.romNotes)) {
+      addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.');
     }
 
     const colorOffered = Boolean(
@@ -648,6 +673,9 @@
     if (state.values.coloredROMBundled === true && !hasText(state.values.coloredROMNotes)) {
       addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.');
     }
+    if (hasText(state.values.coloredROMUrlOverride) && !hasText(state.values.coloredROMNotes)) {
+      addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.');
+    }
 
     const pupOffered = Boolean(state.selections.pupPackFiles || hasText(state.values.pupFileUrl) || state.values.pupBundled === true);
     validateChecksum('pupChecksum', 'pup', 'PUP Pack Checksum', { required: pupOffered });
@@ -657,10 +685,26 @@
     if (state.values.pupBundled === true && !hasText(state.values.pupNotes)) {
       addError('pup', 'Bundled PUP Pack needs notes', 'Describe the bundled PUP Pack and where it is located.');
     }
+    if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup'))) {
+      [
+        ['pupNotes', 'PUP Pack Notes'],
+        ['pupVersion', 'PUP Pack Version'],
+        ['pupFileUrl', 'PUP Pack URL'],
+        ['pupArchiveRoot', 'PUP Pack Archive Root'],
+        ['pupArchiveFormat', 'PUP Pack Archive Format']
+      ].forEach(([key, label]) => {
+        if (!hasText(state.values[key])) {
+          addError('pup', `${label} is required`, `Add ${label} before copying or downloading.`);
+        }
+      });
+    }
 
     validateChecksum('diffChecksum', 'vpuPatch', 'VPU Patch Checksum');
     if (state.values.diffBundled === true && !hasText(state.values.diffNotes)) {
       addError('vpuPatch', 'Bundled VPU Patch needs notes', 'Describe the bundled VPU Patch and where it is located.');
+    }
+    if (hasText(state.values.diffUrlOverride) && !hasText(state.values.diffNotes)) {
+      addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.');
     }
 
     const yamlLines = state.yaml.split('\n');

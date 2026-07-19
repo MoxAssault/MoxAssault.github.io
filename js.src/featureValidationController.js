@@ -37,6 +37,9 @@
     if (altSoundBundled && !String(values?.altSoundNotes || '').trim()) {
       add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
     }
+    if (altSoundUrl && !String(values?.altSoundNotes || '').trim()) {
+      add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when using Alt Sound URL Override.');
+    }
     if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {
       add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
     }
@@ -136,6 +139,7 @@
     const existing = new Set([...list.querySelectorAll('.validation-item strong')].map(node => node.textContent));
     currentErrors.forEach(error => {
       if (existing.has(error.title)) return;
+      existing.add(error.title);
       const item = document.createElement('li');
       item.className = 'validation-item error feature-validation-item';
       const title = document.createElement('strong');

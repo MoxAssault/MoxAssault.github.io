@@ -207,7 +207,7 @@
   }
 
   function allSupportedKeys() {
-    const keys = new Set(['tableVPSId', 'enabled']);
+    const keys = new Set(['tableVPSId', 'enabled', 'nsfw']);
     WIZARD_STEPS.forEach(step => {
       (step.fields || []).forEach(field => {
         keys.add(field.yml_field);
@@ -218,6 +218,7 @@
     Object.values(CATEGORY_CONFIG).forEach(config => {
       if (config.idField) keys.add(config.idField);
       if (config.bundleField) keys.add(config.bundleField);
+      if (config.nsfwField) keys.add(config.nsfwField);
     });
     return keys;
   }
