@@ -83,6 +83,9 @@
         if (values.backglassBundled === true && !hasText(values.backglassNotes)) {
           add('backglassNotes', 'Bundled Backglass entries require notes.');
         }
+        if (hasText(values.backglassUrlOverride) && !hasText(values.backglassNotes)) {
+          add('backglassNotes', 'Backglass Notes are required when using Backglass URL Override.');
+        }
         break;
       case 'rom':
         validateChecksum('romChecksum', 'ROM Checksum', { required: true });
@@ -96,6 +99,9 @@
         if (hasText(values.romUrlOverride) && !hasText(values.romVersionOverride)) {
           add('romVersionOverride', 'ROM Version Override is required when using a URL override.');
         }
+        if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
+          add('romNotes', 'ROM Notes are required when using ROM URL Override.');
+        }
         break;
       case 'coloredRom': {
         validateChecksum('coloredROMChecksum', 'Color ROM Checksum', { required: true });
@@ -105,19 +111,30 @@
         if (values.coloredROMBundled === true && !hasText(values.coloredROMNotes)) {
           add('coloredROMNotes', 'Bundled Color ROM entries require notes.');
         }
+        if (hasText(values.coloredROMUrlOverride) && !hasText(values.coloredROMNotes)) {
+          add('coloredROMNotes', 'Color ROM Notes are required when using Color ROM URL Override.');
+        }
         break;
       }
       case 'pup': {
         const hasSource = hasText(values.pupVPSId) || hasText(values.pupFileUrl);
-        validateChecksum('pupChecksum', 'PUP Pack Checksum', { required: hasSource });
+        validateChecksum('pupChecksum', 'PUP Pack Checksum', { required: true });
         if (values.pupRequired === true && !hasSource) {
           add('pupVPSId', 'A required PUP Pack needs a VPS entry or file URL.');
           add('pupFileUrl', 'A required PUP Pack needs a VPS entry or file URL.');
         }
+        if (!hasText(values.pupNotes)) add('pupNotes', 'PUP Pack Notes are required.');
+        if (!hasText(values.pupVersion)) add('pupVersion', 'PUP Pack Version is required.');
+        if (!hasText(values.pupFileUrl)) add('pupFileUrl', 'PUP Pack URL is required.');
+        if (!hasText(values.pupArchiveRoot)) add('pupArchiveRoot', 'PUP Pack Archive Root is required.');
+        if (!hasText(values.pupArchiveFormat)) add('pupArchiveFormat', 'PUP Pack Archive Format is required.');
         break;
       }
       case 'vpuPatch':
         validateChecksum('diffChecksum', 'VPU Patch Checksum');
+        if (hasText(values.diffUrlOverride) && !hasText(values.diffNotes)) {
+          add('diffNotes', 'Patch Notes are required when using Patch URL Override.');
+        }
         break;
       default:
         break;

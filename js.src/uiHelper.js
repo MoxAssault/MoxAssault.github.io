@@ -271,6 +271,37 @@
     }
   }
 
+  const ARCHIVE_EXTENSIONS = ['.zip', '.rar', '.7z'];
+
+  async function extractArchiveEntryChecksum(file, targetExtension) {
+    const Archive = await loadArchiveModule();
+    let source;
+    try {
+      const buffer = await file.arrayBuffer();
+      source = new Blob([buffer], { type: file.type || 'application/octet-stream' });
+    } catch (error) {
+      const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
+      const reason = error?.name === 'NotReadableError'
+        ? `archive is too large to scan in-browser (${sizeMb} MB) — drop the ${targetExtension} file directly`
+        : (error?.message || error?.name || 'unknown read error');
+      const friendly = new Error(`Could not scan "${file?.name || 'archive'}": ${reason}.`);
+      friendly.cause = error;
+      throw friendly;
+    }
+    const archive = await Archive.open(source);
+    try {
+      const entries = await archive.getFilesArray();
+      const wanted = String(targetExtension).toLowerCase();
+      const target = (entries || []).find(entry => String(entry?.file?.name || '').toLowerCase().endsWith(wanted));
+      if (!target) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
+      const blob = typeof target.file.extract === 'function' ? await target.file.extract() : target.file;
+      const checksum = await calculateMd5FromBlob(blob);
+      return { checksum, entryName: target.file.name };
+    } finally {
+      try { await archive.close(); } catch (_) { /* worker may already be closed */ }
+    }
+  }
+
   function getChecksumExtensions(field, values) {
     if (field.checksumExtensionsByFlag) {
       const flagConfig = field.checksumExtensionsByFlag;
@@ -392,7 +423,15 @@
       });
     }
 
-    container.append(cover, summary);
+    const nsfwToggle = element('label', 'nsfw-toggle table-nsfw-toggle');
+    const nsfwCheck = document.createElement('input');
+    nsfwCheck.type = 'checkbox';
+    nsfwCheck.checked = values?.nsfw === true;
+    nsfwCheck.setAttribute('aria-label', 'Mark this table NSFW');
+    nsfwCheck.addEventListener('change', () => callbacks.onNsfw?.('nsfw', nsfwCheck.checked));
+    nsfwToggle.append(nsfwCheck, document.createTextNode('NSFW'));
+
+    container.append(cover, summary, nsfwToggle);
     if (clearButton) container.appendChild(clearButton);
   }
 
@@ -484,14 +523,29 @@
       }
       row.appendChild(selectWrap);
 
-      if (config.bundleField) {
-        const bundleLabel = element('label', 'bundle-toggle');
-        const bundleCheck = document.createElement('input');
-        bundleCheck.type = 'checkbox';
-        bundleCheck.checked = bundled;
-        bundleCheck.addEventListener('change', () => callbacks.onBundle(config.bundleField, bundleCheck.checked));
-        bundleLabel.append(bundleCheck, document.createTextNode('Bundled'));
-        row.appendChild(bundleLabel);
+      if (config.bundleField || config.nsfwField) {
+        const toggles = element('div', 'asset-toggle-stack');
+        if (config.bundleField) {
+          const bundleLabel = element('label', 'bundle-toggle');
+          const bundleCheck = document.createElement('input');
+          bundleCheck.type = 'checkbox';
+          bundleCheck.checked = bundled;
+          bundleCheck.addEventListener('change', () => callbacks.onBundle(config.bundleField, bundleCheck.checked));
+          bundleLabel.append(bundleCheck, document.createTextNode('Bundled'));
+          toggles.appendChild(bundleLabel);
+        }
+        if (config.nsfwField) {
+          const nsfwLabel = element('label', 'bundle-toggle nsfw-toggle');
+          const nsfwCheck = document.createElement('input');
+          nsfwCheck.type = 'checkbox';
+          nsfwCheck.checked = values[config.nsfwField] === true;
+          nsfwCheck.disabled = !selectedId && !bundled;
+          nsfwCheck.setAttribute('aria-label', `Mark ${config.singular} NSFW`);
+          nsfwCheck.addEventListener('change', () => callbacks.onNsfw?.(config.nsfwField, nsfwCheck.checked));
+          nsfwLabel.append(nsfwCheck, document.createTextNode('NSFW'));
+          toggles.appendChild(nsfwLabel);
+        }
+        row.appendChild(toggles);
       } else {
         row.appendChild(element('span'));
       }
@@ -764,20 +818,32 @@
         dropHint.textContent = `Processing ${file.name}…`;
         setLoading(true);
 
-        const checksumTask = calculateMd5FromBlob(file);
+        if (field.archiveFormatField && ARCHIVE_EXTENSIONS.includes(extension)) {
+          const format = extension.slice(1);
+          onChange(field.archiveFormatField, format, { yml_field: field.archiveFormatField, type: 'select' });
+          const formatSelect = document.getElementById(`field-${field.archiveFormatField}`);
+          if (formatSelect) formatSelect.value = format;
+        }
+
+        const isArchiveScanDrop = Boolean(field.archiveScanExtension) && ARCHIVE_EXTENSIONS.includes(extension);
+        const checksumTask = isArchiveScanDrop
+          ? extractArchiveEntryChecksum(file, field.archiveScanExtension)
+          : calculateMd5FromBlob(file).then(checksum => ({ checksum }));
         const archiveTask = field.archiveBrowser
           ? readArchiveDirectories(file)
           : Promise.resolve(null);
         const [checksumResult, archiveResult] = await Promise.allSettled([checksumTask, archiveTask]);
 
         const messages = [];
-        if (checksumResult.status === 'fulfilled' && checksumResult.value) {
-          input.value = checksumResult.value;
-          onChange(field.yml_field, checksumResult.value, field);
+        if (checksumResult.status === 'fulfilled' && checksumResult.value?.checksum) {
+          input.value = checksumResult.value.checksum;
+          onChange(field.yml_field, checksumResult.value.checksum, field);
           const sources = { ...(values.__checksumSources || {}) };
           sources[field.yml_field] = { name: file.name, extension };
           onChange('__checksumSources', sources, { uiOnly: true });
-          messages.push('MD5 calculated');
+          messages.push(checksumResult.value.entryName
+            ? `MD5 calculated (${checksumResult.value.entryName})`
+            : 'MD5 calculated');
         } else {
           const reason = checksumResult.reason?.message || 'MD5 failed';
           messages.push(reason);

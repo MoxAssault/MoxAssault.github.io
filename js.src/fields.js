@@ -3,26 +3,26 @@
 
   const CATEGORY_CONFIG = {
     tableFiles: {
-      label: 'VPX', singular: 'VPX file', stepId: 'vpx', idField: 'vpxVPSId', required: true, supportsImage: true
+      label: 'VPX', singular: 'VPX file', stepId: 'vpx', idField: 'vpxVPSId', nsfwField: 'vpxNSFW', required: true, supportsImage: true
     },
     b2sFiles: {
-      label: 'B2S', singular: 'B2S file', stepId: 'b2s', idField: 'backglassVPSId', bundleField: 'backglassBundled', supportsImage: true
+      label: 'B2S', singular: 'B2S file', stepId: 'b2s', idField: 'backglassVPSId', bundleField: 'backglassBundled', nsfwField: 'backglassNSFW', supportsImage: true
     },
     romFiles: {
-      label: 'ROM', singular: 'ROM file', stepId: 'rom', idField: 'romVPSId', bundleField: 'romBundled'
+      label: 'ROM', singular: 'ROM file', stepId: 'rom', idField: 'romVPSId', bundleField: 'romBundled', nsfwField: 'romNSFW'
     },
     altColorFiles: {
-      label: 'Color ROM', singular: 'Color ROM file', stepId: 'coloredRom', idField: 'coloredROMVPSId', bundleField: 'coloredROMBundled'
+      label: 'Color ROM', singular: 'Color ROM file', stepId: 'coloredRom', idField: 'coloredROMVPSId', bundleField: 'coloredROMBundled', nsfwField: 'coloredROMNSFW'
     },
     pupPackFiles: {
-      label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled'
+      label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled', nsfwField: 'pupNSFW'
     },
     altSoundFiles: {
-      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId', bundleField: 'altSoundBundled',
+      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId', bundleField: 'altSoundBundled', nsfwField: 'altSoundNSFW',
       sourceFields: ['altSoundFiles'], optionFormat: 'id-version-author'
     },
     vpuPatchFiles: {
-      label: 'VPU Patch', singular: 'VPU Patch file', stepId: 'vpuPatch', idField: 'diffVPSId', bundleField: 'diffBundled',
+      label: 'VPU Patch', singular: 'VPU Patch file', stepId: 'vpuPatch', idField: 'diffVPSId', bundleField: 'diffBundled', nsfwField: 'diffNSFW',
       sourceFields: ['vpuPatchFiles', 'vpuPatches', 'patchFiles']
     }
   };
@@ -43,7 +43,7 @@
         { name: 'Game VPS ID', yml_field: 'tableVPSId', type: 'str', readonly: true },
         { name: 'FPS', yml_field: 'fps', type: 'int', min: 1, max: 99, maxlength: 2 },
         {
-          name: 'Wizard Disabled', yml_field: 'enabled', type: 'bool', invertBoolean: true, stackedLabel: true,
+          name: 'Wizard Disabled', yml_field: 'enabled', type: 'bool', invertBoolean: true,
           tooltip: 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.'
         },
         { name: 'Tagline', yml_field: 'tagline', type: 'str', wide: true, responsiveTextarea: true },
@@ -63,7 +63,10 @@
       id: 'vpx', label: 'VPX', legend: 'VPX File', category: 'tableFiles',
       fields: [
         { name: 'VPX ID', yml_field: 'vpxVPSId', type: 'str', readonly: true, wide: true },
-        { name: 'VPX Checksum', yml_field: 'vpxChecksum', type: 'str', wide: true, checksumExtensions: ['.vpx'] },
+        {
+          name: 'VPX Checksum', yml_field: 'vpxChecksum', type: 'str', wide: true,
+          checksumExtensions: ['.vpx', '.zip', '.rar', '.7z'], archiveScanExtension: '.vpx'
+        },
         { name: 'VPX Notes', yml_field: 'tableNotes', type: 'str', multiline: true, wide: true }
       ]
     },
@@ -117,7 +120,7 @@
         { name: 'PUP Pack ID', yml_field: 'pupVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'PUP Pack Checksum', yml_field: 'pupChecksum', type: 'str', wide: true,
-          checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true
+          checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true, archiveFormatField: 'pupArchiveFormat'
         },
         { name: 'PUP Pack Notes', yml_field: 'pupNotes', type: 'str', multiline: true, wide: true },
         { name: 'PUP Pack Version', yml_field: 'pupVersion', type: 'str' },

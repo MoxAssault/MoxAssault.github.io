@@ -46,6 +46,13 @@
   white-space: nowrap;
 }
 .bundle-toggle input { accent-color: var(--accent); }
+.asset-toggle-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+  gap: 4px;
+}
 .asset-status {
   display: flex;
   align-items: center;
@@ -318,7 +325,7 @@
     transform: scale(1);
   }
   .asset-select-wrap { grid-column: 2; }
-  .bundle-toggle { grid-column: 2; }
+  .asset-toggle-stack { grid-column: 2; }
   .asset-status { grid-column: 3; grid-row: 1 / span 2; }
   .asset-info-button { grid-column: 4; grid-row: 1 / span 2; }
   .asset-detail { grid-column: 1 / -1; }
@@ -332,7 +339,7 @@
   .asset-row { grid-template-columns: 1fr auto auto; }
   .asset-name { grid-column: 1; }
   .asset-select-wrap { grid-column: 1 / -1; grid-row: 2; }
-  .bundle-toggle { grid-column: 1; grid-row: 3; }
+  .asset-toggle-stack { grid-column: 1; grid-row: 3; }
   .asset-status { grid-column: 2; grid-row: 1; }
   .asset-info-button { grid-column: 3; grid-row: 1; }
   .config-accordion summary { grid-template-columns: 22px minmax(0, 1fr); }
