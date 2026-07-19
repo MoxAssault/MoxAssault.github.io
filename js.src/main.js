@@ -459,6 +459,13 @@
   function handleNsfwChange(fieldName, checked) {
     if (checked) state.values[fieldName] = true;
     else delete state.values[fieldName];
+    if (fieldName === 'nsfw' && checked) {
+      Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+        if (!config.nsfwField) return;
+        const inUse = Boolean(state.selections[category]) || (config.bundleField && state.values[config.bundleField] === true);
+        if (inUse) state.values[config.nsfwField] = true;
+      });
+    }
     renderWorkspace();
     markChanged();
   }

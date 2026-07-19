@@ -356,6 +356,15 @@
   document.addEventListener('input', queueStatusRefresh, true);
   document.addEventListener('change', queueStatusRefresh, true);
 
+  // Truncated checksum hints expose their full text as a hover tooltip.
+  document.addEventListener('mouseover', event => {
+    const hint = event.target instanceof Element ? event.target.closest('.checksum-drop-hint') : null;
+    const status = hint?.closest('.checksum-drop-status');
+    if (!status) return;
+    if (hint.scrollWidth > hint.clientWidth) status.dataset.tooltip = hint.textContent;
+    else delete status.dataset.tooltip;
+  }, true);
+
   function startPreviewObserver() {
     const preview = document.getElementById('previewYaml');
     if (!preview || typeof MutationObserver === 'undefined') return;

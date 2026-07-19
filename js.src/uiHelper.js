@@ -273,7 +273,44 @@
 
   const ARCHIVE_EXTENSIONS = ['.zip', '.rar', '.7z'];
 
+  let unrarModulePromise = null;
+
+  function loadUnrarModule() {
+    // libarchive.js cannot decompress RAR entries, so RAR extraction goes
+    // through node-unrar-js (vendored WASM build of the official unrar lib).
+    if (!unrarModulePromise) {
+      const moduleUrl = new URL('vendor/unrar/unrar.bundle.js', document.baseURI).href;
+      const wasmUrl = new URL('vendor/unrar/unrar.wasm', document.baseURI).href;
+      unrarModulePromise = Promise.all([
+        import(moduleUrl),
+        fetch(wasmUrl).then(response => {
+          if (!response.ok) throw new Error('Could not load the RAR extraction engine (unrar.wasm).');
+          return response.arrayBuffer();
+        })
+      ]).then(([module, wasmBinary]) => ({ module, wasmBinary }));
+    }
+    return unrarModulePromise;
+  }
+
+  async function extractRarEntryChecksum(file, targetExtension) {
+    const { module, wasmBinary } = await loadUnrarModule();
+    const data = await file.arrayBuffer();
+    const extractor = await module.createExtractorFromData({ wasmBinary, data });
+    const wanted = String(targetExtension).toLowerCase();
+    const headers = [...extractor.getFileList().fileHeaders];
+    const target = headers.find(header => !header.flags?.directory && String(header.name || '').toLowerCase().endsWith(wanted));
+    if (!target) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
+    const extracted = [...extractor.extract({ files: [target.name] }).files];
+    const bytes = extracted.find(entry => entry?.extraction)?.extraction;
+    if (!bytes) throw new Error(`Could not extract "${target.name}" from "${file.name}".`);
+    const checksum = await calculateMd5FromBlob(new Blob([bytes]));
+    return { checksum, entryName: target.name.split('/').pop() };
+  }
+
   async function extractArchiveEntryChecksum(file, targetExtension) {
+    if (getFileExtension(file.name) === '.rar') {
+      return extractRarEntryChecksum(file, targetExtension);
+    }
     const Archive = await loadArchiveModule();
     let source;
     try {
@@ -539,7 +576,8 @@
           const nsfwCheck = document.createElement('input');
           nsfwCheck.type = 'checkbox';
           nsfwCheck.checked = values[config.nsfwField] === true;
-          nsfwCheck.disabled = !selectedId && !bundled;
+          // The table-level NSFW flag owns the per-asset flags while checked.
+          nsfwCheck.disabled = (!selectedId && !bundled) || values.nsfw === true;
           nsfwCheck.setAttribute('aria-label', `Mark ${config.singular} NSFW`);
           nsfwCheck.addEventListener('change', () => callbacks.onNsfw?.(config.nsfwField, nsfwCheck.checked));
           nsfwLabel.append(nsfwCheck, document.createTextNode('NSFW'));
