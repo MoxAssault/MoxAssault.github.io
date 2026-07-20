@@ -574,6 +574,7 @@
       const selectedId = selections[category] || '';
       const selectedItem = items.find(item => item.id === selectedId) || null;
       const bundled = Boolean(config.bundleField && values[config.bundleField]);
+      const overridden = Boolean(config.overrideField && values[config.overrideField]);
       const detailOpen = callbacks.isDetailOpen(category);
 
       const row = element('div', `asset-row${selectedItem ? ' has-selection' : ''}${detailOpen ? ' details-open' : ''}`);
@@ -637,7 +638,7 @@
           nsfwCheck.type = 'checkbox';
           nsfwCheck.checked = values[config.nsfwField] === true;
           // The table-level NSFW flag owns the per-asset flags while checked.
-          nsfwCheck.disabled = (!selectedId && !bundled) || values.nsfw === true;
+          nsfwCheck.disabled = (!selectedId && !bundled && !overridden) || values.nsfw === true;
           nsfwCheck.setAttribute('aria-label', `Mark ${config.singular} NSFW`);
           nsfwCheck.addEventListener('change', () => callbacks.onNsfw?.(config.nsfwField, nsfwCheck.checked));
           nsfwLabel.append(nsfwCheck, document.createTextNode('NSFW'));

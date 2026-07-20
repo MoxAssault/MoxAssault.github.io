@@ -12,16 +12,24 @@
 
     const altSoundSelected = Boolean(selections?.altSoundFiles || values?.altSoundVPSId);
     const altSoundBundled = values?.altSoundBundled === true;
+    const altSoundOverride = values?.altSoundOverride === true;
     const altSoundUrl = String(values?.altSoundUrlOverride || '').trim();
     const altSoundVersion = String(values?.altSoundVersionOverride || '').trim();
     const altSoundActive = altSoundSelected || altSoundBundled || Boolean(altSoundUrl || altSoundVersion);
+    // Checksum and Archive Format are required whenever the tab is enabled
+    // at all — selected, bundled, or overridden — same as PUP Pack's
+    // unconditionally-required fields.
+    const altSoundEnabled = altSoundActive || altSoundOverride;
 
-    if (altSoundActive) {
+    if (altSoundEnabled) {
       const checksums = normalizeArray(values?.altSoundChecksum);
       if (!checksums.length) {
         add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value whenever Alt Sound is selected, overridden, or bundled.');
       } else if (checksums.some(checksum => !isMd5Hash(checksum))) {
         add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is invalid', 'Every Alt Sound checksum must contain exactly 32 hexadecimal characters.');
+      }
+      if (!String(values?.altSoundArchiveFormat || '').trim()) {
+        add('altSound', 'altSoundArchiveFormat', 'Alt Sound Archive Format is required', 'Choose ZIP, RAR, or 7Z.');
       }
     }
 
