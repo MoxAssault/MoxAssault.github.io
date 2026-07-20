@@ -219,11 +219,13 @@
         (field.items || []).forEach(item => keys.add(item.yml_field));
       });
       if (step.bundleField) keys.add(step.bundleField);
+      if (step.overrideField) keys.add(step.overrideField);
     });
     Object.values(CATEGORY_CONFIG).forEach(config => {
       if (config.idField) keys.add(config.idField);
       if (config.bundleField) keys.add(config.bundleField);
       if (config.nsfwField) keys.add(config.nsfwField);
+      if (config.overrideField) keys.add(config.overrideField);
     });
     return keys;
   }

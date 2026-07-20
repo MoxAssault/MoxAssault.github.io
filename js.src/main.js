@@ -294,7 +294,7 @@
     if (config.nsfwField && state.values[config.bundleField] !== true) delete state.values[config.nsfwField];
     state.openAssetDetails.delete(category);
     const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
-    if (step) clearStepData(step, { preserveId: false, preserveBundle: true, rerender: false });
+    if (step) clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: true, rerender: false });
   }
 
   function sanitizeAssetSelections() {
@@ -374,6 +374,7 @@
       onSelect: handleAssetSelection,
       onBundle: handleBundleChange,
       onNsfw: handleNsfwChange,
+      onOverride: handleOverrideChange,
       onToggleDetail: toggleAssetDetail,
       isDetailOpen: category => state.openAssetDetails.has(category)
     });
@@ -397,7 +398,7 @@
       },
       getStatus: getSectionStatus,
       onChange: handleFieldChange,
-      onClear: step => clearStepData(step, { preserveId: true, preserveBundle: true })
+      onClear: step => clearStepData(step, { preserveId: true, preserveBundle: true, preserveOverride: true })
     });
   }
 
@@ -432,11 +433,11 @@
 
     if (previous !== itemId) {
       const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
-      if (step) clearStepData(step, { preserveId: true, preserveBundle: true, rerender: false });
+      if (step) clearStepData(step, { preserveId: true, preserveBundle: true, preserveOverride: true, rerender: false });
     }
     if (!itemId && !state.values[config.bundleField]) {
       const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
-      if (step) clearStepData(step, { preserveId: false, preserveBundle: true, rerender: false });
+      if (step) clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: true, rerender: false });
     }
 
     renderWorkspace();
@@ -446,9 +447,21 @@
   function handleBundleChange(fieldName, checked) {
     state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.bundleField === fieldName);
-    if (!checked && step && !state.selections[step.category]) {
-      clearStepData(step, { preserveId: false, preserveBundle: false, rerender: false });
+    if (!checked && step && !state.selections[step.category] && state.values[step.overrideField] !== true) {
+      clearStepData(step, { preserveId: false, preserveBundle: false, preserveOverride: true, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
+      if (config?.nsfwField) delete state.values[config.nsfwField];
+    }
+    renderWorkspace();
+    markChanged();
+  }
+
+  function handleOverrideChange(fieldName, checked) {
+    state.values[fieldName] = checked;
+    const step = WIZARD_STEPS.find(candidate => candidate.overrideField === fieldName);
+    if (!checked && step && !state.selections[step.category] && state.values[step.bundleField] !== true) {
+      clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: false, rerender: false });
+      const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.overrideField === fieldName);
       if (config?.nsfwField) delete state.values[config.nsfwField];
     }
     renderWorkspace();
@@ -479,6 +492,7 @@
     if (step.always) return true;
     if (step.category && state.selections[step.category]) return true;
     if (step.bundleField && state.values[step.bundleField] === true) return true;
+    if (step.overrideField && state.values[step.overrideField] === true) return true;
     return false;
   }
 
@@ -519,6 +533,7 @@
   function clearStepData(step, options = {}) {
     const preserveId = options.preserveId === true;
     const preserveBundle = options.preserveBundle === true;
+    const preserveOverride = options.preserveOverride === true;
 
     const checksumSources = { ...(state.values.__checksumSources || {}) };
     step.fields.forEach(field => {
@@ -540,6 +555,7 @@
     // "Wizard Disabled" being checked.
     if (step.id === 'main') state.values.enabled = false;
     if (!preserveBundle && step.bundleField) delete state.values[step.bundleField];
+    if (!preserveOverride && step.overrideField) delete state.values[step.overrideField];
 
     if (options.rerender !== false) {
       renderWorkspace();
@@ -549,7 +565,7 @@
 
   function pruneDisabledStepData() {
     WIZARD_STEPS.forEach(step => {
-      if (!isStepEnabled(step)) clearStepData(step, { preserveId: false, preserveBundle: true, rerender: false });
+      if (!isStepEnabled(step)) clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: true, rerender: false });
     });
   }
 
@@ -690,7 +706,9 @@
       addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.');
     }
 
-    const pupOffered = Boolean(state.selections.pupPackFiles || hasText(state.values.pupFileUrl) || state.values.pupBundled === true);
+    const pupOffered = Boolean(
+      state.selections.pupPackFiles || hasText(state.values.pupFileUrl) || state.values.pupBundled === true || state.values.pupOverride === true
+    );
     validateChecksum('pupChecksum', 'pup', 'PUP Pack Checksum', { required: pupOffered });
     if (state.values.pupBundled === true && !hasText(state.values.pupNotes)) {
       addError('pup', 'Bundled PUP Pack needs notes', 'Describe the bundled PUP Pack and where it is located.');
@@ -715,6 +733,19 @@
     if (hasText(state.values.diffUrlOverride) && !hasText(state.values.diffNotes)) {
       addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.');
     }
+
+    // Override unlocks a tab without a VPS ID; in exchange every field that
+    // would otherwise have come from the VPS DB (each step's declared
+    // overrideRequiredFields — its Advanced Config overrides, plus PUP
+    // Notes) must be filled in by hand.
+    WIZARD_STEPS.forEach(step => {
+      if (!step.overrideField || state.values[step.overrideField] !== true) return;
+      (step.overrideRequiredFields || []).forEach(key => {
+        if (hasText(state.values[key])) return;
+        const label = step.fields.find(field => field.yml_field === key)?.name || key;
+        addError(step.id, `${label} is required`, `Add ${label} — Override requires every Advanced Config field since there is no VPS entry to pull it from.`);
+      });
+    });
 
     const yamlLines = state.yaml.split('\n');
     const longLine = yamlLines.find((line, index) => {

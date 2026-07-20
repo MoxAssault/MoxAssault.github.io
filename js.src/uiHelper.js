@@ -620,7 +620,7 @@
       }
       row.appendChild(selectWrap);
 
-      if (config.bundleField || config.nsfwField) {
+      if (config.bundleField || config.nsfwField || config.overrideField) {
         const toggles = element('div', 'asset-toggle-stack');
         if (config.bundleField) {
           const bundleLabel = element('label', 'bundle-toggle');
@@ -630,6 +630,16 @@
           bundleCheck.addEventListener('change', () => callbacks.onBundle(config.bundleField, bundleCheck.checked));
           bundleLabel.append(bundleCheck, document.createTextNode('Bundled'));
           toggles.appendChild(bundleLabel);
+        }
+        if (config.overrideField) {
+          const overrideLabel = element('label', 'bundle-toggle override-toggle');
+          const overrideCheck = document.createElement('input');
+          overrideCheck.type = 'checkbox';
+          overrideCheck.checked = values[config.overrideField] === true;
+          overrideCheck.setAttribute('aria-label', `Override ${config.singular} — unlock this tab without a VPS entry`);
+          overrideCheck.addEventListener('change', () => callbacks.onOverride?.(config.overrideField, overrideCheck.checked));
+          overrideLabel.append(overrideCheck, document.createTextNode('Override'));
+          toggles.appendChild(overrideLabel);
         }
         if (config.nsfwField) {
           const nsfwLabel = element('label', 'bundle-toggle nsfw-toggle');

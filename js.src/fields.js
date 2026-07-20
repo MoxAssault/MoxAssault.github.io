@@ -6,23 +6,23 @@
       label: 'VPX', singular: 'VPX file', stepId: 'vpx', idField: 'vpxVPSId', nsfwField: 'vpxNSFW', required: true, supportsImage: true
     },
     b2sFiles: {
-      label: 'B2S', singular: 'B2S file', stepId: 'b2s', idField: 'backglassVPSId', bundleField: 'backglassBundled', nsfwField: 'backglassNSFW', supportsImage: true
+      label: 'B2S', singular: 'B2S file', stepId: 'b2s', idField: 'backglassVPSId', bundleField: 'backglassBundled', nsfwField: 'backglassNSFW', overrideField: 'backglassOverride', supportsImage: true
     },
     romFiles: {
-      label: 'ROM', singular: 'ROM file', stepId: 'rom', idField: 'romVPSId', bundleField: 'romBundled', nsfwField: 'romNSFW'
+      label: 'ROM', singular: 'ROM file', stepId: 'rom', idField: 'romVPSId', bundleField: 'romBundled', nsfwField: 'romNSFW', overrideField: 'romOverride'
     },
     altColorFiles: {
-      label: 'Color ROM', singular: 'Color ROM file', stepId: 'coloredRom', idField: 'coloredROMVPSId', bundleField: 'coloredROMBundled', nsfwField: 'coloredROMNSFW'
+      label: 'Color ROM', singular: 'Color ROM file', stepId: 'coloredRom', idField: 'coloredROMVPSId', bundleField: 'coloredROMBundled', nsfwField: 'coloredROMNSFW', overrideField: 'coloredROMOverride'
     },
     pupPackFiles: {
-      label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled', nsfwField: 'pupNSFW'
+      label: 'PUP Pack', singular: 'PUP Pack', stepId: 'pup', idField: 'pupVPSId', bundleField: 'pupBundled', nsfwField: 'pupNSFW', overrideField: 'pupOverride'
     },
     altSoundFiles: {
-      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId', bundleField: 'altSoundBundled', nsfwField: 'altSoundNSFW',
+      label: 'Alt Sound', singular: 'Alt Sound file', stepId: 'altSound', idField: 'altSoundVPSId', bundleField: 'altSoundBundled', nsfwField: 'altSoundNSFW', overrideField: 'altSoundOverride',
       sourceFields: ['altSoundFiles'], optionFormat: 'id-version-author'
     },
     vpuPatchFiles: {
-      label: 'VPU Patch', singular: 'VPU Patch file', stepId: 'vpuPatch', idField: 'diffVPSId', bundleField: 'diffBundled', nsfwField: 'diffNSFW',
+      label: 'VPU Patch', singular: 'VPU Patch file', stepId: 'vpuPatch', idField: 'diffVPSId', bundleField: 'diffBundled', nsfwField: 'diffNSFW', overrideField: 'diffOverride',
       sourceFields: ['vpuPatchFiles', 'vpuPatches', 'patchFiles']
     }
   };
@@ -72,6 +72,8 @@
     },
     {
       id: 'b2s', label: 'Backglass', legend: 'Backglass (B2S)', category: 'b2sFiles', bundleField: 'backglassBundled',
+      overrideField: 'backglassOverride',
+      overrideRequiredFields: ['backglassAuthorsOverride', 'backglassImageOverride', 'backglassUrlOverride'],
       fields: [
         { name: 'Backglass ID', yml_field: 'backglassVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -86,6 +88,8 @@
     },
     {
       id: 'rom', label: 'ROM', legend: 'ROM File', category: 'romFiles', bundleField: 'romBundled',
+      overrideField: 'romOverride',
+      overrideRequiredFields: ['romUrlOverride', 'romVersionOverride'],
       fields: [
         { name: 'ROM ID', yml_field: 'romVPSId', type: 'str', readonly: true, wide: true },
         { name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, maxlength: 32, checksumExtensions: ['.zip', '.rar', '.7z'] },
@@ -97,6 +101,8 @@
     },
     {
       id: 'coloredRom', label: 'Color ROM', legend: 'Color ROM', category: 'altColorFiles', bundleField: 'coloredROMBundled',
+      overrideField: 'coloredROMOverride',
+      overrideRequiredFields: ['coloredROMUrlOverride', 'coloredROMVersionOverride'],
       fields: [
         { name: 'Color ROM ID', yml_field: 'coloredROMVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -120,6 +126,12 @@
     },
     {
       id: 'pup', label: 'PUP Pack', legend: 'PUP Pack', category: 'pupPackFiles', bundleField: 'pupBundled',
+      overrideField: 'pupOverride',
+      // Version/URL/Archive Root/Archive Format are already unconditionally
+      // required whenever this tab is enabled (see main.js validateBuild) —
+      // only Notes needs Override to force it, since it's otherwise only
+      // required when Bundled.
+      overrideRequiredFields: ['pupNotes'],
       fields: [
         { name: 'PUP Pack ID', yml_field: 'pupVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -144,6 +156,8 @@
     },
     {
       id: 'altSound', label: 'Alt Sound', legend: 'Alt Sound', category: 'altSoundFiles', bundleField: 'altSoundBundled',
+      overrideField: 'altSoundOverride',
+      overrideRequiredFields: ['altSoundAuthorsOverride', 'altSoundUrlOverride', 'altSoundVersionOverride'],
       fields: [
         { name: 'Alt Sound ID', yml_field: 'altSoundVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -176,6 +190,8 @@
     },
     {
       id: 'vpuPatch', label: 'VPU Patch', legend: 'VPU Patch', category: 'vpuPatchFiles', bundleField: 'diffBundled',
+      overrideField: 'diffOverride',
+      overrideRequiredFields: ['diffAuthorsOverride', 'diffUrlOverride', 'diffVersionOverride'],
       fields: [
         { name: 'VPU Patch ID', yml_field: 'diffVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -194,7 +210,16 @@
     'coloredROMChecksumSecondary',
     '__pupArchiveDirectories',
     '__altSoundArchiveDirectories',
-    '__checksumSources'
+    '__checksumSources',
+    // Override checkboxes are a builder-only convenience that unlocks a tab
+    // without a VPS entry — the flag itself never appears in the output,
+    // only the Advanced Config field values it forces the user to fill in.
+    'backglassOverride',
+    'romOverride',
+    'coloredROMOverride',
+    'pupOverride',
+    'altSoundOverride',
+    'diffOverride'
   ]);
   const PRESET_FIELDS = new Set(['enabled', 'fps', 'testers', 'pupArchiveFormat', 'altSoundArchiveFormat']);
 

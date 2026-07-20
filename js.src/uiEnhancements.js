@@ -137,6 +137,19 @@
         break;
     }
 
+    // Override unlocks a tab without a VPS ID; every field the step declares
+    // in overrideRequiredFields (its Advanced Config overrides, plus PUP
+    // Notes) becomes required in exchange. Generic so it stays in sync with
+    // fields.js instead of duplicating each step's field list here.
+    if (step.overrideField && values[step.overrideField] === true) {
+      (step.overrideRequiredFields || []).forEach(key => {
+        if (!hasText(values[key])) {
+          const label = step.fields.find(field => field.yml_field === key)?.name || key;
+          add(key, `${label} is required when Override is enabled.`);
+        }
+      });
+    }
+
     return errors;
   }
 
