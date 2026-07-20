@@ -63,15 +63,11 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
   align-items: center;
   justify-content: flex-start;
   gap: 7px;
+  margin-left: 15px;
   color: var(--text-faint);
   font-size: 11px;
 }
-/* Rows with a Bundled/Override toggle pair stack them above NSFW, so the
-   toggle column's true center sits between the two rows rather than on the
-   top (Override) row. Raise status to line up with Override instead of
-   sitting at that midpoint. VPX has no toggle pair, so it keeps the
-   default centered position. */
-.asset-row:not([data-category="tableFiles"]) .asset-status { align-self: start; margin-top: 1px; }
+.asset-row:not([data-category="tableFiles"]) .asset-status { align-self: center; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
 .asset-status.ready { color: var(--success); }
 .asset-status.ready .status-dot { background: var(--success); }
