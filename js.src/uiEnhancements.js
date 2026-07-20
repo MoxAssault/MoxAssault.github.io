@@ -118,7 +118,9 @@
       }
       case 'pup': {
         validateChecksum('pupChecksum', 'PUP Pack Checksum', { required: true });
-        if (!hasText(values.pupNotes)) add('pupNotes', 'PUP Pack Notes are required.');
+        if (values.pupBundled === true && !hasText(values.pupNotes)) {
+          add('pupNotes', 'Bundled PUP Pack entries require notes.');
+        }
         if (!hasText(values.pupVersion)) add('pupVersion', 'PUP Pack Version is required.');
         if (!hasText(values.pupFileUrl)) add('pupFileUrl', 'PUP Pack URL is required.');
         if (!hasText(values.pupArchiveRoot)) add('pupArchiveRoot', 'PUP Pack Archive Root is required.');

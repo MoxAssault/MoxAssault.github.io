@@ -1113,6 +1113,8 @@
         marker.setAttribute('aria-hidden', 'true');
         tab.appendChild(marker);
         tab.setAttribute('aria-label', `${step.label}: ${status.label}`);
+      } else if (status.className === 'ready') {
+        tab.classList.add('has-ready');
       }
       tab.addEventListener('click', () => callbacks.onActivate(step.id));
       tabList.appendChild(tab);

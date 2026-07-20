@@ -167,7 +167,7 @@
     document.addEventListener('click', event => {
       if (bypassClick) return;
       const action = event.target instanceof Element
-        ? event.target.closest('#validateBtn, #drawerCopyBtn, #downloadNextBtn')
+        ? event.target.closest('#validateBtn, #drawerCopyBtn, #downloadBtn')
         : null;
       if (!action) return;
       const current = errors();

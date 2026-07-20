@@ -654,8 +654,9 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
   box-shadow: inset 0 3px 0 var(--accent);
 }
 .config-tab.has-warning .config-tab-alert { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.config-tab.active:not(.has-error):not(.has-warning) { box-shadow: inset 0 3px 0 var(--success); }
-.config-tab.active.has-error { box-shadow: inset 0 3px 0 var(--danger); }
+/* A tab with every required field complete stays green whether or not it's
+   the active tab — completion is a property of the tab, not of focus. */
+.config-tab.has-ready { box-shadow: inset 0 3px 0 var(--success); }
 /* The active tab's top strip stays green whenever it has no errors —
    warnings keep their dot marker but don't recolor the strip. */
 .config-tab.active.has-warning { box-shadow: inset 0 3px 0 var(--success); }
