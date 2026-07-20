@@ -73,7 +73,9 @@
     {
       id: 'b2s', label: 'Backglass', legend: 'Backglass (B2S)', category: 'b2sFiles', bundleField: 'backglassBundled',
       overrideField: 'backglassOverride',
-      overrideRequiredFields: ['backglassAuthorsOverride', 'backglassImageOverride', 'backglassUrlOverride'],
+      // Bundled and Override require the same fields (either sourcing method
+      // means there's no VPS DB record to pull details from).
+      overrideRequiredFields: ['backglassNotes', 'backglassAuthorsOverride', 'backglassImageOverride', 'backglassUrlOverride'],
       fields: [
         { name: 'Backglass ID', yml_field: 'backglassVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -89,7 +91,7 @@
     {
       id: 'rom', label: 'ROM', legend: 'ROM File', category: 'romFiles', bundleField: 'romBundled',
       overrideField: 'romOverride',
-      overrideRequiredFields: ['romUrlOverride', 'romVersionOverride'],
+      overrideRequiredFields: ['romNotes', 'romUrlOverride', 'romVersionOverride'],
       fields: [
         { name: 'ROM ID', yml_field: 'romVPSId', type: 'str', readonly: true, wide: true },
         { name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, maxlength: 32, checksumExtensions: ['.zip', '.rar', '.7z'] },
@@ -102,7 +104,7 @@
     {
       id: 'coloredRom', label: 'Color ROM', legend: 'Color ROM', category: 'altColorFiles', bundleField: 'coloredROMBundled',
       overrideField: 'coloredROMOverride',
-      overrideRequiredFields: ['coloredROMUrlOverride', 'coloredROMVersionOverride'],
+      overrideRequiredFields: ['coloredROMNotes', 'coloredROMUrlOverride', 'coloredROMVersionOverride'],
       fields: [
         { name: 'Color ROM ID', yml_field: 'coloredROMVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -157,7 +159,7 @@
     {
       id: 'altSound', label: 'Alt Sound', legend: 'Alt Sound', category: 'altSoundFiles', bundleField: 'altSoundBundled',
       overrideField: 'altSoundOverride',
-      overrideRequiredFields: ['altSoundAuthorsOverride', 'altSoundUrlOverride', 'altSoundVersionOverride'],
+      overrideRequiredFields: ['altSoundNotes', 'altSoundArchiveRoot', 'altSoundAuthorsOverride', 'altSoundUrlOverride', 'altSoundVersionOverride'],
       fields: [
         { name: 'Alt Sound ID', yml_field: 'altSoundVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -191,7 +193,7 @@
     {
       id: 'vpuPatch', label: 'VPU Patch', legend: 'VPU Patch', category: 'vpuPatchFiles', bundleField: 'diffBundled',
       overrideField: 'diffOverride',
-      overrideRequiredFields: ['diffAuthorsOverride', 'diffUrlOverride', 'diffVersionOverride'],
+      overrideRequiredFields: ['diffNotes', 'diffAuthorsOverride', 'diffUrlOverride', 'diffVersionOverride'],
       fields: [
         { name: 'VPU Patch ID', yml_field: 'diffVPSId', type: 'str', readonly: true, wide: true },
         {
