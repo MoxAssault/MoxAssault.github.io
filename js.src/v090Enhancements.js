@@ -551,7 +551,7 @@
       return;
     }
 
-    if ((button.id === 'drawerCopyBtn' || button.id === 'downloadNextBtn') && customValidationErrors().length) {
+    if ((button.id === 'drawerCopyBtn' || button.id === 'downloadBtn') && customValidationErrors().length) {
       event.preventDefault();
       event.stopImmediatePropagation();
       openValidationWithCustomErrors();

@@ -69,7 +69,7 @@
       'workspace', 'tableStrip', 'tableBadges', 'assetMatrix', 'changeTableBtn', 'builderSection',
       'accordionStack',
       'previewDrawer', 'previewYaml', 'previewLineCount', 'previewStatusDot', 'drawerCopyBtn',
-      'validateBtn', 'downloadNextBtn', 'helpBtn', 'recentBtn',
+      'validateBtn', 'downloadBtn', 'previewClearBtn', 'helpBtn', 'recentBtn',
       'helpDialog', 'validationDialog', 'validationBody', 'recentDialog', 'recentBody', 'clearHistoryBtn',
       'themeToggle', 'themeKnob'
     ];
@@ -697,7 +697,6 @@
     }
     if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup'))) {
       [
-        ['pupNotes', 'PUP Pack Notes'],
         ['pupVersion', 'PUP Pack Version'],
         ['pupFileUrl', 'PUP Pack URL'],
         ['pupArchiveRoot', 'PUP Pack Archive Root'],
@@ -744,7 +743,7 @@
       const step = WIZARD_STEPS.find(candidate => candidate.id === tab.dataset.step);
       if (!step) return;
       const status = getSectionStatus(step);
-      tab.classList.remove('has-error', 'has-warning');
+      tab.classList.remove('has-error', 'has-warning', 'has-ready');
       let marker = tab.querySelector('.config-tab-alert');
       if (status.className === 'error' || status.className === 'warning') {
         tab.classList.add(`has-${status.className}`);
@@ -760,6 +759,7 @@
         marker?.remove();
         tab.removeAttribute('title');
         tab.setAttribute('aria-label', step.label);
+        if (status.className === 'ready') tab.classList.add('has-ready');
       }
     });
   }
@@ -836,10 +836,11 @@
     dom.changeTableBtn.addEventListener('click', () => startNext({ clearDraft: true, status: 'Build cleared. Search for another table.' }));
     dom.drawerCopyBtn.addEventListener('click', () => copyYaml(dom.drawerCopyBtn));
     dom.validateBtn.addEventListener('click', showValidationDialog);
-    dom.downloadNextBtn.addEventListener('click', downloadAndStartNext);
+    dom.downloadBtn.addEventListener('click', downloadYaml);
+    dom.previewClearBtn.addEventListener('click', () => startNext({ clearDraft: true, status: 'Build cleared. Search for another table.' }));
   }
 
-  function downloadAndStartNext() {
+  function downloadYaml() {
     validateBuild();
     if (state.validation.errors.length) {
       showValidationDialog();
@@ -850,7 +851,7 @@
     downloadText(state.yaml, filename);
     state.carryValues = extractPresetValues(state.values);
     addRecentBuild('Downloaded', filename);
-    startNext({ clearDraft: true, status: 'YML downloaded and build cleared. Ready for the next table.' });
+    setSearchStatus(`${filename} downloaded.`);
   }
 
   function startNext({ clearDraft = false, status = 'Search for another table.' } = {}) {
@@ -1048,7 +1049,7 @@
 
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
         event.preventDefault();
-        if (event.shiftKey) downloadAndStartNext();
+        if (event.shiftKey) downloadYaml();
         else showValidationDialog();
       }
     });
