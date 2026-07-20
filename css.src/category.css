@@ -5,7 +5,7 @@
 }
 .asset-row {
   display: grid;
-  grid-template-columns: 94px minmax(190px, 1fr) 102px 88px 72px;
+  grid-template-columns: 94px minmax(190px, 1fr) 140px 88px 72px;
   align-items: center;
   gap: 10px;
   min-height: 52px;
@@ -66,6 +66,12 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
   color: var(--text-faint);
   font-size: 11px;
 }
+/* Rows with a Bundled/Override toggle pair stack them above NSFW, so the
+   toggle column's true center sits between the two rows rather than on the
+   top (Override) row. Raise status to line up with Override instead of
+   sitting at that midpoint. VPX has no toggle pair, so it keeps the
+   default centered position. */
+.asset-row:not([data-category="tableFiles"]) .asset-status { align-self: start; margin-top: 1px; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
 .asset-status.ready { color: var(--success); }
 .asset-status.ready .status-dot { background: var(--success); }
@@ -332,7 +338,7 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
   }
   .asset-select-wrap { grid-column: 2; }
   .asset-toggle-stack { grid-column: 2; }
-  .asset-status { grid-column: 3; grid-row: 1 / span 2; }
+  .asset-status { grid-column: 3; grid-row: 1 / span 2; align-self: center; margin-top: 0; }
   .asset-info-button { grid-column: 4; grid-row: 1 / span 2; }
   .asset-detail { grid-column: 1 / -1; }
   .field-grid { grid-template-columns: 1fr; }
@@ -346,7 +352,7 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
   .asset-name { grid-column: 1; }
   .asset-select-wrap { grid-column: 1 / -1; grid-row: 2; }
   .asset-toggle-stack { grid-column: 1; grid-row: 3; }
-  .asset-status { grid-column: 2; grid-row: 1; }
+  .asset-status { grid-column: 2; grid-row: 1; align-self: center; margin-top: 0; }
   .asset-info-button { grid-column: 3; grid-row: 1; }
   .config-accordion summary { grid-template-columns: 22px minmax(0, 1fr); }
   .accordion-state { grid-column: 2; justify-self: start; }
