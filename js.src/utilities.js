@@ -40,25 +40,33 @@
     });
   }
 
+  function itemUrlEntries(item) {
+    const urls = item?.urls;
+    if (Array.isArray(urls)) return urls;
+    if (urls && typeof urls === 'object') return Object.values(urls);
+    return [];
+  }
+
+  function isUrlEntryBroken(entry) {
+    return Boolean(entry) && (entry.broken === true || entry.broken === 'true');
+  }
+
+  // An item counts as broken only when every one of its links is broken (or
+  // it has no usable link at all) — a single broken mirror no longer
+  // disqualifies an item that still has a working alternate link.
   function isItemBroken(item) {
     if (!item || typeof item !== 'object') return false;
     if (item.broken === true || item.broken === 'true') return true;
 
-    const urls = item.urls;
-    if (Array.isArray(urls)) {
-      return urls.some(url => url && (url.broken === true || url.broken === 'true'));
-    }
-    if (urls && typeof urls === 'object') {
-      return Object.values(urls).some(url => url && (url.broken === true || url.broken === 'true'));
-    }
-    return false;
+    const entries = itemUrlEntries(item);
+    if (!entries.length) return false;
+    return !entries.some(entry => entry && typeof entry.url === 'string' && entry.url.trim() && !isUrlEntryBroken(entry));
   }
 
   function getItemUrl(item) {
     if (!item || typeof item !== 'object') return '';
-    const urls = item.urls;
-    const list = Array.isArray(urls) ? urls : (urls && typeof urls === 'object' ? Object.values(urls) : []);
-    const usable = list.find(entry => entry && typeof entry.url === 'string' && entry.url.trim() && entry.broken !== true && entry.broken !== 'true');
+    const list = itemUrlEntries(item);
+    const usable = list.find(entry => entry && typeof entry.url === 'string' && entry.url.trim() && !isUrlEntryBroken(entry));
     return (usable || list.find(entry => entry && typeof entry.url === 'string' && entry.url.trim()))?.url?.trim() || '';
   }
 
