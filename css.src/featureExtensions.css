@@ -231,6 +231,7 @@
   z-index: 510;
   top: -4px;
   right: -4px;
+  box-sizing: border-box;
   width: 9px;
   height: 9px;
   border: 2px solid var(--panel-soft);
