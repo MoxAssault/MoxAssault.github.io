@@ -162,12 +162,19 @@
     const items = getCategoryItems(record, category, config, { selections });
     const selectedId = String(selections?.[category] || '').trim();
     const bundled = Boolean(config.bundleField && values?.[config.bundleField] === true);
+    const overridden = Boolean(config.overrideField && values?.[config.overrideField] === true);
 
-    if (selectedId && bundled) {
+    if (selectedId && (bundled || overridden)) {
       return { key: 'orange', label: 'Conflict', active: true, safe: false, items };
     }
-    if (selectedId || bundled) {
-      return { key: 'green', label: selectedId ? 'Selected' : 'Bundled', active: true, safe: true, items };
+    if (selectedId || bundled || overridden) {
+      return {
+        key: 'green',
+        label: selectedId ? 'Selected' : bundled ? 'Bundled' : 'Override',
+        active: true,
+        safe: true,
+        items
+      };
     }
     if (!items.length) {
       return { key: 'neutral', label: 'Unavailable', active: false, safe: false, items };
