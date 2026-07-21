@@ -135,7 +135,6 @@
           add('pupNotes', 'Bundled PUP Pack entries require notes.');
         }
         if (!hasText(values.pupVersion)) add('pupVersion', 'PUP Pack Version is required.');
-        if (!hasText(values.pupFileUrl)) add('pupFileUrl', 'PUP Pack URL is required.');
         if (!hasText(values.pupArchiveRoot)) add('pupArchiveRoot', 'PUP Pack Archive Root is required.');
         if (!hasText(values.pupArchiveFormat)) add('pupArchiveFormat', 'PUP Pack Archive Format is required.');
         break;

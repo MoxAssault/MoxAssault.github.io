@@ -754,7 +754,6 @@
     if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup'))) {
       [
         ['pupVersion', 'PUP Pack Version'],
-        ['pupFileUrl', 'PUP Pack URL'],
         ['pupArchiveRoot', 'PUP Pack Archive Root'],
         ['pupArchiveFormat', 'PUP Pack Archive Format']
       ].forEach(([key, label]) => {
