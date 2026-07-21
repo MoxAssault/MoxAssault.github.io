@@ -344,10 +344,6 @@
     state.openAssetDetails = new Set(options.openAssetDetails || []);
     state.openSteps = new Set();
     state.activeStep = options.activeStep || state.activeStep || 'main';
-    // Fresh tables start with "Wizard Disabled" checked (enabled: false).
-    // Restored drafts, recents, and imports pass options.values and keep
-    // whatever state they carried.
-    if (!options.values && state.values.enabled === undefined) state.values.enabled = false;
     sanitizeAssetSelections();
 
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
@@ -556,9 +552,6 @@
     if (Object.keys(checksumSources).length) state.values.__checksumSources = checksumSources;
     else delete state.values.__checksumSources;
     if (step.id === 'pup') delete state.values.__pupArchiveDirectories;
-    // Clearing the Main section restores its onLoad state, which includes
-    // "Wizard Disabled" being checked.
-    if (step.id === 'main') state.values.enabled = false;
     if (!preserveBundle && step.bundleField) delete state.values[step.bundleField];
     if (!preserveOverride && step.overrideField) delete state.values[step.overrideField];
 
