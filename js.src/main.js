@@ -940,6 +940,11 @@
     state.record = null;
     state.selections = {};
     state.values = {};
+    // Clear is an explicit full reset — unlike a plain Download (which
+    // intentionally leaves carryValues in place so the next similar table
+    // keeps FPS/Testers/etc.), it must not let those carry into whatever
+    // gets searched next.
+    state.carryValues = {};
     state.openAssetDetails.clear();
     state.validation = { errors: [], warnings: [] };
     updatePreview();
