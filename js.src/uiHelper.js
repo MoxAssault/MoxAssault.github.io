@@ -631,16 +631,6 @@
           bundleLabel.append(bundleCheck, document.createTextNode('Bundled'));
           toggles.appendChild(bundleLabel);
         }
-        if (config.overrideField) {
-          const overrideLabel = element('label', 'bundle-toggle override-toggle');
-          const overrideCheck = document.createElement('input');
-          overrideCheck.type = 'checkbox';
-          overrideCheck.checked = values[config.overrideField] === true;
-          overrideCheck.setAttribute('aria-label', `Override ${config.singular} — unlock this tab without a VPS entry`);
-          overrideCheck.addEventListener('change', () => callbacks.onOverride?.(config.overrideField, overrideCheck.checked));
-          overrideLabel.append(overrideCheck, document.createTextNode('Override'));
-          toggles.appendChild(overrideLabel);
-        }
         if (config.nsfwField) {
           const nsfwLabel = element('label', 'bundle-toggle nsfw-toggle');
           const nsfwCheck = document.createElement('input');
@@ -652,6 +642,16 @@
           nsfwCheck.addEventListener('change', () => callbacks.onNsfw?.(config.nsfwField, nsfwCheck.checked));
           nsfwLabel.append(nsfwCheck, document.createTextNode('NSFW'));
           toggles.appendChild(nsfwLabel);
+        }
+        if (config.overrideField) {
+          const overrideLabel = element('label', 'bundle-toggle override-toggle');
+          const overrideCheck = document.createElement('input');
+          overrideCheck.type = 'checkbox';
+          overrideCheck.checked = values[config.overrideField] === true;
+          overrideCheck.setAttribute('aria-label', `Override ${config.singular} — unlock this tab without a VPS entry`);
+          overrideCheck.addEventListener('change', () => callbacks.onOverride?.(config.overrideField, overrideCheck.checked));
+          overrideLabel.append(overrideCheck, document.createTextNode('Override'));
+          toggles.appendChild(overrideLabel);
         }
         row.appendChild(toggles);
       } else {

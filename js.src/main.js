@@ -447,6 +447,10 @@
   function handleBundleChange(fieldName, checked) {
     state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.bundleField === fieldName);
+    // Bundled and Override are mutually exclusive — not native radio inputs
+    // (either can be independently unchecked, leaving both off), but turning
+    // one on always turns the other off.
+    if (checked && step?.overrideField) state.values[step.overrideField] = false;
     if (!checked && step && !state.selections[step.category] && state.values[step.overrideField] !== true) {
       clearStepData(step, { preserveId: false, preserveBundle: false, preserveOverride: true, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
@@ -459,6 +463,7 @@
   function handleOverrideChange(fieldName, checked) {
     state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.overrideField === fieldName);
+    if (checked && step?.bundleField) state.values[step.bundleField] = false;
     if (!checked && step && !state.selections[step.category] && state.values[step.bundleField] !== true) {
       clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: false, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.overrideField === fieldName);
