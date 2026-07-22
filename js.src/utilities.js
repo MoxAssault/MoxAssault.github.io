@@ -239,6 +239,20 @@
     return [String(value).trim()].filter(Boolean);
   }
 
+  // Checksum fields can hold a plain string (one checksum) or an array (the
+  // primary plus "additional" ones added via the checksum-additional modal —
+  // see js.src/checksumAdditionalController.js). Anything that edits the
+  // primary value directly (typing, or a file-drop MD5 calculation) must
+  // replace only index 0 and keep the rest, or those additional entries are
+  // silently dropped.
+  function replacePrimaryChecksum(current, next) {
+    const value = String(next || '').trim();
+    if (!Array.isArray(current) || current.length < 2) return value;
+    const rest = current.slice(1).map(item => String(item || '').trim()).filter(Boolean);
+    const combined = value ? [value, ...rest] : rest;
+    return combined.length > 1 ? combined : (combined[0] || '');
+  }
+
   function buildYaml(values, options = {}) {
     const data = { ...values };
     const omit = options.omit instanceof Set ? options.omit : new Set(options.omit || []);
@@ -604,6 +618,7 @@
     formatDateDMY,
     isMd5Hash,
     normalizeChecksumValue,
+    replacePrimaryChecksum,
     extractArchiveDirectories,
     listArchiveEntryPaths,
     cssEscape

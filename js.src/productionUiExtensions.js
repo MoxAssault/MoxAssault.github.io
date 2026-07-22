@@ -72,6 +72,12 @@
     controlFrame = 0;
     document.getElementById('field-tutorialVPSId')?.closest('.field')?.classList.add('field-main-tutorial');
     window.VPS_FEATURE_VALIDATION?.refresh?.();
+    // Re-run after the capture-phase refreshFeatureUi call below, since that
+    // one can fire before the target's own change handler has updated state
+    // on the same event (e.g. toggling Color ROM's PAL/VNI checkbox) —
+    // without this deferred pass the additional-checksum icon's visibility
+    // would lag one event behind.
+    window.VPS_CHECKSUM_ADDITIONAL?.render?.();
   }
 
   function scheduleControlCorrections() {
@@ -83,6 +89,7 @@
 
   function refreshFeatureUi() {
     window.VPS_ADDITIONAL_ROMS?.render?.();
+    window.VPS_CHECKSUM_ADDITIONAL?.render?.();
     scheduleControlCorrections();
   }
 

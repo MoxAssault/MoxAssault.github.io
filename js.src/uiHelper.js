@@ -10,7 +10,8 @@
     getCategoryItems,
     getAssetState,
     extractArchiveDirectories,
-    listArchiveEntryPaths
+    listArchiveEntryPaths,
+    replacePrimaryChecksum
   } = window.VPS_UTILS;
   const { CATEGORY_CONFIG } = window.VPS_YML_FIELDS;
 
@@ -874,6 +875,9 @@
           try { input.setSelectionRange(selectionStart, selectionEnd); } catch (_) { /* selects unsupported */ }
         }
         nextValue = upper;
+        // Only the primary (index 0) is edited here — additional checksums
+        // added via the checksum-additional modal must survive this edit.
+        nextValue = replacePrimaryChecksum(values[field.yml_field], nextValue);
       }
       onChange(field.yml_field, nextValue, field);
     });
@@ -959,7 +963,7 @@
             const sources = { ...(values.__checksumSources || {}) };
             if (primaryResult) {
               input.value = primaryResult.checksum;
-              onChange(field.yml_field, primaryResult.checksum, field);
+              onChange(field.yml_field, replacePrimaryChecksum(values[field.yml_field], primaryResult.checksum), field);
               sources[field.yml_field] = { name: primaryResult.name, extension: primaryResult.extension };
               dropHint.textContent = `MD5 calculated (${primaryResult.name}) from ${file.name}`;
             } else {
@@ -1010,7 +1014,7 @@
         const messages = [];
         if (checksumResult.status === 'fulfilled' && checksumResult.value?.checksum) {
           input.value = checksumResult.value.checksum;
-          onChange(field.yml_field, checksumResult.value.checksum, field);
+          onChange(field.yml_field, replacePrimaryChecksum(values[field.yml_field], checksumResult.value.checksum), field);
           const sources = { ...(values.__checksumSources || {}) };
           sources[field.yml_field] = { name: file.name, extension };
           onChange('__checksumSources', sources, { uiOnly: true });

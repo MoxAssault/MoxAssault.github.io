@@ -692,11 +692,15 @@
     const colorOffered = Boolean(
       state.selections.altColorFiles || hasText(state.values.coloredROMUrlOverride) || state.values.coloredROMBundled === true
     );
-    const colorPrimary = String(state.values.coloredROMChecksum || '').trim();
+    const colorRawValue = state.values.coloredROMChecksum;
+    const colorPrimary = String(Array.isArray(colorRawValue) ? (colorRawValue[0] ?? '') : (colorRawValue ?? '')).trim();
     const colorSecondary = String(state.values.coloredROMChecksumSecondary || '').trim();
+    // Outside PAL/VNI mode, coloredROMChecksum may hold additional checksums
+    // added via the checksum-additional modal — pass it through as-is
+    // (string or array) instead of collapsing to just the primary value.
     const colorValue = state.values.coloredROMPin2DMD === true
       ? [colorPrimary, colorSecondary].filter(Boolean)
-      : colorPrimary;
+      : colorRawValue;
     validateChecksum('coloredROMChecksum', 'coloredRom', 'Color ROM Checksum', {
       required: colorOffered,
       value: colorValue
