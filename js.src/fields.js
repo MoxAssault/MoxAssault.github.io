@@ -73,8 +73,8 @@
     {
       id: 'b2s', label: 'Backglass', legend: 'Backglass (B2S)', category: 'b2sFiles', bundleField: 'backglassBundled',
       overrideField: 'backglassOverride',
-      // Bundled and Override require the same fields (either sourcing method
-      // means there's no VPS DB record to pull details from).
+      // Only Override (no VPS entry at all) requires these — Bundled ships
+      // inside the table's own download and only needs Notes (main.js).
       overrideRequiredFields: ['backglassNotes', 'backglassAuthorsOverride', 'backglassImageOverride', 'backglassUrlOverride'],
       fields: [
         { name: 'Backglass ID', yml_field: 'backglassVPSId', type: 'str', readonly: true, wide: true },
@@ -84,7 +84,7 @@
         },
         { name: 'Backglass Notes', yml_field: 'backglassNotes', type: 'str', multiline: true, wide: true },
         { name: 'Backglass Authors Override', yml_field: 'backglassAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name', advanced: true },
-        { name: 'Backglass Image Override', yml_field: 'backglassImageOverride', type: 'str', wide: true, advanced: true },
+        { name: 'Backglass Image Override', yml_field: 'backglassImageOverride', type: 'url', wide: true, advanced: true },
         { name: 'Backglass URL Override', yml_field: 'backglassUrlOverride', type: 'url', wide: true, advanced: true }
       ]
     },

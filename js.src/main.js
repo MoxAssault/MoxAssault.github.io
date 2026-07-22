@@ -661,21 +661,12 @@
     if (hasText(state.values.backglassUrlOverride) && !hasText(state.values.backglassNotes)) {
       addError('b2s', 'Backglass Notes are required', 'Add Backglass Notes when using Backglass URL Override.');
     }
-    // Bundled requires the same fields as Override (the generic
-    // overrideRequiredFields loop below covers the Override side).
-    if (state.values.backglassBundled === true) {
-      if (!hasText(state.values.backglassNotes)) {
-        addError('b2s', 'Backglass Notes are required', 'Describe the Backglass and where it is located.');
-      }
-      if (!hasText(state.values.backglassAuthorsOverride)) {
-        addError('b2s', 'Backglass Authors Override is required', 'Add at least one Backglass Authors Override.');
-      }
-      if (!hasText(state.values.backglassImageOverride)) {
-        addError('b2s', 'Backglass Image Override is required', 'Add a Backglass Image Override.');
-      }
-      if (!hasText(state.values.backglassUrlOverride)) {
-        addError('b2s', 'Backglass URL Override is required', 'Add a Backglass URL Override.');
-      }
+    // Bundled means the Backglass ships inside the table's own download, so
+    // no external URL/Authors/Image Override is needed — only Notes saying
+    // where to find it. Override (no VPS entry at all) still requires the
+    // full Advanced Config set via the generic overrideRequiredFields loop.
+    if (state.values.backglassBundled === true && !hasText(state.values.backglassNotes)) {
+      addError('b2s', 'Bundled Backglass needs notes', 'Describe the bundled Backglass and where it is located.');
     }
 
     const romOffered = Boolean(
@@ -691,18 +682,11 @@
     if (hasText(state.values.romUrlOverride) && !hasText(state.values.romNotes)) {
       addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.');
     }
-    // Bundled requires the same fields as Override (the generic
-    // overrideRequiredFields loop below covers the Override side).
-    if (state.values.romBundled === true) {
-      if (!hasText(state.values.romNotes)) {
-        addError('rom', 'ROM Notes are required', 'Describe the ROM and where it is located.');
-      }
-      if (!hasText(state.values.romUrlOverride)) {
-        addError('rom', 'ROM URL Override is required', 'Add a ROM URL Override.');
-      }
-      if (!hasText(state.values.romVersionOverride)) {
-        addError('rom', 'ROM Version Override is required', 'Add a ROM Version Override.');
-      }
+    // Bundled means the ROM ships inside the table's own download — no
+    // external URL/Version Override needed, only Notes. Override (no VPS
+    // entry) still requires the full set via overrideRequiredFields below.
+    if (state.values.romBundled === true && !hasText(state.values.romNotes)) {
+      addError('rom', 'Bundled ROM needs notes', 'Describe the bundled ROM and where it is located.');
     }
 
     const colorOffered = Boolean(
@@ -723,18 +707,11 @@
     if (hasText(state.values.coloredROMUrlOverride) && !hasText(state.values.coloredROMNotes)) {
       addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.');
     }
-    // Bundled requires the same fields as Override (the generic
-    // overrideRequiredFields loop below covers the Override side).
-    if (state.values.coloredROMBundled === true) {
-      if (!hasText(state.values.coloredROMNotes)) {
-        addError('coloredRom', 'Color ROM Notes are required', 'Describe the Color ROM and where it is located.');
-      }
-      if (!hasText(state.values.coloredROMUrlOverride)) {
-        addError('coloredRom', 'Color ROM URL Override is required', 'Add a Color ROM URL Override.');
-      }
-      if (!hasText(state.values.coloredROMVersionOverride)) {
-        addError('coloredRom', 'Color ROM Version Override is required', 'Add a Color ROM Version Override.');
-      }
+    // Bundled means the Color ROM ships inside the table's own download —
+    // no external URL/Version Override needed, only Notes. Override (no
+    // VPS entry) still requires the full set via overrideRequiredFields.
+    if (state.values.coloredROMBundled === true && !hasText(state.values.coloredROMNotes)) {
+      addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.');
     }
 
     const pupOffered = Boolean(
@@ -760,21 +737,11 @@
     if (hasText(state.values.diffUrlOverride) && !hasText(state.values.diffNotes)) {
       addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.');
     }
-    // Bundled requires the same fields as Override (the generic
-    // overrideRequiredFields loop below covers the Override side).
-    if (state.values.diffBundled === true) {
-      if (!hasText(state.values.diffNotes)) {
-        addError('vpuPatch', 'Patch Notes are required', 'Describe the VPU Patch and where it is located.');
-      }
-      if (!hasText(state.values.diffAuthorsOverride)) {
-        addError('vpuPatch', 'Patch Authors Override is required', 'Add at least one Patch Authors Override.');
-      }
-      if (!hasText(state.values.diffUrlOverride)) {
-        addError('vpuPatch', 'Patch URL Override is required', 'Add a Patch URL Override.');
-      }
-      if (!hasText(state.values.diffVersionOverride)) {
-        addError('vpuPatch', 'Patch Version Override is required', 'Add a Patch Version Override.');
-      }
+    // Bundled means the VPU Patch ships inside the table's own download —
+    // no external URL/Authors/Version Override needed, only Notes. Override
+    // (no VPS entry) still requires the full set via overrideRequiredFields.
+    if (state.values.diffBundled === true && !hasText(state.values.diffNotes)) {
+      addError('vpuPatch', 'Bundled VPU Patch needs notes', 'Describe the bundled VPU Patch and where it is located.');
     }
 
     // Override unlocks a tab without a VPS ID; in exchange every field that

@@ -115,8 +115,21 @@
     return false;
   }
 
+  // Derived from fields.js's declared field types so any field holding a URL
+  // (not just ones suffixed UrlOverride/FileUrl) gets the same treatment —
+  // falls back to the old suffix heuristic if fields.js hasn't loaded yet.
+  const URL_FIELD_NAMES = (() => {
+    const names = new Set();
+    (window.VPS_YML_FIELDS?.WIZARD_STEPS || []).forEach(step => {
+      (step.fields || []).forEach(field => {
+        if (field.type === 'url') names.add(field.yml_field);
+      });
+    });
+    return names;
+  })();
+
   function isUrlField(name) {
-    return name.endsWith('UrlOverride') || name.endsWith('FileUrl') || name === 'urlOverride';
+    return URL_FIELD_NAMES.has(name) || name.endsWith('UrlOverride') || name.endsWith('FileUrl') || name === 'urlOverride';
   }
 
   function serializeScalar(name, value, indent = '') {
@@ -126,7 +139,14 @@
 
     const cleanValue = cleanYamlString(value);
     if (isUrlField(name)) {
-      const prefix = cleanValue.length > 120
+      // The yamllint rule this comment suppresses checks the full rendered
+      // line, not the URL value alone — a value well under 120 characters
+      // can still push `name: "value"` over the limit once the key and
+      // quoting overhead are added. Compare the actual line length so the
+      // comment (and therefore our own >120-char check below) lines up with
+      // what real yamllint would flag.
+      const renderedLength = indent.length + name.length + 4 + cleanValue.length;
+      const prefix = renderedLength > 120
         ? `${indent}# yamllint disable-line rule:line-length\n`
         : '';
       return `${prefix}${indent}${name}: "${cleanValue.replace(/\n+/g, ' ')}"\n`;
