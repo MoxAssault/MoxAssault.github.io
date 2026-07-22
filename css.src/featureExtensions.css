@@ -238,7 +238,6 @@
 .checksum-additional-row.has-field-error > input {
   border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
 }
-.checksum-additional-row > .field-error-dot { top: 1px; right: 33px; }
 .checksum-additional-remove {
   position: absolute;
   top: 18px;
@@ -253,9 +252,42 @@
   border-radius: 6px;
   background: var(--panel-raised);
   color: var(--text-faint);
-  font: 700 14px/1 "Inter", sans-serif;
   cursor: pointer;
 }
+.checksum-additional-remove svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+#checksumAdditionalDialog .dialog-close svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+/* Fixed-position tooltip for modal row error dots — JS-placed via
+   getBoundingClientRect so it always escapes the dialog body's
+   overflow:auto scroll clipping, regardless of how far down the
+   (unlimited-length) row list the dot sits. */
+.checksum-additional-tooltip {
+  position: fixed;
+  z-index: 700;
+  max-width: 260px;
+  padding: 6px 8px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  font: 600 10.5px/1.35 "Inter", sans-serif;
+  pointer-events: none;
+}
+.checksum-additional-tooltip[hidden] { display: none; }
 .checksum-additional-remove:hover,
 .checksum-additional-remove:focus-visible { border-color: var(--danger); color: var(--danger); }
 .checksum-additional-dialog-actions {

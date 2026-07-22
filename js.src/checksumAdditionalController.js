@@ -57,6 +57,47 @@
     runtime.state.callbacks?.onChange?.(yml_field, next, fieldDefinition(yml_field));
   }
 
+  // A plain hover-tooltip (data-tooltip + ::before) gets clipped by the
+  // dialog body's overflow:auto whenever the row is near the top of a
+  // scrolled list, since the tooltip renders above the dot and escapes the
+  // scroll container's bounds. Position-fixed + JS-placed avoids that
+  // entirely, regardless of how far down the (unlimited-length) list a row
+  // sits. Deliberately uses data-msg, not data-tooltip, so the shared
+  // CSS-only tooltip component elsewhere in the app doesn't also fire here.
+  function tooltipHost() {
+    let host = document.getElementById('checksumAdditionalTooltip');
+    if (host) return host;
+    host = document.createElement('div');
+    host.id = 'checksumAdditionalTooltip';
+    host.className = 'checksum-additional-tooltip';
+    host.hidden = true;
+    // Must live inside the <dialog> itself, not document.body — an open
+    // <dialog> renders in the browser's top layer, which paints above the
+    // rest of the document regardless of z-index, so a body-appended
+    // sibling could never appear above it.
+    dialog().appendChild(host);
+    return host;
+  }
+
+  function showTooltip(dot) {
+    const host = tooltipHost();
+    host.textContent = dot.dataset.msg || '';
+    host.hidden = false;
+    const dotRect = dot.getBoundingClientRect();
+    const hostRect = host.getBoundingClientRect();
+    let left = dotRect.right - hostRect.width;
+    left = Math.max(8, Math.min(left, window.innerWidth - hostRect.width - 8));
+    let top = dotRect.top - hostRect.height - 7;
+    if (top < 8) top = dotRect.bottom + 7;
+    host.style.left = `${left}px`;
+    host.style.top = `${top}px`;
+  }
+
+  function hideTooltip() {
+    const host = document.getElementById('checksumAdditionalTooltip');
+    if (host) host.hidden = true;
+  }
+
   function validateRow(row, input) {
     const value = input.value.trim();
     const valid = !value || isMd5Hash(value);
@@ -68,10 +109,14 @@
         dot.className = 'field-error-dot';
         dot.setAttribute('role', 'img');
         dot.tabIndex = 0;
+        dot.addEventListener('mouseenter', () => showTooltip(dot));
+        dot.addEventListener('mouseleave', hideTooltip);
+        dot.addEventListener('focus', () => showTooltip(dot));
+        dot.addEventListener('blur', hideTooltip);
         row.appendChild(dot);
       }
       const message = 'Checksum must contain exactly 32 hexadecimal characters.';
-      dot.dataset.tooltip = message;
+      dot.dataset.msg = message;
       dot.setAttribute('aria-label', message);
     } else {
       dot?.remove();
@@ -104,7 +149,7 @@
     removeBtn.type = 'button';
     removeBtn.className = 'checksum-additional-remove';
     removeBtn.setAttribute('aria-label', 'Remove checksum');
-    removeBtn.textContent = '×';
+    removeBtn.innerHTML = closeIconSvg();
 
     row.append(label, input, removeBtn);
     container.appendChild(row);
@@ -150,7 +195,7 @@
     node.innerHTML = `
       <div class="dialog-header">
         <div><p class="eyebrow">Checksum</p><h2 id="checksumAdditionalTitle">Additional Checksums</h2></div>
-        <button class="dialog-close" data-checksum-additional-close type="button" aria-label="Close additional checksums">×</button>
+        <button class="dialog-close" data-checksum-additional-close type="button" aria-label="Close additional checksums">${closeIconSvg()}</button>
       </div>
       <div class="dialog-body checksum-additional-body">
         <div class="checksum-additional-list" id="checksumAdditionalList"></div>
@@ -201,6 +246,13 @@
 
   function iconSvg() {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>';
+  }
+
+  // A text "×" glyph sits inconsistently within its own font metrics across
+  // fonts/browsers, so it never quite lands in the center of a place-items:
+  // center button — an SVG X is drawn on an exact grid and centers cleanly.
+  function closeIconSvg() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   }
 
   function render() {
