@@ -51,19 +51,10 @@
     if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {
       add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
     }
-    // Bundled requires the same fields as Override (checked generically
-    // against fields.js's overrideRequiredFields elsewhere). Skip a field
-    // here if the URL/Version pair check above already covers it, so a
-    // single missing field never produces two messages.
-    if (altSoundBundled && !normalizeArray(values?.altSoundAuthorsOverride).length) {
-      add('altSound', 'altSoundAuthorsOverride', 'Alt Sound Authors Override is required', 'Add at least one Alt Sound Authors Override.');
-    }
-    if (altSoundBundled && !altSoundUrl && !altSoundVersion) {
-      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add an Alt Sound URL Override.');
-    }
-    if (altSoundBundled && !altSoundVersion && !altSoundUrl) {
-      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Add an Alt Sound Version Override.');
-    }
+    // Bundled means the Alt Sound ships inside the table's own download —
+    // no external Authors/URL/Version Override needed, only Notes and
+    // Archive Root (above). Override (no VPS entry) still requires the
+    // full Advanced Config set via fields.js's overrideRequiredFields.
 
     const tutorialId = String(values?.tutorialVPSId || '').trim();
     if (tutorialId && !runtime.state.record?.tutorialFiles?.some(item => String(item?.id || '') === tutorialId)) {

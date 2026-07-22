@@ -83,13 +83,11 @@
         if (hasText(values.backglassUrlOverride) && !hasText(values.backglassNotes)) {
           add('backglassNotes', 'Backglass Notes are required when using Backglass URL Override.');
         }
-        // Bundled requires the same fields as Override (the generic
-        // overrideRequiredFields loop below covers the Override side).
-        if (values.backglassBundled === true) {
-          if (!hasText(values.backglassNotes)) add('backglassNotes', 'Bundled Backglass entries require notes.');
-          if (!hasText(values.backglassAuthorsOverride)) add('backglassAuthorsOverride', 'Bundled Backglass entries require Authors Override.');
-          if (!hasText(values.backglassImageOverride)) add('backglassImageOverride', 'Bundled Backglass entries require Image Override.');
-          if (!hasText(values.backglassUrlOverride)) add('backglassUrlOverride', 'Bundled Backglass entries require URL Override.');
+        // Bundled means it ships inside the table's own download — no
+        // external URL/Authors/Image Override needed, only Notes. Override
+        // (no VPS entry) still requires the full set via the generic loop.
+        if (values.backglassBundled === true && !hasText(values.backglassNotes)) {
+          add('backglassNotes', 'Bundled Backglass entries require notes.');
         }
         break;
       case 'rom':
@@ -104,12 +102,10 @@
         if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
           add('romNotes', 'ROM Notes are required when using ROM URL Override.');
         }
-        // Bundled requires the same fields as Override (the generic
-        // overrideRequiredFields loop below covers the Override side).
-        if (values.romBundled === true) {
-          if (!hasText(values.romNotes)) add('romNotes', 'Bundled ROM entries require notes.');
-          if (!hasText(values.romUrlOverride)) add('romUrlOverride', 'Bundled ROM entries require URL Override.');
-          if (!hasText(values.romVersionOverride)) add('romVersionOverride', 'Bundled ROM entries require Version Override.');
+        // Bundled means it ships inside the table's own download — no
+        // external URL/Version Override needed, only Notes.
+        if (values.romBundled === true && !hasText(values.romNotes)) {
+          add('romNotes', 'Bundled ROM entries require notes.');
         }
         break;
       case 'coloredRom': {
@@ -120,12 +116,10 @@
         if (hasText(values.coloredROMUrlOverride) && !hasText(values.coloredROMNotes)) {
           add('coloredROMNotes', 'Color ROM Notes are required when using Color ROM URL Override.');
         }
-        // Bundled requires the same fields as Override (the generic
-        // overrideRequiredFields loop below covers the Override side).
-        if (values.coloredROMBundled === true) {
-          if (!hasText(values.coloredROMNotes)) add('coloredROMNotes', 'Bundled Color ROM entries require notes.');
-          if (!hasText(values.coloredROMUrlOverride)) add('coloredROMUrlOverride', 'Bundled Color ROM entries require URL Override.');
-          if (!hasText(values.coloredROMVersionOverride)) add('coloredROMVersionOverride', 'Bundled Color ROM entries require Version Override.');
+        // Bundled means it ships inside the table's own download — no
+        // external URL/Version Override needed, only Notes.
+        if (values.coloredROMBundled === true && !hasText(values.coloredROMNotes)) {
+          add('coloredROMNotes', 'Bundled Color ROM entries require notes.');
         }
         break;
       }
@@ -144,13 +138,10 @@
         if (hasText(values.diffUrlOverride) && !hasText(values.diffNotes)) {
           add('diffNotes', 'Patch Notes are required when using Patch URL Override.');
         }
-        // Bundled requires the same fields as Override (the generic
-        // overrideRequiredFields loop below covers the Override side).
-        if (values.diffBundled === true) {
-          if (!hasText(values.diffNotes)) add('diffNotes', 'Bundled VPU Patch entries require notes.');
-          if (!hasText(values.diffAuthorsOverride)) add('diffAuthorsOverride', 'Bundled VPU Patch entries require Authors Override.');
-          if (!hasText(values.diffUrlOverride)) add('diffUrlOverride', 'Bundled VPU Patch entries require URL Override.');
-          if (!hasText(values.diffVersionOverride)) add('diffVersionOverride', 'Bundled VPU Patch entries require Version Override.');
+        // Bundled means it ships inside the table's own download — no
+        // external URL/Authors/Version Override needed, only Notes.
+        if (values.diffBundled === true && !hasText(values.diffNotes)) {
+          add('diffNotes', 'Bundled VPU Patch entries require notes.');
         }
         break;
       default:
