@@ -58,7 +58,12 @@
       errors.set(fieldName, messages);
     };
     const validateChecksum = (fieldName, label, { required = false } = {}) => {
-      const value = String(values[fieldName] || '').trim();
+      // This dot mirrors what the visible input shows — only the primary
+      // checksum (index 0). Additional entries (added via the
+      // checksum-additional modal) are validated separately, in that modal
+      // and in main.js's blocking validateBuild().
+      const raw = values[fieldName];
+      const value = String(Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? '')).trim();
       if (required && !value) add(fieldName, `${label} is required.`);
       else if (value && !isMd5(value)) add(fieldName, `${label} must be a 32-character MD5 value.`);
     };

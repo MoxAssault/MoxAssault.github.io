@@ -69,8 +69,15 @@
       else delete data.coloredROMChecksum;
     } else {
       delete data.coloredROMPin2DMD;
-      if (primaryColorChecksum) data.coloredROMChecksum = String(primaryColorChecksum).trim();
-      else delete data.coloredROMChecksum;
+      // Outside PAL/VNI mode any entries beyond index 0 are "additional"
+      // checksums from the checksum-additional modal, not the PAL/VNI
+      // secondary slot — preserve them instead of collapsing to primary only.
+      const checksums = (Array.isArray(data.coloredROMChecksum) ? data.coloredROMChecksum : [data.coloredROMChecksum])
+        .map(value => String(value || '').trim())
+        .filter(Boolean);
+      if (!checksums.length) delete data.coloredROMChecksum;
+      else if (checksums.length === 1) data.coloredROMChecksum = checksums[0];
+      else data.coloredROMChecksum = checksums;
     }
     delete data.coloredROMChecksumSecondary;
 

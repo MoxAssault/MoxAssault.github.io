@@ -249,20 +249,13 @@
     }
   }
 
-  function checksumValues() {
-    const value = runtime.state.values?.altSoundChecksum;
-    return Array.isArray(value) ? value.map(String).filter(Boolean) : String(value || '');
-  }
-
   function decorateChecksumField() {
+    // Only the primary checksum lives in this input — additional ones (added
+    // via js.src/checksumAdditionalController.js) are index 1+ and are never
+    // displayed here, matching every other checksum field in the app.
     const input = document.getElementById('field-altSoundChecksum');
     const wrapper = input?.closest('.field');
     if (!input || !wrapper) return;
-
-    const rawDisplayed = Array.isArray(checksumValues()) ? checksumValues().join(', ') : checksumValues();
-    const displayed = String(rawDisplayed).toUpperCase();
-    if (input.value !== displayed) input.value = displayed;
-    input.placeholder = 'Alt Sound Checksum(s)';
 
     let status = wrapper.querySelector(':scope > .checksum-drop-status');
     if (!status) {
@@ -325,8 +318,9 @@
 
       if (checksumResult.status === 'fulfilled' && checksumResult.value) {
         input.value = checksumResult.value;
-        runtime.state.callbacks?.onChange?.('altSoundChecksum', checksumResult.value, {
-          yml_field: 'altSoundChecksum', type: 'array'
+        const nextValue = utils.replacePrimaryChecksum(runtime.state.values?.altSoundChecksum, checksumResult.value);
+        runtime.state.callbacks?.onChange?.('altSoundChecksum', nextValue, {
+          yml_field: 'altSoundChecksum', type: 'str'
         });
         const sources = { ...(runtime.state.values?.__checksumSources || {}) };
         sources.altSoundChecksum = { name: file.name, extension };

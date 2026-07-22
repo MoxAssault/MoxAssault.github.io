@@ -156,6 +156,119 @@
   color: var(--accent-ink);
 }
 
+/* Additional-checksum icon inside every simple checksum field (+ Color ROM
+   primary). Anchored to the input's own vertical center — checksum fields
+   all share the same input height (36px) plus the checksum-drop-field's 5px
+   padding, so a fixed offset stays correct without per-field measurement. */
+.field.checksum-drop-field { position: relative; }
+.checksum-additional-btn {
+  position: absolute;
+  top: 23px;
+  right: 13px;
+  z-index: 4;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+.checksum-additional-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.checksum-additional-btn:hover,
+.checksum-additional-btn:focus-visible { color: var(--accent); }
+.checksum-additional-btn.has-additional { color: var(--accent); }
+.checksum-additional-btn.has-additional::after {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  content: attr(data-count);
+  font: 700 8px/1 "Inter", sans-serif;
+}
+.checksum-additional-btn[data-tooltip]::before {
+  position: absolute;
+  z-index: 560;
+  right: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: max-content;
+  max-width: 220px;
+  padding: 5px 7px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 700 10px/1.2 "Inter", sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+.checksum-additional-btn[data-tooltip]:hover::before,
+.checksum-additional-btn[data-tooltip]:focus-visible::before { display: block; }
+.field.checksum-drop-field input[type="text"] { padding-right: 30px; }
+
+/* Additional-checksum editor dialog. */
+.checksum-additional-dialog { width: min(480px, calc(100% - 28px)); }
+.checksum-additional-body { display: grid; gap: 12px; }
+.checksum-additional-list { display: grid; gap: 10px; }
+.checksum-additional-row { position: relative; padding-right: 32px !important; }
+.checksum-additional-row input { text-transform: uppercase; }
+.checksum-additional-row.has-field-error > input {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
+}
+.checksum-additional-row > .field-error-dot { top: 1px; right: 33px; }
+.checksum-additional-remove {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  transform: translateY(-50%);
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  color: var(--text-faint);
+  font: 700 14px/1 "Inter", sans-serif;
+  cursor: pointer;
+}
+.checksum-additional-remove:hover,
+.checksum-additional-remove:focus-visible { border-color: var(--danger); color: var(--danger); }
+.checksum-additional-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.checksum-additional-dialog-actions .preview-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 /* Alt Sound uses the same balanced ID/checksum proportions as other file tabs. */
 .field-grid-altSound {
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -115,13 +115,6 @@
       .forEach(label => label.classList.add('visually-hidden'));
   }
 
-  function correctAltSoundPlaceholder() {
-    const input = document.getElementById('field-altSoundChecksum');
-    if (input && input.placeholder !== 'Alt Sound Checksum(s)') {
-      input.placeholder = 'Alt Sound Checksum(s)';
-    }
-  }
-
   function additionalRomName(item, entry, index) {
     return String(
       item?.name
@@ -156,7 +149,6 @@
     sortTutorialSelect();
     sortAdditionalRomSelect();
     hideNewFieldLabels();
-    correctAltSoundPlaceholder();
     decorateAdditionalRomIndicator();
   }
 
