@@ -89,7 +89,14 @@
 
   function refreshFeatureUi() {
     window.VPS_ADDITIONAL_ROMS?.render?.();
-    window.VPS_CHECKSUM_ADDITIONAL?.render?.();
+    // Deliberately NOT called here — see applyControlCorrections. This
+    // function also runs from capture-phase document input/change listeners
+    // (below), which fire before the target field's own handler updates
+    // state on the same event. Reading state that early — e.g. during YML
+    // import, which sets a checksum input's .value programmatically without
+    // focusing it, so the focus-guard in render() doesn't help — would
+    // sync the input back to its still-stale (empty) value right before the
+    // real handler even reads it, clobbering the value it was about to set.
     scheduleControlCorrections();
   }
 
