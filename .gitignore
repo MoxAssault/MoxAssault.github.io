@@ -8,3 +8,5 @@ docker/
 
 # Files
 minify-JS.js
+CLAUDE.md
+.claude/settings.local.json
