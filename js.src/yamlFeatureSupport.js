@@ -20,7 +20,10 @@
         versionOverride: String(entry.versionOverride || '').trim(),
         urlOverride: String(entry.urlOverride || '').trim()
       };
-      return normalized.vpsId ? normalized : null;
+      // vpsId is legitimately empty when ROM Override is active (no VPS DB
+      // entry to pull one from — see additionalRomsController.js), so a
+      // real entry is one with EITHER a vpsId or a checksum, not vpsId alone.
+      return (normalized.vpsId || normalized.checksum) ? normalized : null;
     }).filter(Boolean);
   }
 
