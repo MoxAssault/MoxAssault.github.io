@@ -44,7 +44,13 @@
   function validateEntryDetailed(entry, index = -1) {
     const errors = [];
     const add = (field, message) => errors.push({ field, message });
-    if (!entry.vpsId) add('vpsId', 'Select a ROM VPS ID.');
+    // ROM Override means the primary ROM has no VPS DB entry at all — an
+    // Additional ROM can't pull one from the DB either, so the picker is
+    // disabled in the dialog (see open()) and not required here. The other
+    // vpsId checks below are already gated on entry.vpsId being truthy, so
+    // they naturally no-op once it's left empty.
+    const overrideActive = runtime.state.values?.romOverride === true;
+    if (!overrideActive && !entry.vpsId) add('vpsId', 'Select a ROM VPS ID.');
     if (!entry.checksum) add('checksum', 'Checksum is required.');
     else if (!isMd5Hash(entry.checksum)) add('checksum', 'Checksum must contain exactly 32 hexadecimal characters.');
     if (entry.urlOverride && !entry.versionOverride) add('versionOverride', 'Version Override is required when URL Override is used.');
@@ -238,13 +244,23 @@
     editingIndex = index;
     const current = index >= 0 ? entries()[index] || {} : {};
     const select = node.querySelector('#additionalRomVpsId');
-    select.replaceChildren(new Option('Select an additional ROM', ''));
-    const items = choices(index);
-    if (current.vpsId && !items.some(item => String(item?.id || '') === String(current.vpsId))) {
-      items.unshift({ id: current.vpsId });
+    // ROM Override means there's no VPS entry for the primary ROM — an
+    // Additional ROM entry can't have one either, so the picker is disabled
+    // and not populated (see validateEntryDetailed for the matching
+    // not-required change).
+    const overrideActive = runtime.state.values?.romOverride === true;
+    select.replaceChildren(new Option(
+      overrideActive ? 'Not needed — ROM Override is enabled' : 'Select an additional ROM', ''
+    ));
+    if (!overrideActive) {
+      const items = choices(index);
+      if (current.vpsId && !items.some(item => String(item?.id || '') === String(current.vpsId))) {
+        items.unshift({ id: current.vpsId });
+      }
+      items.forEach(item => select.add(new Option(getItemLabel(item), String(item?.id || ''))));
     }
-    items.forEach(item => select.add(new Option(getItemLabel(item), String(item?.id || ''))));
     select.value = String(current.vpsId || '');
+    select.disabled = overrideActive;
     node.querySelector('#additionalRomChecksum').value = String(current.checksum || '');
     node.querySelector('#additionalRomVersionOverride').value = String(current.versionOverride || '');
     node.querySelector('#additionalRomUrlOverride').value = String(current.urlOverride || '');
@@ -253,7 +269,8 @@
     node.querySelector('#additionalRomRemove').hidden = index < 0;
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', '');
-    select.focus();
+    if (overrideActive) node.querySelector('#additionalRomChecksum').focus();
+    else select.focus();
   }
 
   function removeEditing() {
