@@ -230,6 +230,11 @@
     return keys;
   }
 
+  function valuePresent(value) {
+    if (Array.isArray(value)) return value.length > 0;
+    return typeof value === 'string' ? value.trim() !== '' : value !== undefined && value !== null && value !== '';
+  }
+
   function normalizeImportedData(parsed) {
     const supported = allSupportedKeys();
     const values = {};
@@ -270,6 +275,22 @@
     // to "not disabled" and left absent from `values`, so it never round-trips
     // back into the generated YAML as `enabled: true`.
     if (values.enabled !== false) delete values.enabled;
+
+    // Override is deliberately never written to the YAML (OMIT_FROM_YAML) —
+    // it's a builder-only convenience, so a table exported while in Override
+    // mode carries no direct signal of that on re-import. Re-infer it: no
+    // VPS ID for the category, not Bundled, but at least one of the step's
+    // overrideRequiredFields has a value.
+    Object.values(CATEGORY_CONFIG).forEach(config => {
+      if (!config.overrideField) return;
+      const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
+      if (!step?.overrideRequiredFields?.length) return;
+      const hasId = valuePresent(values[config.idField]);
+      const isBundled = Boolean(step.bundleField) && values[step.bundleField] === true;
+      const hasOverrideData = step.overrideRequiredFields.some(key => valuePresent(values[key]));
+      if (!hasId && !isBundled && hasOverrideData) values[config.overrideField] = true;
+    });
+
     return { values, ignored };
   }
 
@@ -559,6 +580,22 @@
       const checkbox = await waitFor(
         () => document.querySelector(`#assetMatrix .asset-row[data-category="${category}"] .bundle-toggle input`),
         `The ${config.label} bundled option is unavailable.`
+      );
+      if (!checkbox.checked) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        await nextPaint();
+      }
+    }
+
+    // Override is inferred in normalizeImportedData (never a literal YAML
+    // key) — click the checkbox the same way Bundled's is clicked above, so
+    // the tab unlocks before loadImportedFields tries to fill its fields.
+    for (const [category, config] of Object.entries(CATEGORY_CONFIG)) {
+      if (!config.overrideField || values[config.overrideField] !== true) continue;
+      const checkbox = await waitFor(
+        () => document.querySelector(`#assetMatrix .asset-row[data-category="${category}"] .override-toggle input`),
+        `The ${config.label} override option is unavailable.`
       );
       if (!checkbox.checked) {
         checkbox.checked = true;
