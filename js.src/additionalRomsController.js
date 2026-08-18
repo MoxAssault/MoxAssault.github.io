@@ -7,7 +7,28 @@
 
   const { CATEGORY_CONFIG, WIZARD_STEPS } = fields;
   const { getCategoryItems, getItemLabel, isItemBroken, isMd5Hash } = utils;
+  const ARCHIVE_EXTENSIONS = ['.zip', '.rar', '.7z'];
   let editingIndex = -1;
+
+  // This dialog renders its own checksum drop field, so it resolves the same
+  // manufacturer rules from the same field definition rather than keeping a
+  // second hard-coded extension list that would drift out of sync.
+  function checksumRules() {
+    const ui = window.VPS_UI || {};
+    const field = definition();
+    const values = runtime.state.values || {};
+    const allowed = typeof ui.getChecksumExtensions === 'function'
+      ? ui.getChecksumExtensions(field, values)
+      : ARCHIVE_EXTENSIONS.slice();
+    const scanExtension = typeof ui.getArchiveScanExtension === 'function'
+      ? ui.getArchiveScanExtension(field, values)
+      : '';
+    return { allowed: allowed.length ? allowed : ARCHIVE_EXTENSIONS.slice(), scanExtension };
+  }
+
+  function dropHintText() {
+    return `Drop ${checksumRules().allowed.join(' / ')} file to calculate MD5`;
+  }
 
   function definition() {
     return WIZARD_STEPS.find(step => step.id === 'rom')?.fields
@@ -205,7 +226,6 @@
     const wrapper = node.querySelector('#additionalRomChecksumField');
     const input = node.querySelector('#additionalRomChecksum');
     const hint = wrapper.querySelector('.checksum-drop-hint');
-    const allowed = ['.zip', '.rar', '.7z'];
     const extension = name => String(name || '').toLowerCase().match(/\.[^.]+$/)?.[0] || '';
     ['dragenter', 'dragover'].forEach(type => wrapper.addEventListener(type, event => {
       event.preventDefault();
@@ -219,7 +239,9 @@
       wrapper.classList.remove('checksum-drop-active');
       const file = event.dataTransfer.files?.[0];
       if (!file) return;
-      if (!allowed.includes(extension(file.name))) {
+      const { allowed, scanExtension } = checksumRules();
+      const dropped = extension(file.name);
+      if (!allowed.includes(dropped)) {
         hint.textContent = `Invalid file type. Allowed: ${allowed.join(', ')}`;
         hint.classList.add('error');
         return;
@@ -228,8 +250,31 @@
       hint.textContent = `Calculating MD5 for ${file.name}…`;
       wrapper.classList.add('checksum-is-loading');
       try {
-        input.value = md5(await file.arrayBuffer());
-        hint.textContent = `MD5 calculated from ${file.name}`;
+        const ui = window.VPS_UI || {};
+        const canScan = Boolean(scanExtension)
+          && ARCHIVE_EXTENSIONS.includes(dropped)
+          && typeof ui.extractArchiveEntryChecksum === 'function';
+        // Exactly one match gets scanned out of the archive. Zero or several is
+        // ambiguous, so the archive itself is hashed, exactly as before — and an
+        // archive that cannot be opened at all takes the same route rather than
+        // failing a drop that would have worked on a non-Stern table.
+        let scanned = null;
+        if (canScan) {
+          try {
+            scanned = await ui.extractArchiveEntryChecksum(file, scanExtension, { requireExactlyOne: true });
+          } catch (scanError) {
+            console.warn('Archive scan failed, hashing the archive whole:', scanError);
+          }
+        }
+        if (scanned?.checksum) {
+          input.value = String(scanned.checksum).toUpperCase();
+          hint.textContent = `MD5 calculated (${scanned.entryName}) from ${file.name}`;
+        } else {
+          input.value = md5(await file.arrayBuffer());
+          hint.textContent = canScan
+            ? `MD5 calculated (whole archive — no single ${scanExtension} inside) from ${file.name}`
+            : `MD5 calculated from ${file.name}`;
+        }
       } catch (error) {
         hint.textContent = error?.message || 'MD5 calculation failed.';
         hint.classList.add('error');
@@ -264,6 +309,13 @@
     node.querySelector('#additionalRomChecksum').value = String(current.checksum || '');
     node.querySelector('#additionalRomVersionOverride').value = String(current.versionOverride || '');
     node.querySelector('#additionalRomUrlOverride').value = String(current.urlOverride || '');
+    // The dialog is created once and cached, so this cannot live in the markup:
+    // the accepted list depends on the currently loaded table's manufacturer.
+    const openHint = node.querySelector('.checksum-drop-hint');
+    if (openHint) {
+      openHint.classList.remove('error');
+      openHint.textContent = dropHintText();
+    }
     clearFieldErrorPresentation(node);
     node.querySelector('#additionalRomTitle').textContent = index >= 0 ? 'Edit Additional ROM' : 'Add Additional ROM';
     node.querySelector('#additionalRomRemove').hidden = index < 0;

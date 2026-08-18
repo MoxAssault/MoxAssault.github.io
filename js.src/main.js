@@ -341,6 +341,11 @@
     state.record = record;
     state.selections = options.selections ? { ...options.selections } : {};
     state.values = migrateBuildValues({ ...baseValues, ...(options.values || {}), tableVPSId: record.id || '' });
+    // Mirrored into values because the field renderer is handed state.values
+    // and nothing else — renderAccordions' signature is re-wrapped by five
+    // correction layers, so widening it is not worth the blast radius.
+    // Kept out of the output by OMIT_FROM_YAML.
+    state.values.__tableManufacturer = String(record.manufacturer || '');
     state.openAssetDetails = new Set(options.openAssetDetails || []);
     state.openSteps = new Set();
     state.activeStep = options.activeStep || state.activeStep || 'main';
