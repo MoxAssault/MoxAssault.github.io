@@ -1,6 +1,16 @@
 (() => {
   'use strict';
 
+  // Manufacturer-specific checksum rules. A matching rule REPLACES the field's
+  // default accepted extensions and turns on scan-inside-the-archive for the
+  // one extension named. Stern ROMs ship as a bare .bin, so the loose file is
+  // accepted directly and a dropped archive is scanned for the .bin inside.
+  // Matched against the Manufacturer Override first, then the VPS record's own
+  // manufacturer (VPS spells it exactly "Stern" — no Pinball/Electronics variants).
+  const STERN_ROM_RULE = {
+    Stern: { checksumExtensions: ['.bin', '.zip', '.rar', '.7z'], archiveScanExtension: '.bin' }
+  };
+
   const CATEGORY_CONFIG = {
     tableFiles: {
       label: 'VPX', singular: 'VPX file', stepId: 'vpx', idField: 'vpxVPSId', nsfwField: 'vpxNSFW', required: true, supportsImage: true
@@ -94,11 +104,20 @@
       overrideRequiredFields: ['romNotes', 'romUrlOverride', 'romVersionOverride'],
       fields: [
         { name: 'ROM ID', yml_field: 'romVPSId', type: 'str', readonly: true, wide: true },
-        { name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, maxlength: 32, checksumExtensions: ['.zip', '.rar', '.7z'] },
+        {
+          name: 'ROM Checksum', yml_field: 'romChecksum', type: 'str', wide: true, maxlength: 32,
+          checksumExtensions: ['.zip', '.rar', '.7z'], manufacturerRules: STERN_ROM_RULE
+        },
         { name: 'ROM Notes', yml_field: 'romNotes', type: 'str', multiline: true, wide: true },
         { name: 'ROM URL Override', yml_field: 'romUrlOverride', type: 'url', wide: true, advanced: true },
         { name: 'ROM Version Override', yml_field: 'romVersionOverride', type: 'str', wide: true, advanced: true },
-        { name: 'Additional ROMs', yml_field: 'additionalRoms', type: 'additional-roms', advanced: true, customRenderer: true }
+        {
+          // customRenderer: rendered by additionalRomsController, not uiHelper
+          // (productionUiExtensions strips these before the generic renderer).
+          // The checksum settings below are read by that controller's own drop handler.
+          name: 'Additional ROMs', yml_field: 'additionalRoms', type: 'additional-roms', advanced: true, customRenderer: true,
+          checksumExtensions: ['.zip', '.rar', '.7z'], manufacturerRules: STERN_ROM_RULE
+        }
       ]
     },
     {
@@ -206,6 +225,7 @@
     '__pupArchiveDirectories',
     '__altSoundArchiveDirectories',
     '__checksumSources',
+    '__tableManufacturer',
     // Override checkboxes are a builder-only convenience that unlocks a tab
     // without a VPS entry — the flag itself never appears in the output,
     // only the Advanced Config field values it forces the user to fill in.

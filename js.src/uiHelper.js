@@ -352,13 +352,21 @@
       : extractLibarchiveEntries(file, selectNames);
   }
 
-  async function extractArchiveEntryChecksum(file, targetExtension) {
+  // requireExactlyOne is opt-in and only set for manufacturer-driven scans.
+  // With it, anything other than a single match extracts nothing and returns
+  // null, leaving the caller to hash the archive whole — a Stern SPIKE archive
+  // often carries several .bin files, and silently hashing the first would
+  // produce a confident wrong checksum. Without it the original behaviour is
+  // unchanged: first match wins, no match throws.
+  async function extractArchiveEntryChecksum(file, targetExtension, options = {}) {
     const wanted = String(targetExtension).toLowerCase();
     const matches = await extractArchiveEntries(file, names => {
-      const target = names.find(name => name.toLowerCase().endsWith(wanted));
-      if (!target) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
-      return [target];
+      const targets = names.filter(name => name.toLowerCase().endsWith(wanted));
+      if (options.requireExactlyOne) return targets.length === 1 ? targets : [];
+      if (!targets.length) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
+      return [targets[0]];
     });
+    if (!matches.length) return null;
     const { name, blob } = matches[0];
     const checksum = await calculateMd5FromBlob(blob);
     return { checksum, entryName: name.split('/').pop() };
@@ -389,7 +397,31 @@
     return results;
   }
 
+  // A manufacturer rule wins over everything else on the field. Manufacturer
+  // Override is checked first so a mis-tagged VPS record can be corrected by
+  // hand — same precedence readmeGenerator already uses.
+  function getManufacturerRule(field, values) {
+    if (!field || !field.manufacturerRules) return null;
+    // Case-insensitive: the VPS record is always exactly "Stern", but the
+    // Manufacturer Override is typed by hand and "stern" must still match.
+    const manufacturer = String(values?.tableManufacturerOverride || values?.__tableManufacturer || '')
+      .trim().toLowerCase();
+    if (!manufacturer) return null;
+    const match = Object.keys(field.manufacturerRules)
+      .find(name => name.toLowerCase() === manufacturer);
+    return match ? field.manufacturerRules[match] : null;
+  }
+
+  function getArchiveScanExtension(field, values) {
+    const rule = getManufacturerRule(field, values);
+    return rule?.archiveScanExtension || field?.archiveScanExtension || '';
+  }
+
   function getChecksumExtensions(field, values) {
+    const rule = getManufacturerRule(field, values);
+    if (Array.isArray(rule?.checksumExtensions)) {
+      return rule.checksumExtensions.map(extension => extension.toLowerCase());
+    }
     if (field.checksumExtensionsByFlag) {
       const flagConfig = field.checksumExtensionsByFlag;
       const enabled = values[flagConfig.field] === true;
@@ -1002,10 +1034,29 @@
           if (formatSelect) formatSelect.value = format;
         }
 
-        const isArchiveScanDrop = Boolean(field.archiveScanExtension) && ARCHIVE_EXTENSIONS.includes(extension);
+        const scanExtension = getArchiveScanExtension(field, values);
+        // Only a manufacturer-driven scan is allowed to fall back. A table
+        // archive with no .vpx inside really is an error; a Stern archive
+        // without exactly one .bin is just an ordinary archive to hash whole.
+        const scanMayFallBack = Boolean(getManufacturerRule(field, values)?.archiveScanExtension);
+        const hashWholeFile = () => calculateMd5FromBlob(file).then(checksum => ({ checksum }));
+        const isArchiveScanDrop = Boolean(scanExtension) && ARCHIVE_EXTENSIONS.includes(extension);
+        const scanFallback = () => hashWholeFile().then(value => ({ ...value, scannedWhole: scanExtension }));
         const checksumTask = isArchiveScanDrop
-          ? extractArchiveEntryChecksum(file, field.archiveScanExtension)
-          : calculateMd5FromBlob(file).then(checksum => ({ checksum }));
+          ? extractArchiveEntryChecksum(file, scanExtension, { requireExactlyOne: scanMayFallBack })
+            .then(result => result || scanFallback())
+            .catch(error => {
+              // An archive that cannot be opened (corrupt, encrypted, too large
+              // to scan in-browser) is indistinguishable from one without a
+              // single match, so it takes the same route rather than failing a
+              // drop that would have worked on a non-Stern table. Only the
+              // manufacturer path may do this: a table archive with no .vpx
+              // inside is a genuine error and still surfaces as one.
+              if (!scanMayFallBack) throw error;
+              console.warn('Archive scan failed, hashing the archive whole:', error);
+              return scanFallback();
+            })
+          : hashWholeFile();
         const archiveTask = field.archiveBrowser
           ? readArchiveDirectories(file)
           : Promise.resolve(null);
@@ -1020,7 +1071,9 @@
           onChange('__checksumSources', sources, { uiOnly: true });
           messages.push(checksumResult.value.entryName
             ? `MD5 calculated (${checksumResult.value.entryName})`
-            : 'MD5 calculated');
+            : checksumResult.value.scannedWhole
+              ? `MD5 calculated (whole archive — no single ${checksumResult.value.scannedWhole} inside)`
+              : 'MD5 calculated');
         } else {
           const reason = checksumResult.reason?.message || 'MD5 failed';
           messages.push(reason);
@@ -1181,6 +1234,14 @@
     renderTableStrip,
     renderAssetMatrix,
     renderAccordions,
-    syncConditionalFields
+    syncConditionalFields,
+    // Shared with additionalRomsController: it renders its own checksum drop
+    // field, and without these it would have to duplicate the unrar/libarchive
+    // machinery to support the same manufacturer rules.
+    getManufacturerRule,
+    getChecksumExtensions,
+    getArchiveScanExtension,
+    extractArchiveEntryChecksum,
+    calculateMd5FromBlob
   };
 })();
