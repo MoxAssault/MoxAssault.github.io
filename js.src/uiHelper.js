@@ -356,7 +356,7 @@
   // With it, anything other than a single match extracts nothing and returns
   // null, leaving the caller to hash the archive whole — a Stern SPIKE archive
   // often carries several .bin files, and silently hashing the first would
-  // produce a confident wrong checksum. Without it the original behaviour is
+  // produce a confident wrong checksum. Without it the original behavior is
   // unchanged: first match wins, no match throws.
   async function extractArchiveEntryChecksum(file, targetExtension, options = {}) {
     const wanted = String(targetExtension).toLowerCase();
