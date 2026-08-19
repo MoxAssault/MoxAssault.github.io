@@ -176,6 +176,7 @@
             <div class="help-doc-body">
               <p>Game VPS ID, VPX ID, Backglass ID, ROM ID, Color ROM ID, PUP Pack ID, Alt Sound ID, and VPU Patch ID all work the same way: <strong>you never type in them.</strong> They fill themselves from the table you searched for and the versions you picked in the Assets Panel.</p>
               <p>If one is empty, the cause is upstream: either no table is loaded, or you have not selected that asset yet.</p>
+              <p><strong>One field is named like these but is not one of them:</strong> <em>Tutorial VPS ID</em>, on the Main tab. That one is a dropdown you choose from, not a field that fills itself. It is covered under "Everything else on the Main tab" below.</p>
               <p><strong>One trap worth knowing.</strong> When a tab reports an error the checker cannot pin to a specific field, it drops the error dot on that tab's first read-only field. On the Main tab that is Game VPS ID. A dot there usually means something else on the tab is wrong, not the ID.</p>
             </div>
           </details>
@@ -303,23 +304,23 @@
       </section>
 
       <section class="help-tab-panel" id="helpPanelWalkthrough" role="tabpanel" aria-labelledby="helpTabWalkthrough" data-help-panel="walkthrough" hidden>
-        <p class="help-lede">A guided tour of the real workspace. This window closes and each step lights up the actual control it is describing.</p>
+        <p class="help-lede">Two tours of the real workspace. Either way this window closes and each step lights up the actual control it is describing.</p>
         <button class="tour-launch-btn" id="startWalkthroughBtn" type="button">
           <span class="tour-launch-icon" aria-hidden="true">&#9654;</span>
           <span class="tour-launch-text">
-            <strong>Start the guided tour</strong>
-            <small>Nine steps, from searching for a table to downloading the YML</small>
+            <strong>Tour the app as it is</strong>
+            <small>Eleven steps, from searching for a table to downloading the YML. Explains without changing anything</small>
           </span>
         </button>
         <button class="tour-launch-btn tour-launch-secondary" id="startWalkthroughDemoBtn" type="button">
           <span class="tour-launch-icon" aria-hidden="true">&#9673;</span>
           <span class="tour-launch-text">
-            <strong>Load a demo table, then tour</strong>
-            <small>Tales from the Crypt, one of only twelve tables carrying all seven asset types</small>
+            <strong>Guided build with a demo table</strong>
+            <small>Eleven hands-on steps on Tales from the Crypt, one of only twelve tables carrying all seven asset types</small>
           </span>
         </button>
         <p class="help-tour-note">Leave at any point with <kbd>Esc</kbd> or the Skip button. The tour itself never changes your build; only the demo button above loads anything, and it asks first if you already have a build open.</p>
-        <p class="help-tour-note"><strong>The two buttons do different things.</strong> The first walks the app you already have open and explains it, in any order you like, changing nothing. The second loads Tales from the Crypt and then <strong>holds your hand through building the file</strong>: the steps that ask you to do something stay locked until you have done it, then move on by themselves. Reopening a saved YML comes last there, because that mode is about building a new one.</p>
+        <p class="help-tour-note"><strong>The two do different jobs.</strong> <em>Tour the app as it is</em> walks whatever you already have open and explains it, in any order you like, changing nothing; it adapts to the table you loaded, or tells you what would appear if you have not loaded one. <em>Guided build</em> loads Tales from the Crypt and <strong>holds your hand through building the file</strong>: the steps that ask you to do something stay locked until you have done it, then move on by themselves. Reopening a saved YML comes last there, because that mode is about building a new one.</p>
         <p class="help-tour-note">The guided build covers a genuine trap along the way: VPU Patch entries are filed among a table's VPX files rather than in a category of their own, so that row stays empty until you select the exact VPX a patch applies to. On Tales from the Crypt that is VPX <strong>uVgZUZdK</strong>.</p>
         <p class="help-tour-outline-label">The guided build, step by step:</p>
         <ol class="help-tour-outline">

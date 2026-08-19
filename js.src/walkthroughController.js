@@ -131,7 +131,9 @@
     },
 
     ymlImport: {
-      title: 'Coming back to edit this later',
+      // Guided puts this last, as a sign-off. The standard tour meets it second,
+      // where "coming back later" would read like an ending.
+      title: () => (mode === 'guided' ? 'Coming back to edit this later' : 'Or reopen a YML you already made'),
       target: '#ymlImportDrop',
       prefer: 'bottom',
       body: `<p>You never have to start from scratch again. Drag a finished <strong>.yml</strong> back onto here and it loads into the builder ready to edit.</p>
@@ -140,7 +142,9 @@
     },
 
     strip: {
-      title: 'Your table is loaded',
+      // Guided has just loaded the demo table. The standard tour may be running
+      // with nothing loaded at all, so it cannot claim otherwise.
+      title: () => (mode === 'guided' ? 'Your table is loaded' : 'The table strip'),
       target: '#tableStrip',
       prefer: 'bottom',
       missing: 'No table is loaded. Search for one at the top of the page, or use the demo table button in Help, and this strip appears here.',
@@ -196,7 +200,9 @@
     },
 
     patch: {
-      title: 'And now the VPU Patch appears',
+      // "And now it appears" only makes sense straight after the guided VPX
+      // step caused it.
+      title: () => (mode === 'guided' ? 'And now the VPU Patch appears' : 'The VPU Patch row, and why it is empty'),
       target: '.asset-row[data-category="vpuPatchFiles"]',
       prefer: 'right',
       missing: 'No table is loaded, so there is no VPU Patch row yet.',
@@ -243,7 +249,7 @@
     },
 
     tabs: {
-      title: 'Every row you filled opened a tab',
+      title: () => (mode === 'guided' ? 'Every row you filled opened a tab' : 'The configuration tabs'),
       target: '.config-tab-list',
       prefer: 'right',
       reveal: 'configTab',
@@ -300,9 +306,11 @@
       target: '.preview-actions',
       prefer: 'left',
       missing: 'No table is loaded. Search for one and these buttons appear at the top of the preview panel.',
-      body: `<p><strong>Validate</strong> lists everything still wrong. <strong>Download</strong> saves the finished YML.</p>
+      body: () => `<p><strong>Validate</strong> lists everything still wrong. <strong>Download</strong> saves the finished YML.</p>
              <p>Copy and Download stay blocked while any error remains. Warnings never block you.</p>
-             <p>That is the build loop start to finish.</p>`
+             <p>${mode === 'guided'
+               ? 'That is the build loop. One last thing before you go.'
+               : 'That is the build loop start to finish.'}</p>`
     }
   };
 
@@ -685,7 +693,8 @@
       </div>`;
 
     // Step titles are data, so they go in as text rather than as markup.
-    tip.querySelector('.tour-tip-title').textContent = step.title;
+    tip.querySelector('.tour-tip-title').textContent =
+      typeof step.title === 'function' ? step.title() : step.title;
     tip.querySelector('[data-tour="next"]').textContent =
       index === steps.length - 1 ? 'Finish' : 'Next';
     tip.querySelector('[data-tour="back"]').disabled = index === 0;
