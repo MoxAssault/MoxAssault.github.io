@@ -433,10 +433,21 @@
   function extractArchiveDirectories(entries) {
     const directories = [];
     (Array.isArray(entries) ? entries : []).forEach(entry => {
-      const path = String(entry?.path || '')
+      let path = String(entry?.path || '')
         .replace(/\\/g, '/')
         .replace(/^\/+|\/+$/g, '');
       if (!path) return;
+      // The streaming listers report one entry per archive member, so `path`
+      // ends in that member's own name. A file contributes only its parent
+      // folders — `PUPVideos/Matrix/intro.mp4` is not a choosable archive root.
+      // libarchive's entries already carry a directory-only prefix and leave
+      // `isFile` undefined, so they fall through untouched.
+      if (entry?.isFile === true) {
+        const cut = path.lastIndexOf('/');
+        if (cut === -1) return;
+        path = path.slice(0, cut);
+        if (!path) return;
+      }
       const segments = path.split('/').filter(Boolean);
       for (let index = 1; index <= segments.length; index += 1) {
         directories.push(segments.slice(0, index).join('/'));
@@ -571,7 +582,9 @@
           const nameLen = Number(nameLenInfo.value);
           if (nameLen > 0 && pos + nameLen <= bytes.length) {
             const name = decoder.decode(bytes.subarray(pos, pos + nameLen));
-            if (name) entries.push({ path: name });
+            // FHFL_DIRECTORY (0x01) marks a directory entry; everything else
+            // is a file, whose own name must not become a directory.
+            if (name) entries.push({ path: name, isFile: (fileFlags & 0x01) === 0 });
           }
         } catch (_) { /* skip malformed entry */ }
       }
@@ -584,12 +597,112 @@
     return entries;
   }
 
+  // -----------------------------------------------------------------------
+  // Streaming ZIP entry lister.
+  //
+  // A ZIP keeps its table of contents — the "central directory" — at the END
+  // of the file, and every record in it carries that entry's full path. So
+  // listing an archive means reading a few kilobytes from the tail instead of
+  // the whole file, which is the only way to browse archives past Chrome's
+  // ~2 GB Blob.arrayBuffer ceiling. Handles ZIP64 (over 4 GB, or over 65535
+  // entries). Returns `{ path, isFile }` entries compatible with
+  // `extractArchiveDirectories`, or `null` if the blob isn't a ZIP.
+  // -----------------------------------------------------------------------
+
+  const ZIP_LOCAL_SIG = 0x04034b50;     // PK\x03\x04 — first local file header
+  const ZIP_CENTRAL_SIG = 0x02014b50;   // PK\x01\x02 — central directory record
+  const ZIP_EOCD_SIG = 0x06054b50;      // PK\x05\x06 — end of central directory
+  const ZIP64_EOCD_SIG = 0x06064b50;    // PK\x06\x06 — ZIP64 end of central directory
+  const ZIP64_LOCATOR_SIG = 0x07064b50; // PK\x06\x07 — ZIP64 EOCD locator
+
+  const ZIP_EOCD_MIN = 22;              // an EOCD with no trailing comment
+  const ZIP_MAX_COMMENT = 0xffff;       // comment length is a 16-bit field
+  const ZIP_MAX_CD_BYTES = 64 * 1024 * 1024; // sanity cap (~half a million entries)
+  const ZIP_MAX_ENTRIES = 500000;       // safety cap on the walk
+
+  async function listZipEntryPaths(blob) {
+    if (!blob || typeof blob.slice !== 'function' || typeof blob.arrayBuffer !== 'function') return null;
+    const total = blob.size;
+    if (total < ZIP_EOCD_MIN) return null;
+
+    // A ZIP opens with a local file header, or (when empty) the EOCD itself.
+    const head = await readSlice(blob, 0, 4);
+    if (head.length < 4) return null;
+    const headSig = new DataView(head.buffer, head.byteOffset, head.byteLength).getUint32(0, true);
+    if (headSig !== ZIP_LOCAL_SIG && headSig !== ZIP_EOCD_SIG) return null;
+
+    // The EOCD is at most 22 bytes plus a 64 KB comment, so it is always in
+    // the tail. Scan backwards for its signature.
+    const tailLength = Math.min(total, ZIP_EOCD_MIN + ZIP_MAX_COMMENT);
+    const tail = await readSlice(blob, total - tailLength, tailLength);
+    const tailView = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+
+    let eocd = -1;
+    for (let index = tail.length - ZIP_EOCD_MIN; index >= 0; index -= 1) {
+      if (tailView.getUint32(index, true) === ZIP_EOCD_SIG) { eocd = index; break; }
+    }
+    if (eocd === -1) return null;
+
+    let cdSize = tailView.getUint32(eocd + 12, true);
+    let cdOffset = tailView.getUint32(eocd + 16, true);
+    const entryCount = tailView.getUint16(eocd + 10, true);
+
+    // ZIP64: the 32-bit fields saturate and a locator sits just before the
+    // EOCD, pointing at a record that holds the real 64-bit values.
+    const saturated = entryCount === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff;
+    const locator = eocd - 20;
+    if (saturated && locator >= 0 && tailView.getUint32(locator, true) === ZIP64_LOCATOR_SIG) {
+      const zip64Offset = Number(tailView.getBigUint64(locator + 8, true));
+      if (zip64Offset >= 0 && zip64Offset + 56 <= total) {
+        const zip64 = await readSlice(blob, zip64Offset, 56);
+        const zip64View = new DataView(zip64.buffer, zip64.byteOffset, zip64.byteLength);
+        if (zip64.length >= 56 && zip64View.getUint32(0, true) === ZIP64_EOCD_SIG) {
+          cdSize = Number(zip64View.getBigUint64(40, true));
+          cdOffset = Number(zip64View.getBigUint64(48, true));
+        }
+      }
+    }
+
+    if (!(cdSize > 0) || cdOffset < 0 || cdOffset + cdSize > total) return null;
+    if (cdSize > ZIP_MAX_CD_BYTES) return null;
+
+    const cd = await readSlice(blob, cdOffset, cdSize);
+    if (cd.length < cdSize) return null;
+    const cdView = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+    // Names are CP437 unless flag bit 11 says UTF-8, but UTF-8 is the norm in
+    // practice and a non-fatal decode degrades rather than throws.
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    const entries = [];
+    let pos = 0;
+
+    while (pos + 46 <= cd.length && entries.length < ZIP_MAX_ENTRIES) {
+      if (cdView.getUint32(pos, true) !== ZIP_CENTRAL_SIG) break;
+      const nameLength = cdView.getUint16(pos + 28, true);
+      const extraLength = cdView.getUint16(pos + 30, true);
+      const commentLength = cdView.getUint16(pos + 32, true);
+      const nameStart = pos + 46;
+      if (nameStart + nameLength > cd.length) break;
+      if (nameLength > 0) {
+        const name = decoder.decode(cd.subarray(nameStart, nameStart + nameLength));
+        // A trailing slash is how ZIP marks a directory entry.
+        if (name) entries.push({ path: name, isFile: !name.endsWith('/') });
+      }
+      pos = nameStart + nameLength + extraLength + commentLength;
+    }
+
+    return entries;
+  }
+
   async function listArchiveEntryPaths(blob) {
     // Try format-specific streaming parsers first (works for archives of any size).
     // Returns null if the format isn't one we can stream — caller should fall back.
     try {
       const rar5 = await listRar5EntryPaths(blob);
       if (rar5) return rar5;
+    } catch (_) { /* fall through to the next parser */ }
+    try {
+      const zip = await listZipEntryPaths(blob);
+      if (zip) return zip;
     } catch (_) { /* fall through to null */ }
     return null;
   }

@@ -432,22 +432,61 @@
       : [];
   }
 
-  function populateDirectoryPicker(select, directories) {
+  // A PUP pack can carry hundreds of folders, which makes an all-at-once
+  // dropdown unusable. Show the top two levels first — the archive root is
+  // almost always one of them — and hide the rest behind a LOAD MORE option.
+  const DIRECTORY_PICKER_DEPTH = 2;
+  const DIRECTORY_PICKER_LOAD_MORE = '__vps_load_more__';
+  const expandedDirectoryPickers = new Set();
+
+  function directoryDepth(directory) {
+    return String(directory || '').split('/').filter(Boolean).length;
+  }
+
+  function populateDirectoryPicker(select, directories, options) {
     if (!select) return;
+    const all = Array.isArray(directories) ? directories : [];
+    // Kept on the node so the expand handler never depends on a render-time
+    // closure that a later re-render would leave stale.
+    select.__vpsArchiveDirectories = all;
+    if (options?.collapse) expandedDirectoryPickers.delete(select.id);
+
+    const shallow = all.filter(directory => directoryDepth(directory) <= DIRECTORY_PICKER_DEPTH);
+    const truncated = !expandedDirectoryPickers.has(select.id)
+      && shallow.length > 0
+      && shallow.length < all.length;
+    const visible = truncated ? shallow : all;
+
     select.replaceChildren();
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = directories.length
-      ? `Choose from ${directories.length} archive director${directories.length === 1 ? 'y' : 'ies'}…`
+    placeholder.textContent = all.length
+      ? (truncated
+        ? `Showing ${visible.length} of ${all.length} archive directories…`
+        : `Choose from ${all.length} archive director${all.length === 1 ? 'y' : 'ies'}…`)
       : 'Drop a PUP Pack archive to browse directories';
     select.appendChild(placeholder);
-    directories.forEach(directory => {
+    visible.forEach(directory => {
       const option = document.createElement('option');
       option.value = directory;
       option.textContent = directory;
       select.appendChild(option);
     });
-    select.disabled = directories.length === 0;
+    if (truncated) {
+      const loadMore = document.createElement('option');
+      loadMore.value = DIRECTORY_PICKER_LOAD_MORE;
+      loadMore.textContent = `... LOAD MORE (${all.length - visible.length} deeper) ...`;
+      select.appendChild(loadMore);
+    }
+    select.disabled = all.length === 0;
+  }
+
+  function expandDirectoryPicker(select) {
+    if (!select) return;
+    expandedDirectoryPickers.add(select.id);
+    populateDirectoryPicker(select, select.__vpsArchiveDirectories || []);
+    select.value = '';
+    try { select.focus(); } catch (_) { /* focus is best-effort */ }
   }
 
   function renderSuggestions(container, results, activeIndex, onSelect) {
@@ -922,6 +961,10 @@
       picker.setAttribute('aria-label', 'Choose PUP Pack archive root from loaded directories');
       populateDirectoryPicker(picker, directories);
       picker.addEventListener('change', () => {
+        if (picker.value === DIRECTORY_PICKER_LOAD_MORE) {
+          expandDirectoryPicker(picker);
+          return;
+        }
         if (!picker.value) return;
         input.value = picker.value;
         onChange(field.yml_field, picker.value, field);
@@ -1085,7 +1128,9 @@
           if (archiveResult.status === 'fulfilled') {
             const directories = archiveResult.value || [];
             onChange('__pupArchiveDirectories', directories, { uiOnly: true });
-            populateDirectoryPicker(document.getElementById('field-pupArchiveRoot-directory-select'), directories);
+            // A freshly dropped archive starts collapsed, even if the previous
+            // one had been expanded.
+            populateDirectoryPicker(document.getElementById('field-pupArchiveRoot-directory-select'), directories, { collapse: true });
             messages.push(directories.length
               ? `${directories.length} director${directories.length === 1 ? 'y' : 'ies'} loaded`
               : 'no directories found');
