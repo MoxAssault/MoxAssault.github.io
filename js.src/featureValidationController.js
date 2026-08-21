@@ -24,9 +24,9 @@
     if (altSoundEnabled) {
       const checksums = normalizeArray(values?.altSoundChecksum);
       if (!checksums.length) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add at least one valid MD5 value whenever Alt Sound is selected, overridden, or bundled.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add a valid MD5 value for Alt Sound Checksum.');
       } else if (checksums.some(checksum => !isMd5Hash(checksum))) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is invalid', 'Every Alt Sound checksum must contain exactly 32 hexadecimal characters.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is not a valid MD5', 'Each checksum must contain exactly 32 hexadecimal characters.');
       }
       if (!String(values?.altSoundArchiveFormat || '').trim()) {
         add('altSound', 'altSoundArchiveFormat', 'Alt Sound Archive Format is required', 'Choose ZIP, RAR, or 7Z.');
@@ -96,12 +96,43 @@
     });
   }
 
+  // The dot is a real element rather than a pseudo-element on the field
+  // wrapper. CSS cannot scope :hover to a pseudo-element, so the old
+  // attribute-only version popped its tooltip from anywhere in the field —
+  // including the hint line underneath it — while every other checksum error
+  // in the app pops only from its dot. A real element can own the hover, so
+  // this now behaves and looks identical to the legacy dots.
+  //
+  // Deliberately NOT class `field-error-dot`: both the legacy validator and
+  // additionalRomsController remove `:scope > .field-error-dot` wholesale and
+  // would delete this one out from under us. The CSS gives both classes the
+  // same rules instead.
+  //
+  // .additional-rom-controls keeps the pseudo-element version — it is a
+  // different widget with its own dot logic and its own cleanup.
+  function presentErrorDot(wrapper, messages) {
+    if (wrapper.matches('.additional-rom-controls')) return;
+    let dot = wrapper.querySelector(':scope > .feature-error-dot');
+    if (!dot) {
+      dot = document.createElement('span');
+      dot.className = 'feature-error-dot';
+      dot.setAttribute('role', 'img');
+      wrapper.appendChild(dot);
+    }
+    // Updated in place, and swept in refresh() only once the error clears, so
+    // a field with a standing error causes no DOM mutation between passes.
+    const tooltip = messages.join(' ');
+    if (dot.dataset.tooltip !== tooltip) dot.dataset.tooltip = tooltip;
+    if (dot.getAttribute('aria-label') !== tooltip) dot.setAttribute('aria-label', tooltip);
+  }
+
   function presentField(wrapper, messages) {
     if (!wrapper || !messages.length) return;
     wrapper.classList.add('has-field-error', 'feature-has-field-error');
     wrapper.dataset.errorCount = String(messages.length);
     wrapper.dataset.featureErrorCount = String(messages.length);
     wrapper.dataset.featureErrorMessage = messages.join(' ');
+    presentErrorDot(wrapper, messages);
 
     const control = wrapper.matches('.additional-rom-controls')
       ? wrapper.querySelector('.additional-rom-add')
@@ -132,6 +163,10 @@
         ? document.querySelector('.additional-rom-controls')
         : document.getElementById(`field-${fieldName}`)?.closest('.field');
       presentField(wrapper, messages);
+    });
+
+    document.querySelectorAll('.feature-error-dot').forEach(dot => {
+      if (!dot.parentElement?.classList.contains('feature-has-field-error')) dot.remove();
     });
   }
 

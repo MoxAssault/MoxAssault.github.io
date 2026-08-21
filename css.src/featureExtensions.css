@@ -33,6 +33,7 @@
 
 /* Anchor every checksum error dot to the input corner instead of the padded drop zone. */
 .checksum-drop-field > .field-error-dot,
+.checksum-drop-field > .feature-error-dot,
 .additional-rom-controls > .field-error-dot {
   top: 1px;
   right: 1px;
@@ -376,7 +377,9 @@
 .additional-rom-controls.feature-has-field-error {
   position: relative;
 }
-.field.feature-has-field-error::after,
+/* .field uses a real .feature-error-dot element now, so that its tooltip can
+   be hover-scoped to the dot the way every other error dot is. Only the
+   additional-ROM control still draws its dot as a pseudo-element. */
 .additional-rom-controls.feature-has-field-error::after {
   position: absolute;
   z-index: 510;
@@ -392,13 +395,11 @@
   content: '';
   cursor: help;
 }
-.checksum-drop-field.feature-has-field-error::after,
 .additional-rom-controls.feature-has-field-error::after {
   top: 1px;
   right: 1px;
   border-color: var(--panel-raised);
 }
-.field.feature-has-field-error::before,
 .additional-rom-controls.feature-has-field-error::before {
   position: absolute;
   z-index: 520;
@@ -418,8 +419,6 @@
   text-transform: none;
   white-space: normal;
 }
-.field.feature-has-field-error:hover::before,
-.field.feature-has-field-error:focus-within::before,
 .additional-rom-controls.feature-has-field-error:hover::before,
 .additional-rom-controls.feature-has-field-error:focus-within::before {
   display: block;

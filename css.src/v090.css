@@ -159,16 +159,18 @@
 }
 .checksum-inline-hint em { font-style: italic; }
 
-/* Keep PUP Required aligned with the visible Archive Root control, not the full picker stack. */
+/* Centred in its grid cell, changed 2026-08-21 at Jason's request. It used to
+   be top-aligned (align-self: start + padding-top) to line up with the Archive
+   Root input rather than the whole picker stack. */
 .field-pup-required {
-  align-self: start;
+  align-self: center;
   min-height: 36px;
-  padding-top: 5px;
 }
 .field-pup-required .checkbox-row { min-height: 36px; align-items: center; }
 
 /* Custom field-error tooltip replaces the browser title popup. */
-.field-error-dot[data-tooltip]::before {
+.field-error-dot[data-tooltip]::before,
+.feature-error-dot[data-tooltip]::before {
   position: absolute;
   z-index: 180;
   right: -2px;
@@ -188,8 +190,11 @@
   white-space: normal;
 }
 .field-error-dot[data-tooltip]:hover::before,
-.field-error-dot[data-tooltip]:focus-visible::before { display: block; }
-.field-error-dot { cursor: help; }
+.field-error-dot[data-tooltip]:focus-visible::before,
+.feature-error-dot[data-tooltip]:hover::before,
+.feature-error-dot[data-tooltip]:focus-visible::before { display: block; }
+.field-error-dot,
+.feature-error-dot { cursor: help; }
 
 #previewStatusDot { cursor: pointer; }
 

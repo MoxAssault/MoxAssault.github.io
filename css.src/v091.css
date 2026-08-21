@@ -100,11 +100,14 @@
 .field-main-enabled:focus-within,
 .field:has(.field-error-dot:hover),
 .field:has(.field-error-dot:focus-visible),
+.field:has(.feature-error-dot:hover),
+.field:has(.feature-error-dot:focus-visible),
 .field:has(.control-tooltip):hover,
 .field:has(.control-tooltip):focus-within {
   z-index: 480;
 }
 .field-error-dot[data-tooltip]::before,
+.feature-error-dot[data-tooltip]::before,
 .control-tooltip {
   z-index: 500;
 }

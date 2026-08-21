@@ -583,7 +583,9 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
   text-transform: none;
   white-space: normal;
 }
-.checksum-drop-status[data-tooltip]:hover::after { display: block; }
+/* Hovering the row, which spans the whole field, used to be enough to pop
+   this. Only the truncated text should trigger it. */
+.checksum-drop-status[data-tooltip]:has(.checksum-drop-hint:hover)::after { display: block; }
 .checksum-drop-hint.error { color: var(--danger); }
 .checksum-loading-track {
   display: none;
@@ -824,19 +826,92 @@ input[type="checkbox"]:disabled { opacity: 0.45; cursor: not-allowed; }
   background: transparent;
 }
 
-/* PUP archive directory browser */
+/* Archive directory browser — shared by the PUP Pack and Alt Sound archive
+   roots. The trigger is a <button>, not a <select>: a native dropdown closes
+   the moment LOAD MORE is chosen, which cost a second click to reopen. */
 .archive-directory-select {
   width: 100%;
-  min-height: 32px;
+  min-height: 36px;
   margin-top: 6px;
   border: 1px solid var(--panel-line);
   border-radius: 7px;
-  background: var(--panel-soft);
-  padding: 5px 30px 5px 9px;
-  color: var(--text-muted);
-  font-size: 11.5px;
+  background: var(--panel-raised);
+  padding: 8px 30px 8px 9px;
+  color: var(--text);
+  font: 12.5px "JetBrains Mono", monospace;
 }
 .archive-directory-select:disabled { opacity: 0.55; cursor: not-allowed; }
+.archive-directory-picker { position: relative; display: block; }
+.archive-directory-trigger {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-right: 26px;
+  text-align: left;
+}
+.archive-directory-trigger:disabled { cursor: not-allowed; }
+.archive-directory-trigger[aria-expanded="true"] { border-color: var(--accent); }
+.archive-directory-trigger-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.archive-directory-chevron {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+/* position:fixed so the panel escapes .config-accordion's overflow:hidden.
+   Placed from the trigger's rect in JS, above every tooltip (max 700) and
+   below the walkthrough overlay (900). */
+.archive-directory-panel {
+  position: fixed;
+  z-index: 800;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 10px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+}
+.archive-directory-option,
+.archive-directory-more {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 1px solid var(--panel-line);
+  background: transparent;
+  padding: 7px 10px;
+  color: var(--text);
+  font: 12.5px "JetBrains Mono", monospace;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.archive-directory-option:last-child { border-bottom: 0; }
+.archive-directory-option:hover,
+.archive-directory-option.is-active,
+.archive-directory-more:hover,
+.archive-directory-more.is-active { background: var(--accent-soft); }
+.archive-directory-option.is-selected { color: var(--accent); font-weight: 600; }
+/* Sticky so LOAD MORE stays reachable without scrolling to the bottom. */
+.archive-directory-more {
+  position: sticky;
+  bottom: 0;
+  border-bottom: 0;
+  border-top: 1px solid var(--panel-line-strong);
+  background: var(--panel-soft);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-align: center;
+}
 
 /* State colors remain readable in both themes. */
 .asset-status.state-green { color: var(--state-green); }

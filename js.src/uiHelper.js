@@ -432,61 +432,355 @@
       : [];
   }
 
+  // ── Shared archive directory picker ──────────────────────────────────────
   // A PUP pack can carry hundreds of folders, which makes an all-at-once
   // dropdown unusable. Show the top two levels first — the archive root is
-  // almost always one of them — and hide the rest behind a LOAD MORE option.
+  // almost always one of them — and hide the rest behind a LOAD MORE row.
+  //
+  // This is a custom control rather than a native <select> because a select
+  // closes the instant anything inside it is chosen, so LOAD MORE cost a
+  // second click just to reopen the list. Here the list grows in place with
+  // the panel still open. Every directory selector in the app builds from
+  // this one factory — see altSoundArchiveController.js for the other caller.
   const DIRECTORY_PICKER_DEPTH = 2;
-  const DIRECTORY_PICKER_LOAD_MORE = '__vps_load_more__';
+  const DIRECTORY_PICKER_TYPEAHEAD_MS = 700;
+  const DIRECTORY_PICKER_MAX_HEIGHT = 320;
+  // Keyed by element id rather than by node, so expansion survives the
+  // accordion re-renders that replace the control wholesale.
   const expandedDirectoryPickers = new Set();
 
   function directoryDepth(directory) {
     return String(directory || '').split('/').filter(Boolean).length;
   }
 
-  function populateDirectoryPicker(select, directories, options) {
-    if (!select) return;
-    const all = Array.isArray(directories) ? directories : [];
-    // Kept on the node so the expand handler never depends on a render-time
-    // closure that a later re-render would leave stale.
-    select.__vpsArchiveDirectories = all;
-    if (options?.collapse) expandedDirectoryPickers.delete(select.id);
-
-    const shallow = all.filter(directory => directoryDepth(directory) <= DIRECTORY_PICKER_DEPTH);
-    const truncated = !expandedDirectoryPickers.has(select.id)
-      && shallow.length > 0
-      && shallow.length < all.length;
-    const visible = truncated ? shallow : all;
-
-    select.replaceChildren();
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = all.length
-      ? (truncated
-        ? `Showing ${visible.length} of ${all.length} archive directories…`
-        : `Choose from ${all.length} archive director${all.length === 1 ? 'y' : 'ies'}…`)
-      : 'Drop a PUP Pack archive to browse directories';
-    select.appendChild(placeholder);
-    visible.forEach(directory => {
-      const option = document.createElement('option');
-      option.value = directory;
-      option.textContent = directory;
-      select.appendChild(option);
-    });
-    if (truncated) {
-      const loadMore = document.createElement('option');
-      loadMore.value = DIRECTORY_PICKER_LOAD_MORE;
-      loadMore.textContent = `... LOAD MORE (${all.length - visible.length} deeper) ...`;
-      select.appendChild(loadMore);
+  function sameDirectoryList(a, b) {
+    if (a === b) return true;
+    if (!a || !b || a.length !== b.length) return false;
+    for (let index = 0; index < a.length; index += 1) {
+      if (a[index] !== b[index]) return false;
     }
-    select.disabled = all.length === 0;
+    return true;
   }
 
-  function expandDirectoryPicker(select) {
-    if (!select) return;
-    expandedDirectoryPickers.add(select.id);
-    populateDirectoryPicker(select, select.__vpsArchiveDirectories || []);
-    select.value = '';
-    try { select.focus(); } catch (_) { /* focus is best-effort */ }
+  // config: { id, ariaLabel, emptyText, onSelect, getValue }
+  function createDirectoryPicker(config) {
+    const { id, ariaLabel, emptyText, onSelect, getValue } = config || {};
+    const panelId = `${id}-panel`;
+
+    const wrapper = element('div', 'archive-directory-picker');
+    const trigger = element('button', 'archive-directory-select archive-directory-trigger');
+    trigger.type = 'button';
+    trigger.id = id;
+    trigger.setAttribute('role', 'combobox');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', panelId);
+    if (ariaLabel) trigger.setAttribute('aria-label', ariaLabel);
+    const triggerText = element('span', 'archive-directory-trigger-text');
+    const chevron = element('span', 'archive-directory-chevron', '▾');
+    chevron.setAttribute('aria-hidden', 'true');
+    trigger.append(triggerText, chevron);
+
+    const panel = element('div', 'archive-directory-panel');
+    panel.id = panelId;
+    panel.setAttribute('role', 'listbox');
+    if (ariaLabel) panel.setAttribute('aria-label', ariaLabel);
+    panel.hidden = true;
+
+    wrapper.append(trigger, panel);
+
+    const state = { all: [], rows: [], open: false, activeIndex: -1, typed: '', typedAt: 0 };
+
+    function currentValue() {
+      return typeof getValue === 'function' ? String(getValue() || '') : '';
+    }
+
+    function visibleDirectories() {
+      if (expandedDirectoryPickers.has(id)) return state.all;
+      const shallow = state.all.filter(directory => directoryDepth(directory) <= DIRECTORY_PICKER_DEPTH);
+      // An archive whose folders are all deep would otherwise show an empty
+      // list behind a LOAD MORE row, so fall back to showing everything.
+      return (shallow.length > 0 && shallow.length < state.all.length) ? shallow : state.all;
+    }
+
+    function hiddenCount() {
+      return state.all.length - visibleDirectories().length;
+    }
+
+    function syncTrigger() {
+      const hidden = hiddenCount();
+      triggerText.textContent = !state.all.length
+        ? (emptyText || 'Drop an archive to browse directories')
+        : (hidden > 0
+          ? `Showing ${state.all.length - hidden} of ${state.all.length} archive directories…`
+          : `Choose from ${state.all.length} archive director${state.all.length === 1 ? 'y' : 'ies'}…`);
+      trigger.disabled = state.all.length === 0;
+    }
+
+    function positionPanel() {
+      if (!state.open) return;
+      // The control lives inside .config-accordion, which clips its children.
+      // position:fixed escapes that, and there is no transformed ancestor to
+      // break it. Re-measured on scroll and resize because the page scrolls
+      // under a sticky YAML preview.
+      if (!trigger.isConnected) { close({ silent: true }); return; }
+      const rect = trigger.getBoundingClientRect();
+      const below = window.innerHeight - rect.bottom - 8;
+      const above = rect.top - 8;
+      const flip = below < 160 && above > below;
+      const maxHeight = Math.max(120, Math.min(DIRECTORY_PICKER_MAX_HEIGHT, flip ? above : below));
+      panel.style.left = `${Math.round(rect.left)}px`;
+      panel.style.width = `${Math.round(rect.width)}px`;
+      panel.style.maxHeight = `${Math.round(maxHeight)}px`;
+      if (flip) {
+        panel.style.top = 'auto';
+        panel.style.bottom = `${Math.round(window.innerHeight - rect.top + 4)}px`;
+      } else {
+        panel.style.bottom = 'auto';
+        panel.style.top = `${Math.round(rect.bottom + 4)}px`;
+      }
+    }
+
+    function setActive(index) {
+      if (!state.rows.length) return;
+      const next = Math.max(0, Math.min(index, state.rows.length - 1));
+      state.rows.forEach((row, position) => row.classList.toggle('is-active', position === next));
+      state.activeIndex = next;
+      const row = state.rows[next];
+      trigger.setAttribute('aria-activedescendant', row.id);
+      row.scrollIntoView({ block: 'nearest' });
+    }
+
+    function renderRows() {
+      const directories = visibleDirectories();
+      const selected = currentValue();
+      panel.replaceChildren();
+      state.rows = [];
+
+      directories.forEach(directory => {
+        const row = element('button', 'archive-directory-option', directory);
+        row.type = 'button';
+        row.setAttribute('role', 'option');
+        row.dataset.value = directory;
+        const isSelected = directory === selected;
+        row.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        if (isSelected) row.classList.add('is-selected');
+        // mousedown rather than click, matching renderSuggestions: preventing
+        // the default keeps focus on the trigger, so the panel is never torn
+        // down underneath a click that is still in flight.
+        row.addEventListener('mousedown', event => {
+          event.preventDefault();
+          choose(directory);
+        });
+        panel.appendChild(row);
+        state.rows.push(row);
+      });
+
+      const hidden = hiddenCount();
+      if (hidden > 0) {
+        const more = element('button', 'archive-directory-more', `... LOAD MORE (${hidden} deeper) ...`);
+        more.type = 'button';
+        more.setAttribute('role', 'option');
+        more.setAttribute('aria-selected', 'false');
+        more.dataset.loadMore = 'true';
+        more.addEventListener('mousedown', event => {
+          event.preventDefault();
+          expand();
+        });
+        panel.appendChild(more);
+        state.rows.push(more);
+      }
+
+      state.rows.forEach((row, index) => { row.id = `${panelId}-option-${index}`; });
+    }
+
+    function expand() {
+      // Land the highlight on the first folder the expansion actually reveals,
+      // so the eye goes to new information instead of back to the top. The
+      // revealed folders interleave with the shallow ones rather than being
+      // appended, so this cannot be done by index arithmetic.
+      const wasVisible = new Set(state.rows.map(row => row.dataset.value).filter(Boolean));
+      expandedDirectoryPickers.add(id);
+      renderRows();
+      syncTrigger();
+      positionPanel();
+      const revealed = state.rows.findIndex(row => row.dataset.value && !wasVisible.has(row.dataset.value));
+      setActive(revealed >= 0 ? revealed : 0);
+    }
+
+    function onDocumentPointerDown(event) {
+      if (wrapper.contains(event.target)) return;
+      close({ silent: true });
+    }
+
+    function open() {
+      if (state.open || trigger.disabled) return;
+      state.open = true;
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      renderRows();
+      positionPanel();
+      const selected = currentValue();
+      const index = state.rows.findIndex(row => row.dataset.value === selected);
+      setActive(index >= 0 ? index : 0);
+      window.addEventListener('scroll', positionPanel, true);
+      window.addEventListener('resize', positionPanel);
+      document.addEventListener('pointerdown', onDocumentPointerDown, true);
+    }
+
+    function close(options) {
+      if (!state.open) return;
+      state.open = false;
+      panel.hidden = true;
+      panel.replaceChildren();
+      state.rows = [];
+      state.activeIndex = -1;
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.removeAttribute('aria-activedescendant');
+      window.removeEventListener('scroll', positionPanel, true);
+      window.removeEventListener('resize', positionPanel);
+      document.removeEventListener('pointerdown', onDocumentPointerDown, true);
+      if (!options?.silent && trigger.isConnected) {
+        try { trigger.focus(); } catch (_) { /* focus is best-effort */ }
+      }
+    }
+
+    function choose(directory) {
+      close({ silent: true });
+      if (typeof onSelect === 'function') onSelect(directory);
+      syncTrigger();
+    }
+
+    function typeahead(key) {
+      const now = Date.now();
+      state.typed = (now - state.typedAt > DIRECTORY_PICKER_TYPEAHEAD_MS) ? key : state.typed + key;
+      state.typedAt = now;
+      const needle = state.typed.toLowerCase();
+      const index = state.rows.findIndex(row => String(row.dataset.value || '').toLowerCase().startsWith(needle));
+      if (index >= 0) setActive(index);
+    }
+
+    trigger.addEventListener('click', () => {
+      if (state.open) close();
+      else open();
+    });
+
+    trigger.addEventListener('keydown', event => {
+      if (!state.open) {
+        if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          open();
+        }
+        return;
+      }
+      switch (event.key) {
+        case 'Escape':
+          event.preventDefault();
+          close();
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          setActive(state.activeIndex + 1);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setActive(state.activeIndex - 1);
+          break;
+        case 'Home':
+          event.preventDefault();
+          setActive(0);
+          break;
+        case 'End':
+          event.preventDefault();
+          setActive(state.rows.length - 1);
+          break;
+        case 'Tab':
+          close({ silent: true });
+          break;
+        case 'Enter':
+        case ' ': {
+          event.preventDefault();
+          const row = state.rows[state.activeIndex];
+          if (!row) break;
+          if (row.dataset.loadMore === 'true') expand();
+          else choose(row.dataset.value);
+          break;
+        }
+        default:
+          if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            typeahead(event.key);
+          }
+      }
+    });
+
+    function setDirectories(directories, options) {
+      const next = Array.isArray(directories) ? directories : [];
+      const collapse = options?.collapse === true;
+      // Alt Sound repopulates from a requestAnimationFrame pass on every
+      // click, input, change and DOM mutation. An unchanged list must touch
+      // nothing at all, or the panel would be rebuilt out from under the user
+      // on the very click that opened it.
+      if (!collapse && sameDirectoryList(state.all, next)) return;
+      if (collapse) expandedDirectoryPickers.delete(id);
+      state.all = next;
+      if (state.open) {
+        if (collapse) {
+          close({ silent: true });
+        } else {
+          renderRows();
+          positionPanel();
+          setActive(0);
+        }
+      }
+      syncTrigger();
+    }
+
+    const controller = { element: wrapper, trigger, setDirectories, close };
+    // Reached by id at call time rather than held as a reference: in this
+    // codebase any node that outlives a synchronous block may already be
+    // detached. See "Hold selectors, not nodes" in VPXS UI Gotchas.
+    wrapper.__vpsDirectoryPicker = controller;
+    trigger.__vpsDirectoryPicker = controller;
+
+    syncTrigger();
+    return controller;
+  }
+
+  function getDirectoryPicker(id) {
+    return document.getElementById(id)?.__vpsDirectoryPicker || null;
+  }
+
+  // A checksum drop keeps running while the user switches tabs, but switching
+  // tabs runs renderAccordions() and replaces the whole field. The spinner
+  // class and the progress message were written onto those nodes, so both went
+  // with them — and the job's own completion handler then wrote its result into
+  // a node that was no longer on screen. The status lives here instead, keyed
+  // by the input's id, and is repainted whenever the field is rebuilt.
+  // Hold selectors, not nodes.
+  const checksumStatuses = new Map();
+
+  function paintChecksumStatus(wrapper, hint, status) {
+    if (!wrapper) return;
+    const loading = status?.loading === true;
+    wrapper.classList.toggle('checksum-is-loading', loading);
+    wrapper.setAttribute('aria-busy', loading ? 'true' : 'false');
+    if (hint && status?.message) {
+      hint.textContent = status.message;
+      hint.classList.toggle('error', status.error === true);
+    }
+  }
+
+  // Always re-queries, so it reaches whichever node is on screen right now.
+  function applyChecksumStatus(fieldId) {
+    const wrapper = document.getElementById(fieldId)?.closest('.field');
+    if (!wrapper) return;
+    paintChecksumStatus(wrapper, wrapper.querySelector('.checksum-drop-hint'), checksumStatuses.get(fieldId));
+  }
+
+  function setChecksumStatus(fieldId, status) {
+    if (status) checksumStatuses.set(fieldId, status);
+    else checksumStatuses.delete(fieldId);
+    applyChecksumStatus(fieldId);
   }
 
   function renderSuggestions(container, results, activeIndex, onSelect) {
@@ -955,21 +1249,18 @@
 
     if (field.directoryPicker) {
       const directories = Array.isArray(values.__pupArchiveDirectories) ? values.__pupArchiveDirectories : [];
-      const picker = document.createElement('select');
-      picker.id = `${controlId}-directory-select`;
-      picker.className = 'archive-directory-select';
-      picker.setAttribute('aria-label', 'Choose PUP Pack archive root from loaded directories');
-      populateDirectoryPicker(picker, directories);
-      picker.addEventListener('change', () => {
-        if (picker.value === DIRECTORY_PICKER_LOAD_MORE) {
-          expandDirectoryPicker(picker);
-          return;
+      const picker = createDirectoryPicker({
+        id: `${controlId}-directory-select`,
+        ariaLabel: 'Choose PUP Pack archive root from loaded directories',
+        emptyText: 'Drop a PUP Pack archive to browse directories',
+        getValue: () => input.value,
+        onSelect: directory => {
+          input.value = directory;
+          onChange(field.yml_field, directory, field);
         }
-        if (!picker.value) return;
-        input.value = picker.value;
-        onChange(field.yml_field, picker.value, field);
       });
-      wrapper.append(input, picker);
+      picker.setDirectories(directories);
+      wrapper.append(input, picker.element);
       return wrapper;
     }
 
@@ -984,10 +1275,9 @@
       const dropHint = element('span', 'checksum-drop-hint', `Drop ${hintExtensions.join(' / ')} file to calculate MD5${field.archiveBrowser ? ' and browse folders' : ''}`);
       statusRow.append(loadingTrack, dropHint);
       const setDropState = active => wrapper.classList.toggle('checksum-drop-active', active);
-      const setLoading = active => {
-        wrapper.classList.toggle('checksum-is-loading', active);
-        wrapper.setAttribute('aria-busy', active ? 'true' : 'false');
-      };
+      // A drop still running from before a tab switch rebuilt this field is
+      // repainted here, so the spinner and its message come back with the tab.
+      paintChecksumStatus(wrapper, dropHint, checksumStatuses.get(controlId));
       wrapper.addEventListener('dragenter', event => {
         if (input.disabled) return;
         event.preventDefault();
@@ -1013,13 +1303,10 @@
         const isColorArchiveDrop = Boolean(field.colorRomArchiveScan) && ARCHIVE_EXTENSIONS.includes(extension);
         if (!currentAllowed.includes(extension) && !isColorArchiveDrop) {
           const accepted = field.colorRomArchiveScan ? [...currentAllowed, ...ARCHIVE_EXTENSIONS] : currentAllowed;
-          dropHint.textContent = `Invalid file type. Allowed: ${accepted.join(', ')}`;
-          dropHint.classList.add('error');
+          setChecksumStatus(controlId, { message: `Invalid file type. Allowed: ${accepted.join(', ')}`, error: true });
           return;
         }
-        dropHint.classList.remove('error');
-        dropHint.textContent = `Processing ${file.name}…`;
-        setLoading(true);
+        setChecksumStatus(controlId, { loading: true, message: `Processing ${file.name}…` });
 
         if (isColorArchiveDrop) {
           try {
@@ -1040,10 +1327,12 @@
               input.value = primaryResult.checksum;
               onChange(field.yml_field, replacePrimaryChecksum(values[field.yml_field], primaryResult.checksum), field);
               sources[field.yml_field] = { name: primaryResult.name, extension: primaryResult.extension };
-              dropHint.textContent = `MD5 calculated (${primaryResult.name}) from ${file.name}`;
+              setChecksumStatus(controlId, { message: `MD5 calculated (${primaryResult.name}) from ${file.name}` });
             } else {
               // Lone .vni drop: restore the primary field's own state-driven
-              // subtext instead of leaving "Processing…" behind.
+              // subtext instead of leaving "Processing…" behind. Clearing the
+              // stored status stops a later rebuild repainting "Processing…".
+              setChecksumStatus(controlId, null);
               syncConditionalFields(values);
             }
             if (vni) {
@@ -1054,19 +1343,13 @@
               }
               onChange('coloredROMChecksumSecondary', vni.checksum, { yml_field: 'coloredROMChecksumSecondary', type: 'str' });
               sources.coloredROMChecksumSecondary = { name: vni.name, extension: '.vni' };
-              const secondaryHint = document.querySelector('.field-color-secondary .checksum-drop-hint');
-              if (secondaryHint) {
-                secondaryHint.classList.remove('error');
-                secondaryHint.textContent = `MD5 calculated (${vni.name}) from ${file.name}`;
-              }
+              setChecksumStatus('field-coloredROMChecksumSecondary', { message: `MD5 calculated (${vni.name}) from ${file.name}` });
             }
             onChange('__checksumSources', sources, { uiOnly: true });
           } catch (error) {
-            dropHint.classList.add('error');
-            dropHint.textContent = error?.message || 'Archive scan failed.';
+            setChecksumStatus(controlId, { message: error?.message || 'Archive scan failed.', error: true });
             console.warn('Color ROM archive scan failed:', error);
           }
-          setLoading(false);
           return;
         }
 
@@ -1106,6 +1389,7 @@
         const [checksumResult, archiveResult] = await Promise.allSettled([checksumTask, archiveTask]);
 
         const messages = [];
+        let hadError = false;
         if (checksumResult.status === 'fulfilled' && checksumResult.value?.checksum) {
           input.value = checksumResult.value.checksum;
           onChange(field.yml_field, replacePrimaryChecksum(values[field.yml_field], checksumResult.value.checksum), field);
@@ -1120,7 +1404,7 @@
         } else {
           const reason = checksumResult.reason?.message || 'MD5 failed';
           messages.push(reason);
-          dropHint.classList.add('error');
+          hadError = true;
           console.warn('MD5 failed:', checksumResult.reason);
         }
 
@@ -1130,20 +1414,19 @@
             onChange('__pupArchiveDirectories', directories, { uiOnly: true });
             // A freshly dropped archive starts collapsed, even if the previous
             // one had been expanded.
-            populateDirectoryPicker(document.getElementById('field-pupArchiveRoot-directory-select'), directories, { collapse: true });
+            getDirectoryPicker('field-pupArchiveRoot-directory-select')?.setDirectories(directories, { collapse: true });
             messages.push(directories.length
               ? `${directories.length} director${directories.length === 1 ? 'y' : 'ies'} loaded`
               : 'no directories found');
           } else {
             const reason = archiveResult.reason?.message || 'directory browse failed';
             messages.push(reason);
-            dropHint.classList.add('error');
+            hadError = true;
             console.warn('Archive browse failed:', archiveResult.reason);
           }
         }
 
-        dropHint.textContent = `${messages.join(' · ')} from ${file.name}`;
-        setLoading(false);
+        setChecksumStatus(controlId, { message: `${messages.join(' · ')} from ${file.name}`, error: hadError });
       });
       wrapper.append(input, statusRow);
       return wrapper;
@@ -1276,6 +1559,14 @@
   window.VPS_UI = {
     element,
     renderSuggestions,
+    // Shared with altSoundArchiveController: every directory selector in the
+    // app is built from this one factory rather than each rolling its own.
+    createDirectoryPicker,
+    getDirectoryPicker,
+    // Shared with altSoundArchiveController: an in-flight checksum drop has to
+    // survive the tab switch that rebuilds the field it was started from.
+    setChecksumStatus,
+    applyChecksumStatus,
     renderTableStrip,
     renderAssetMatrix,
     renderAccordions,

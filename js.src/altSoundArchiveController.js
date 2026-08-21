@@ -6,6 +6,7 @@
   if (!runtime || !utils) return;
 
   const ALLOWED_EXTENSIONS = ['.zip', '.rar', '.7z'];
+  const CHECKSUM_FIELD_ID = 'field-altSoundChecksum';
   let archiveModulePromise = null;
   let refreshFrame = 0;
 
@@ -183,13 +184,19 @@
     }
   }
 
-  function ensureDirectorySelect() {
+  // The directory picker itself is VPS_UI.createDirectoryPicker, the same
+  // control the PUP Pack archive root uses. Alt Sound keeps its own placement
+  // and its own state store — only the widget is shared.
+  function ensureDirectoryPicker() {
     const rootInput = document.getElementById('field-altSoundArchiveRoot');
     const grid = rootInput?.closest('.field-grid-altSound');
     if (!grid) return null;
 
     let wrapper = grid.querySelector(':scope > .field-alt-directory');
-    if (wrapper) return wrapper.querySelector('select');
+    if (wrapper) return wrapper.querySelector('.archive-directory-picker')?.__vpsDirectoryPicker || null;
+
+    const createDirectoryPicker = window.VPS_UI?.createDirectoryPicker;
+    if (!createDirectoryPicker) return null;
 
     wrapper = document.createElement('div');
     wrapper.className = 'field field-alt-directory';
@@ -197,44 +204,35 @@
     label.className = 'visually-hidden';
     label.htmlFor = 'field-altSoundArchiveRoot-directory-select';
     label.textContent = 'Alt Sound Archive Directory';
-    const select = document.createElement('select');
-    select.id = 'field-altSoundArchiveRoot-directory-select';
-    select.className = 'archive-directory-select';
-    select.setAttribute('aria-label', 'Choose Alt Sound archive root from loaded directories');
-    select.addEventListener('change', () => {
-      if (!select.value) return;
-      const input = document.getElementById('field-altSoundArchiveRoot');
-      if (input) input.value = select.value;
-      runtime.state.callbacks?.onChange?.('altSoundArchiveRoot', select.value, {
-        yml_field: 'altSoundArchiveRoot', type: 'str'
-      });
-      select.value = '';
+    const picker = createDirectoryPicker({
+      id: 'field-altSoundArchiveRoot-directory-select',
+      ariaLabel: 'Choose Alt Sound archive root from loaded directories',
+      emptyText: 'Drop an Alt Sound archive to browse directories',
+      getValue: () => document.getElementById('field-altSoundArchiveRoot')?.value || '',
+      onSelect: directory => {
+        const input = document.getElementById('field-altSoundArchiveRoot');
+        if (input) input.value = directory;
+        runtime.state.callbacks?.onChange?.('altSoundArchiveRoot', directory, {
+          yml_field: 'altSoundArchiveRoot', type: 'str'
+        });
+      }
     });
-    wrapper.append(label, select);
+    wrapper.append(label, picker.element);
     grid.appendChild(wrapper);
-    return select;
+    return picker;
   }
 
   function populateRootSelect() {
-    const select = ensureDirectorySelect();
-    if (!select) return;
+    const picker = ensureDirectoryPicker();
+    if (!picker) return;
 
     const directories = Array.isArray(runtime.state.values?.__altSoundArchiveDirectories)
       ? runtime.state.values.__altSoundArchiveDirectories
       : [];
-    const desiredValues = ['', ...directories];
-    const currentValues = [...select.options].map(option => option.value);
-
-    if (currentValues.length !== desiredValues.length || currentValues.some((value, index) => value !== desiredValues[index])) {
-      const placeholder = directories.length
-        ? `Choose from ${directories.length} archive director${directories.length === 1 ? 'y' : 'ies'}…`
-        : 'Drop an Alt Sound archive to browse directories';
-      select.replaceChildren();
-      select.add(new Option(placeholder, ''));
-      directories.forEach(directory => select.add(new Option(directory, directory)));
-    }
-
-    select.disabled = directories.length === 0;
+    // apply() runs this from a requestAnimationFrame pass on every click,
+    // input, change and DOM mutation. setDirectories is a no-op when the list
+    // is unchanged, which is what stops an open panel being rebuilt away.
+    picker.setDirectories(directories);
   }
 
   // The format select intentionally starts on its placeholder ("Alt Sound
@@ -263,16 +261,18 @@
       status.className = 'checksum-drop-status';
       status.innerHTML = '<span class="checksum-loading-track" aria-hidden="true"><span class="checksum-loading-dot"></span></span><span class="checksum-drop-hint">Drop .zip / .rar / .7z file to calculate MD5 and browse folders</span>';
       wrapper.appendChild(status);
+      // This branch only runs when the field has just been (re)built, which is
+      // exactly when a drop still running from before a tab switch needs its
+      // spinner and message painted back on.
+      window.VPS_UI?.applyChecksumStatus?.(CHECKSUM_FIELD_ID);
     }
 
     if (wrapper.dataset.altSoundArchiveBound === 'true') return;
     wrapper.dataset.altSoundArchiveBound = 'true';
-    const hint = status.querySelector('.checksum-drop-hint');
     const setActive = active => wrapper.classList.toggle('checksum-drop-active', active);
-    const setLoading = active => {
-      wrapper.classList.toggle('checksum-is-loading', active);
-      wrapper.setAttribute('aria-busy', active ? 'true' : 'false');
-    };
+    // Status is held by uiHelper keyed on the input id, not on these nodes,
+    // so it survives the panel rebuild a tab switch causes.
+    const setStatus = next => window.VPS_UI?.setChecksumStatus?.(CHECKSUM_FIELD_ID, next);
 
     wrapper.addEventListener('dragenter', event => {
       event.preventDefault();
@@ -295,14 +295,11 @@
 
       const extension = getFileExtension(file.name);
       if (!ALLOWED_EXTENSIONS.includes(extension)) {
-        hint.textContent = `Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`;
-        hint.classList.add('error');
+        setStatus({ message: `Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`, error: true });
         return;
       }
 
-      hint.classList.remove('error');
-      hint.textContent = `Processing ${file.name}…`;
-      setLoading(true);
+      setStatus({ loading: true, message: `Processing ${file.name}…` });
 
       const format = extension.slice(1);
       runtime.state.callbacks?.onChange?.('altSoundArchiveFormat', format, {
@@ -315,6 +312,7 @@
       const directoryTask = readDirectories(file);
       const [checksumResult, directoryResult] = await Promise.allSettled([checksumTask, directoryTask]);
       const messages = [];
+      let hadError = false;
 
       if (checksumResult.status === 'fulfilled' && checksumResult.value) {
         input.value = checksumResult.value;
@@ -329,7 +327,7 @@
       } else {
         const reason = checksumResult.reason?.message || 'MD5 failed';
         messages.push(reason);
-        hint.classList.add('error');
+        hadError = true;
         console.warn('MD5 failed:', checksumResult.reason);
       }
 
@@ -343,12 +341,11 @@
       } else {
         const reason = directoryResult.reason?.message || 'directory browse failed';
         messages.push(reason);
-        hint.classList.add('error');
+        hadError = true;
         console.warn('Archive browse failed:', directoryResult.reason);
       }
 
-      hint.textContent = `${messages.join(' · ')} from ${file.name}`;
-      setLoading(false);
+      setStatus({ message: `${messages.join(' · ')} from ${file.name}`, error: hadError });
       window.VPS_FEATURE_VALIDATION?.refresh?.();
     }, true);
   }
