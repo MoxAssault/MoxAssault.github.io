@@ -222,10 +222,44 @@
 
   let archiveModulePromise = null;
 
+  // vendor/ ships at fixed, unhashed paths, so a browser that cached the
+  // worker or the wasm keeps using it across deploys. A stale worker against a
+  // newer wasm calls exports the binary does not have and throws *after* the
+  // archive has opened and listed, which reads as a corrupt archive. The
+  // vendored fork propagates this query string to libarchive.wasm internally,
+  // so the two are always fetched as a matched pair.
+  function archiveAssetUrl(path) {
+    const url = new URL(path, document.baseURI);
+    const stamp = window.VPS_APP_VERSION;
+    if (stamp) url.search = `?v=${encodeURIComponent(stamp)}`;
+    return url.href;
+  }
+
+  // A size failure surfaces differently depending on the browser and on which
+  // limit is hit first: Chrome throws NotReadableError out of arrayBuffer(),
+  // Firefox throws a TypeError out of the Blob constructor ("...larger than
+  // 2 GB"). Matching only NotReadableError meant Firefox users saw the raw
+  // browser text instead of the useful message, so match the symptom.
+  function isArchiveTooLargeError(error) {
+    if (error?.name === 'NotReadableError') return true;
+    const message = String(error?.message || '');
+    return /larger than 2\s*GB|exceeds the maximum|allocation size overflow|out of memory/i.test(message);
+  }
+
+  function archiveReadError(verb, remedy, file, error) {
+    const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
+    const reason = isArchiveTooLargeError(error)
+      ? `archive is too large to ${verb} in-browser (${sizeMb} MB) \u2014 ${remedy}`
+      : (error?.message || error?.name || 'unknown read error');
+    const friendly = new Error(`Could not ${verb} "${file?.name || 'archive'}": ${reason}.`);
+    friendly.cause = error;
+    return friendly;
+  }
+
   function loadArchiveModule() {
     if (!archiveModulePromise) {
-      const moduleUrl = new URL('vendor/libarchive/libarchive.js', document.baseURI).href;
-      const workerUrl = new URL('vendor/libarchive/worker-bundle.js', document.baseURI).href;
+      const moduleUrl = archiveAssetUrl('vendor/libarchive/libarchive.js');
+      const workerUrl = archiveAssetUrl('vendor/libarchive/worker-bundle.js');
       archiveModulePromise = import(moduleUrl).then(module => {
         module.Archive.init({ workerUrl });
         return module.Archive;
@@ -247,24 +281,19 @@
     }
 
     const Archive = await loadArchiveModule();
-    // Fallback path: libarchive.js. It requires the whole file in a single
-    // ArrayBuffer, which fails for files larger than ~2 GB. Reading here (on
-    // the main thread) lets us catch the NotReadableError with useful info
-    // instead of it surfacing as an uncaught rejection inside the worker.
-    let source;
+    // Fallback path: libarchive.js. The vendored fork mounts the file with
+    // WORKERFS and reads only the blocks it needs, so the File is handed over
+    // as-is. Do NOT reintroduce an arrayBuffer()/Blob round-trip here: it was
+    // harmless when stock buffered the whole archive anyway, but it now
+    // re-imposes the ~2 GB ceiling the fork exists to remove, and the Blob
+    // constructor refuses a buffer that large before libarchive is ever
+    // reached. See vendor/libarchive/VERSION.md.
+    let archive;
     try {
-      const buffer = await file.arrayBuffer();
-      source = new Blob([buffer], { type: file.type || 'application/octet-stream' });
+      archive = await Archive.open(file);
     } catch (error) {
-      const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
-      const reason = error?.name === 'NotReadableError'
-        ? `archive is too large to browse in-browser (${sizeMb} MB) \u2014 enter the directory manually`
-        : (error?.message || error?.name || 'unknown read error');
-      const friendly = new Error(`Could not browse "${file?.name || 'archive'}": ${reason}.`);
-      friendly.cause = error;
-      throw friendly;
+      throw archiveReadError('browse', 'enter the directory manually', file, error);
     }
-    const archive = await Archive.open(source);
     try {
       const entries = await archive.getFilesArray();
       return extractArchiveDirectories(entries);
@@ -281,8 +310,8 @@
     // libarchive.js cannot decompress RAR entries, so RAR extraction goes
     // through node-unrar-js (vendored WASM build of the official unrar lib).
     if (!unrarModulePromise) {
-      const moduleUrl = new URL('vendor/unrar/unrar.bundle.js', document.baseURI).href;
-      const wasmUrl = new URL('vendor/unrar/unrar.wasm', document.baseURI).href;
+      const moduleUrl = archiveAssetUrl('vendor/unrar/unrar.bundle.js');
+      const wasmUrl = archiveAssetUrl('vendor/unrar/unrar.wasm');
       unrarModulePromise = Promise.all([
         import(moduleUrl),
         fetch(wasmUrl).then(response => {
@@ -313,20 +342,14 @@
 
   async function extractLibarchiveEntries(file, selectNames) {
     const Archive = await loadArchiveModule();
-    let source;
+    // As in readArchiveDirectories: hand the File straight to the fork so its
+    // lazy WORKERFS mount engages. Buffering here would cap the scan at ~2 GB.
+    let archive;
     try {
-      const buffer = await file.arrayBuffer();
-      source = new Blob([buffer], { type: file.type || 'application/octet-stream' });
+      archive = await Archive.open(file);
     } catch (error) {
-      const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
-      const reason = error?.name === 'NotReadableError'
-        ? `archive is too large to scan in-browser (${sizeMb} MB) — drop the contained file directly`
-        : (error?.message || error?.name || 'unknown read error');
-      const friendly = new Error(`Could not scan "${file?.name || 'archive'}": ${reason}.`);
-      friendly.cause = error;
-      throw friendly;
+      throw archiveReadError('scan', 'drop the contained file directly', file, error);
     }
-    const archive = await Archive.open(source);
     try {
       const entries = (await archive.getFilesArray()) || [];
       const entryName = entry => `${String(entry?.path || '')}${String(entry?.file?.name || '')}`;
@@ -759,14 +782,33 @@
   // Hold selectors, not nodes.
   const checksumStatuses = new Map();
 
+  // Per-field job generation. A drop bumps its field's counter when it starts
+  // and captures the new value, then only writes its result back if the
+  // counter still matches. One mechanism kills two races: a Clear (tab, table
+  // or full reset) bumps the counter so an in-flight hash or directory scan
+  // lands nowhere, and a second drop on the same field supersedes the first
+  // instead of the two fighting over it.
+  const checksumGenerations = new Map();
+
   function paintChecksumStatus(wrapper, hint, status) {
     if (!wrapper) return;
     const loading = status?.loading === true;
     wrapper.classList.toggle('checksum-is-loading', loading);
     wrapper.setAttribute('aria-busy', loading ? 'true' : 'false');
-    if (hint && status?.message) {
+    if (!hint) return;
+    if (status?.message) {
       hint.textContent = status.message;
       hint.classList.toggle('error', status.error === true);
+      return;
+    }
+    // No stored status means "back to instructions". The old code only wrote
+    // when there WAS a message, so a cleared field kept whatever the last drop
+    // had left behind - the reported Clear bug. The instruction text varies per
+    // field, so it is captured on the node when the hint is built.
+    const fallback = hint.dataset?.defaultHint;
+    if (typeof fallback === 'string') {
+      hint.textContent = fallback;
+      hint.classList.remove('error');
     }
   }
 
@@ -775,6 +817,36 @@
     const wrapper = document.getElementById(fieldId)?.closest('.field');
     if (!wrapper) return;
     paintChecksumStatus(wrapper, wrapper.querySelector('.checksum-drop-hint'), checksumStatuses.get(fieldId));
+  }
+
+  function getChecksumGeneration(fieldId) {
+    return checksumGenerations.get(fieldId) || 0;
+  }
+
+  // Call at the start of a drop. The returned token is what that drop's
+  // completion handler checks itself against before writing anything.
+  function beginChecksumJob(fieldId) {
+    const next = getChecksumGeneration(fieldId) + 1;
+    checksumGenerations.set(fieldId, next);
+    return next;
+  }
+
+  function isChecksumGenerationCurrent(fieldId, token) {
+    return getChecksumGeneration(fieldId) === token;
+  }
+
+  // Clears stored statuses and invalidates any job still running against those
+  // fields. Called with a list of ids for one tab's Clear section, and with no
+  // argument at all for a whole-build reset (table Clear / preview Clear).
+  function resetChecksumStatuses(fieldIds) {
+    const ids = Array.isArray(fieldIds)
+      ? fieldIds
+      : [...new Set([...checksumStatuses.keys(), ...checksumGenerations.keys()])];
+    ids.forEach(fieldId => {
+      checksumGenerations.set(fieldId, getChecksumGeneration(fieldId) + 1);
+      checksumStatuses.delete(fieldId);
+      applyChecksumStatus(fieldId);
+    });
   }
 
   function setChecksumStatus(fieldId, status) {
@@ -1273,6 +1345,8 @@
       loadingTrack.appendChild(element('span', 'checksum-loading-dot'));
       const hintExtensions = field.colorRomArchiveScan ? [...allowed, ...ARCHIVE_EXTENSIONS] : allowed;
       const dropHint = element('span', 'checksum-drop-hint', `Drop ${hintExtensions.join(' / ')} file to calculate MD5${field.archiveBrowser ? ' and browse folders' : ''}`);
+      // paintChecksumStatus restores this when a field's status is cleared.
+      dropHint.dataset.defaultHint = dropHint.textContent;
       statusRow.append(loadingTrack, dropHint);
       const setDropState = active => wrapper.classList.toggle('checksum-drop-active', active);
       // A drop still running from before a tab switch rebuilt this field is
@@ -1306,11 +1380,14 @@
           setChecksumStatus(controlId, { message: `Invalid file type. Allowed: ${accepted.join(', ')}`, error: true });
           return;
         }
+        const generation = beginChecksumJob(controlId);
         setChecksumStatus(controlId, { loading: true, message: `Processing ${file.name}…` });
 
         if (isColorArchiveDrop) {
           try {
             const results = await extractColorRomArchiveChecksums(file);
+            // Cleared, or superseded by a newer drop, while this ran.
+            if (!isChecksumGenerationCurrent(controlId, generation)) return;
             const pal = results.find(result => result.extension === '.pal');
             const vni = results.find(result => result.extension === '.vni');
             const palVniMode = Boolean(vni);
@@ -1347,6 +1424,7 @@
             }
             onChange('__checksumSources', sources, { uiOnly: true });
           } catch (error) {
+            if (!isChecksumGenerationCurrent(controlId, generation)) return;
             setChecksumStatus(controlId, { message: error?.message || 'Archive scan failed.', error: true });
             console.warn('Color ROM archive scan failed:', error);
           }
@@ -1387,6 +1465,9 @@
           ? readArchiveDirectories(file)
           : Promise.resolve(null);
         const [checksumResult, archiveResult] = await Promise.allSettled([checksumTask, archiveTask]);
+        // Cleared, or superseded by a newer drop, while this ran: the build
+        // this result belongs to is gone, so none of it may be written back.
+        if (!isChecksumGenerationCurrent(controlId, generation)) return;
 
         const messages = [];
         let hadError = false;
@@ -1567,6 +1648,11 @@
     // survive the tab switch that rebuilds the field it was started from.
     setChecksumStatus,
     applyChecksumStatus,
+    // Shared with main.js (all three Clear paths) and with the two controllers
+    // that run their own checksum drops outside this file.
+    resetChecksumStatuses,
+    beginChecksumJob,
+    isChecksumGenerationCurrent,
     renderTableStrip,
     renderAssetMatrix,
     renderAccordions,
@@ -1578,6 +1664,12 @@
     getChecksumExtensions,
     getArchiveScanExtension,
     extractArchiveEntryChecksum,
-    calculateMd5FromBlob
+    calculateMd5FromBlob,
+    // Shared with altSoundArchiveController: it loads the same vendored
+    // worker and reports the same size failures, and a second copy of either
+    // is exactly how the two drifted apart before.
+    archiveAssetUrl,
+    archiveReadError,
+    isArchiveTooLargeError
   };
 })();

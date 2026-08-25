@@ -222,6 +222,11 @@
     return node;
   }
 
+  // This modal writes its hint node directly instead of going through
+  // uiHelper's status registry, so it needs its own key in the generation map
+  // to be cancellable by a Clear the same way every other drop is.
+  const DROP_JOB_ID = 'additional-rom-checksum';
+
   function bindDrop(node) {
     const wrapper = node.querySelector('#additionalRomChecksumField');
     const input = node.querySelector('#additionalRomChecksum');
@@ -249,6 +254,10 @@
       hint.classList.remove('error');
       hint.textContent = `Calculating MD5 for ${file.name}…`;
       wrapper.classList.add('checksum-is-loading');
+      const beginJob = window.VPS_UI?.beginChecksumJob;
+      const generation = typeof beginJob === 'function' ? beginJob(DROP_JOB_ID) : null;
+      const stillCurrent = () => generation === null
+        || window.VPS_UI?.isChecksumGenerationCurrent?.(DROP_JOB_ID, generation) !== false;
       try {
         const ui = window.VPS_UI || {};
         const canScan = Boolean(scanExtension)
@@ -266,16 +275,30 @@
             console.warn('Archive scan failed, hashing the archive whole:', scanError);
           }
         }
+        // Cleared, or superseded by a newer drop, while the scan ran.
+        if (!stillCurrent()) return;
         if (scanned?.checksum) {
           input.value = String(scanned.checksum).toUpperCase();
           hint.textContent = `MD5 calculated (${scanned.entryName}) from ${file.name}`;
         } else {
-          input.value = md5(await file.arrayBuffer());
+          // Stream the whole-archive hash rather than slurping it. The local
+          // md5() below is correct but needs the entire file as one
+          // ArrayBuffer, which fails past ~2 GB; VPS_UI.calculateMd5FromBlob
+          // feeds a worker from blob.stream() and is size-independent. It is
+          // kept as the fallback for the case where uiHelper has not loaded.
+          const hashWhole = ui.calculateMd5FromBlob;
+          const wholeChecksum = typeof hashWhole === 'function'
+            ? await hashWhole(file)
+            : md5(await file.arrayBuffer());
+          // Hashing a large archive is the slowest path here, so re-check.
+          if (!stillCurrent()) return;
+          input.value = wholeChecksum;
           hint.textContent = canScan
             ? `MD5 calculated (whole archive — no single ${scanExtension} inside) from ${file.name}`
             : `MD5 calculated from ${file.name}`;
         }
       } catch (error) {
+        if (!stillCurrent()) return;
         hint.textContent = error?.message || 'MD5 calculation failed.';
         hint.classList.add('error');
       } finally {
@@ -311,6 +334,9 @@
     node.querySelector('#additionalRomUrlOverride').value = String(current.urlOverride || '');
     // The dialog is created once and cached, so this cannot live in the markup:
     // the accepted list depends on the currently loaded table's manufacturer.
+    // Reopening the modal abandons any drop still running from last time, so
+    // a slow hash cannot land in a different ROM entry than it was started on.
+    window.VPS_UI?.beginChecksumJob?.(DROP_JOB_ID);
     const openHint = node.querySelector('.checksum-drop-hint');
     if (openHint) {
       openHint.classList.remove('error');

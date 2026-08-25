@@ -707,6 +707,39 @@
     return null;
   }
 
+  // vpxMagic - the "Password" field on the VPX tab - is typed and stored as
+  // plain text and written to the YML base64-encoded. btoa alone cannot do
+  // this: it throws on any character above U+00FF, and a password field is
+  // exactly where those turn up. Encode to UTF-8 bytes first.
+  function encodeVpxMagic(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return '';
+    const bytes = new TextEncoder().encode(text);
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
+  }
+
+  // The inverse, used on YML import so a round-trip does not double-encode.
+  // A hand-written YML may carry a value that was never encoded, and atob
+  // happily decodes plenty of ordinary words into garbage rather than
+  // throwing, so a decode is only trusted when re-encoding it reproduces the
+  // input byte for byte. Anything else is treated as already-plain text.
+  // A plain password that IS valid base64 of valid UTF-8 is genuinely
+  // ambiguous and decodes; nothing can distinguish those two cases.
+  function decodeVpxMagic(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return '';
+    try {
+      const binary = atob(text);
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      return encodeVpxMagic(decoded) === text ? decoded : text;
+    } catch (_) {
+      return text;
+    }
+  }
+
   window.VPS_UTILS = {
     escapeHtml,
     humanize,
@@ -734,6 +767,9 @@
     replacePrimaryChecksum,
     extractArchiveDirectories,
     listArchiveEntryPaths,
-    cssEscape
+    cssEscape,
+    // Shared so the serializer and the YML importer cannot drift apart.
+    encodeVpxMagic,
+    decodeVpxMagic
   };
 })();

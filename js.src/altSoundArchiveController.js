@@ -136,10 +136,26 @@
     });
   }
 
+  // Both helpers come from uiHelper's VPS_UI export rather than being copied.
+  // uiHelper.js loads well before this file, so they are always present; the
+  // fallbacks only keep this from throwing if the load order is ever changed.
+  function assetUrl(path) {
+    const shared = window.VPS_UI?.archiveAssetUrl;
+    return shared ? shared(path) : new URL(path, document.baseURI).href;
+  }
+
+  function readError(verb, remedy, file, error) {
+    const shared = window.VPS_UI?.archiveReadError;
+    if (shared) return shared(verb, remedy, file, error);
+    const friendly = new Error(`Could not ${verb} "${file?.name || 'archive'}": ${error?.message || error?.name || 'unknown read error'}.`);
+    friendly.cause = error;
+    return friendly;
+  }
+
   function loadArchiveModule() {
     if (!archiveModulePromise) {
-      const moduleUrl = new URL('vendor/libarchive/libarchive.js', document.baseURI).href;
-      const workerUrl = new URL('vendor/libarchive/worker-bundle.js', document.baseURI).href;
+      const moduleUrl = assetUrl('vendor/libarchive/libarchive.js');
+      const workerUrl = assetUrl('vendor/libarchive/worker-bundle.js');
       archiveModulePromise = import(moduleUrl).then(module => {
         module.Archive.init({ workerUrl });
         return module.Archive;
@@ -161,22 +177,17 @@
     }
 
     const Archive = await loadArchiveModule();
-    // Fallback path: libarchive.js. Requires the whole file in memory; will
-    // fail for files larger than ~2 GB.
-    let source;
+    // Fallback path: libarchive.js. The vendored fork mounts the file with
+    // WORKERFS and reads only the blocks it needs, so the File goes over
+    // as-is. Do NOT reintroduce an arrayBuffer()/Blob round-trip: it now
+    // re-imposes the ~2 GB ceiling the fork exists to remove. Mirrors
+    // readArchiveDirectories in uiHelper.js.
+    let archive;
     try {
-      const buffer = await file.arrayBuffer();
-      source = new Blob([buffer], { type: file.type || 'application/octet-stream' });
+      archive = await Archive.open(file);
     } catch (error) {
-      const sizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(1) : '?';
-      const reason = error?.name === 'NotReadableError'
-        ? `archive is too large to browse in-browser (${sizeMb} MB) \u2014 enter the directory manually`
-        : (error?.message || error?.name || 'unknown read error');
-      const friendly = new Error(`Could not browse "${file?.name || 'archive'}": ${reason}.`);
-      friendly.cause = error;
-      throw friendly;
+      throw readError('browse', 'enter the directory manually', file, error);
     }
-    const archive = await Archive.open(source);
     try {
       return utils.extractArchiveDirectories(await archive.getFilesArray());
     } finally {
@@ -261,6 +272,10 @@
       status.className = 'checksum-drop-status';
       status.innerHTML = '<span class="checksum-loading-track" aria-hidden="true"><span class="checksum-loading-dot"></span></span><span class="checksum-drop-hint">Drop .zip / .rar / .7z file to calculate MD5 and browse folders</span>';
       wrapper.appendChild(status);
+      // paintChecksumStatus restores this when the field's status is cleared,
+      // the same as the hints uiHelper builds for every other checksum field.
+      const freshHint = status.querySelector('.checksum-drop-hint');
+      if (freshHint) freshHint.dataset.defaultHint = freshHint.textContent;
       // This branch only runs when the field has just been (re)built, which is
       // exactly when a drop still running from before a tab switch needs its
       // spinner and message painted back on.
@@ -299,6 +314,12 @@
         return;
       }
 
+      // Clearing the build (or a newer drop on this field) invalidates this
+      // token, and the completion handler below then writes nothing.
+      const beginJob = window.VPS_UI?.beginChecksumJob;
+      const generation = typeof beginJob === 'function' ? beginJob(CHECKSUM_FIELD_ID) : null;
+      const stillCurrent = () => generation === null
+        || window.VPS_UI?.isChecksumGenerationCurrent?.(CHECKSUM_FIELD_ID, generation) !== false;
       setStatus({ loading: true, message: `Processing ${file.name}…` });
 
       const format = extension.slice(1);
@@ -311,6 +332,8 @@
       const checksumTask = calculateMd5(file);
       const directoryTask = readDirectories(file);
       const [checksumResult, directoryResult] = await Promise.allSettled([checksumTask, directoryTask]);
+      // Cleared, or superseded by a newer drop, while this ran.
+      if (!stillCurrent()) return;
       const messages = [];
       let hadError = false;
 

@@ -270,6 +270,13 @@
       else if (Array.isArray(value)) values[key] = value.map(item => String(item).toUpperCase());
     });
 
+    // vpxMagic is stored base64 in the YML and plain in the builder. Without
+    // this a round-trip (import then download) would encode it a second time.
+    if (typeof values.vpxMagic === 'string') {
+      const decode = window.VPS_UTILS?.decodeVpxMagic;
+      values.vpxMagic = decode ? decode(values.vpxMagic) : values.vpxMagic;
+    }
+
     // Preserve `enabled: false` from the imported YAML (checkbox will render
     // as checked). Anything else (missing, or `enabled: true`) is normalised
     // to "not disabled" and left absent from `values`, so it never round-trips

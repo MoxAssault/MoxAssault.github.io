@@ -77,7 +77,11 @@
           name: 'VPX Checksum', yml_field: 'vpxChecksum', type: 'str', wide: true, maxlength: 32,
           checksumExtensions: ['.vpx', '.zip', '.rar', '.7z'], archiveScanExtension: '.vpx'
         },
-        { name: 'VPX Notes', yml_field: 'tableNotes', type: 'str', multiline: true, wide: true }
+        { name: 'VPX Notes', yml_field: 'tableNotes', type: 'str', multiline: true, wide: true },
+        // Standard text in the UI and in state; written to the YML
+        // base64-encoded by VPS_UTILS.encodeVpxMagic. `advanced: true` is what
+        // creates the Advanced Config section on this tab, which had none.
+        { name: 'Password', yml_field: 'vpxMagic', type: 'str', wide: true, advanced: true }
       ]
     },
     {

@@ -15,6 +15,7 @@ class El {
     this.children = [];
     this.parentNode = null;
     this.attributes = {};
+    this.dataset = {};
     this._classes = new Set();
     this._text = '';
     this._id = '';
@@ -81,7 +82,9 @@ if (endAt < 0) throw new Error('setChecksumStatus not found in uiHelper.js');
 const block = source.slice(start, source.indexOf('\n  }', endAt) + 4);
 
 const api = new Function('element', 'document',
-  block + '\n return { checksumStatuses, paintChecksumStatus, applyChecksumStatus, setChecksumStatus };')(element, documentStub);
+  block + '\n return { checksumStatuses, checksumGenerations, paintChecksumStatus, applyChecksumStatus,'
+        + ' setChecksumStatus, getChecksumGeneration, beginChecksumJob, isChecksumGenerationCurrent,'
+        + ' resetChecksumStatuses };')(element, documentStub);
 
 
 const FIELD = 'field-pupChecksum';
@@ -94,6 +97,7 @@ function renderField() {
   input.id = FIELD;
   const status = element('span', 'checksum-drop-status');
   const hint = element('span', 'checksum-drop-hint', 'Drop .zip file to calculate MD5');
+  hint.dataset.defaultHint = hint.textContent;   // what createFieldControl stashes
   status.append(hint);
   wrapper.append(input, status);
   // the restore call createFieldControl makes at build time
@@ -197,6 +201,115 @@ const loading = w => w._classes.has('checksum-is-loading');
   check('secondary field not spinning', loading(secondary.wrapper) === false);
   check('secondary message is its own', secondary.hint.textContent === 'MD5 calculated (rom.vni)');
   check('pup message is its own', pup.hint.textContent === 'Processing pup.zip…');
+}
+
+// 8 -- THE CLEAR BUG: clearing a status must restore the instruction text on
+//      the node that is ALREADY on screen, without waiting for a rebuild.
+{
+  api.resetChecksumStatuses();
+  const field = renderField();
+  api.setChecksumStatus(FIELD, { message: 'MD5 calculated from TheMatrixPup.zip' });
+  check('message is showing before the clear',
+    field.hint.textContent === 'MD5 calculated from TheMatrixPup.zip');
+
+  api.setChecksumStatus(FIELD, null);
+  check('cleared status restores the hint IN PLACE',
+    field.hint.textContent === 'Drop .zip file to calculate MD5', field.hint.textContent);
+  check('cleared status is not spinning', loading(field.wrapper) === false);
+}
+
+// 9 -- resetChecksumStatuses(ids) clears the named fields
+{
+  api.resetChecksumStatuses();
+  const field = renderField();
+  api.setChecksumStatus(FIELD, { message: 'MD5 calculated from old.zip', error: true });
+  check('error class is set before the reset', field.hint._classes.has('error') === true);
+
+  api.resetChecksumStatuses([FIELD]);
+  check('reset restores the default hint',
+    field.hint.textContent === 'Drop .zip file to calculate MD5', field.hint.textContent);
+  check('reset drops the error class', field.hint._classes.has('error') === false);
+  check('reset removes the stored status', api.checksumStatuses.has(FIELD) === false);
+}
+
+// 10 -- resetChecksumStatuses() with no argument clears every field
+{
+  api.resetChecksumStatuses();
+  const pup = renderField();
+  const other = (() => {
+    const wrapper = element('div', 'field checksum-drop-field');
+    const input = element('input');
+    input.id = 'field-altSoundChecksum';
+    const status = element('span', 'checksum-drop-status');
+    const hint = element('span', 'checksum-drop-hint', 'Drop .zip / .rar / .7z file');
+    hint.dataset.defaultHint = hint.textContent;
+    status.append(hint);
+    wrapper.append(input, status);
+    return { wrapper, hint };
+  })();
+
+  api.setChecksumStatus(FIELD, { loading: true, message: 'Processing pup.zip...' });
+  api.setChecksumStatus('field-altSoundChecksum', { message: 'MD5 calculated' });
+
+  api.resetChecksumStatuses();
+  check('whole reset clears the pup hint',
+    pup.hint.textContent === 'Drop .zip file to calculate MD5', pup.hint.textContent);
+  check('whole reset clears the alt sound hint',
+    other.hint.textContent === 'Drop .zip / .rar / .7z file', other.hint.textContent);
+  check('whole reset stops the spinner', loading(pup.wrapper) === false);
+  check('whole reset empties the registry', api.checksumStatuses.size === 0);
+}
+
+// 11 -- a Clear invalidates a job that is still running
+{
+  api.resetChecksumStatuses();
+  renderField();
+  const token = api.beginChecksumJob(FIELD);          // drop starts
+  check('a fresh job is current', api.isChecksumGenerationCurrent(FIELD, token) === true);
+
+  api.resetChecksumStatuses();                        // user hits Clear
+  check('the in-flight job is no longer current',
+    api.isChecksumGenerationCurrent(FIELD, token) === false,
+    'a hash finishing after Clear would write into the cleared build');
+}
+
+// 12 -- a second drop on the same field supersedes the first
+{
+  api.resetChecksumStatuses();
+  renderField();
+  const first = api.beginChecksumJob(FIELD);
+  const second = api.beginChecksumJob(FIELD);
+  check('the superseded drop is stale', api.isChecksumGenerationCurrent(FIELD, first) === false);
+  check('the newest drop is current', api.isChecksumGenerationCurrent(FIELD, second) === true);
+}
+
+// 13 -- clearing ONE tab must not kill a job running on a different field
+{
+  api.resetChecksumStatuses();
+  const pupToken = api.beginChecksumJob(FIELD);
+  const altToken = api.beginChecksumJob('field-altSoundChecksum');
+
+  api.resetChecksumStatuses([FIELD]);                 // Clear section on the PUP tab
+  check('the cleared tab loses its job',
+    api.isChecksumGenerationCurrent(FIELD, pupToken) === false);
+  check('an unrelated tab keeps its job',
+    api.isChecksumGenerationCurrent('field-altSoundChecksum', altToken) === true,
+    'clearing one tab must not cancel a hash running on another');
+}
+
+// 14 -- a hint with no stashed default is left alone rather than blanked
+{
+  api.resetChecksumStatuses();
+  const wrapper = element('div', 'field checksum-drop-field');
+  const input = element('input');
+  input.id = 'field-legacyNoDefault';
+  const status = element('span', 'checksum-drop-status');
+  const hint = element('span', 'checksum-drop-hint', 'some text');
+  status.append(hint);
+  wrapper.append(input, status);
+
+  api.setChecksumStatus('field-legacyNoDefault', null);
+  check('no stashed default leaves the text untouched', hint.textContent === 'some text');
 }
 
 report('checksum status registry');

@@ -542,6 +542,16 @@
     const preserveOverride = options.preserveOverride === true;
 
     const checksumSources = { ...(state.values.__checksumSources || {}) };
+    // Drop hints and in-flight jobs are keyed by control id and live outside
+    // `state` (uiHelper holds them so they survive the rebuild a tab switch
+    // causes), so wiping values alone leaves stale text on screen and lets a
+    // running hash write into the tab that was just cleared.
+    const checksumFieldIds = [];
+    step.fields.forEach(field => {
+      checksumFieldIds.push(`field-${field.yml_field}`);
+      if (Array.isArray(field.items)) field.items.forEach(item => checksumFieldIds.push(`field-${item.yml_field}`));
+    });
+    window.VPS_UI?.resetChecksumStatuses?.(checksumFieldIds);
     step.fields.forEach(field => {
       if (field.readonly && preserveId) return;
       delete state.values[field.yml_field];
@@ -909,6 +919,9 @@
     state.record = null;
     state.selections = {};
     state.values = {};
+    // Same reason as in clearStepData, for every field at once. This also
+    // invalidates any hash or directory scan still running anywhere.
+    window.VPS_UI?.resetChecksumStatuses?.();
     // Clear is an explicit full reset — unlike a plain Download (which
     // intentionally leaves carryValues in place so the next similar table
     // keeps FPS/Testers/etc.), it must not let those carry into whatever

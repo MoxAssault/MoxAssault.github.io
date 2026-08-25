@@ -32,6 +32,11 @@
     'coloredROMChecksumSecondary', 'pupChecksum', 'diffChecksum', 'altSoundChecksum'
   ];
 
+  // Keys whose value must never be written as a folded (`>-`) scalar. Folding
+  // rejoins the lines with spaces on read, which would silently corrupt a
+  // base64 payload. These take the same single-line quoted path URLs use.
+  const UNFOLDABLE_KEYS = new Set(['vpxMagic']);
+
   function uppercaseChecksums(data) {
     CHECKSUM_KEYS.forEach(key => {
       const value = data[key];
@@ -49,6 +54,14 @@
     delete data.applyFixes;
 
     uppercaseChecksums(data);
+
+    // Encoded here, at the edge, rather than in state - the field the user
+    // sees and edits stays readable plain text.
+    if ('vpxMagic' in data) {
+      const encoded = utils.encodeVpxMagic ? utils.encodeVpxMagic(data.vpxMagic) : '';
+      if (encoded) data.vpxMagic = encoded;
+      else delete data.vpxMagic;
+    }
 
     // The table-level NSFW flag is exclusive: when set, per-asset NSFW keys
     // must never appear alongside it (covers imported YAML that has both).
@@ -148,7 +161,7 @@
     }
 
     const cleanValue = cleanYamlString(value);
-    if (isUrlField(name)) {
+    if (isUrlField(name) || UNFOLDABLE_KEYS.has(name)) {
       // The yamllint rule this comment suppresses checks the full rendered
       // line, not the URL value alone — a value well under 120 characters
       // can still push `name: "value"` over the limit once the key and
