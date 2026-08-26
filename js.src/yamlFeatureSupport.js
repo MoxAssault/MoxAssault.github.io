@@ -29,7 +29,8 @@
 
   const CHECKSUM_KEYS = [
     'vpxChecksum', 'backglassChecksum', 'romChecksum', 'coloredROMChecksum',
-    'coloredROMChecksumSecondary', 'pupChecksum', 'diffChecksum', 'altSoundChecksum'
+    'coloredROMChecksumSecondary', 'pupChecksum', 'diffChecksum', 'altSoundChecksum',
+    'specialDMDChecksum'
   ];
 
   // Keys whose value must never be written as a folded (`>-`) scalar. Folding
@@ -55,12 +56,47 @@
 
     uppercaseChecksums(data);
 
-    // Encoded here, at the edge, rather than in state - the field the user
-    // sees and edits stays readable plain text.
-    if ('vpxMagic' in data) {
-      const encoded = utils.encodeVpxMagic ? utils.encodeVpxMagic(data.vpxMagic) : '';
-      if (encoded) data.vpxMagic = encoded;
-      else delete data.vpxMagic;
+    // The builder holds up to four password slots; the YML carries one key.
+    // Collapsed and encoded here, at the edge, rather than in state - the
+    // fields the user sees and edits stay readable plain text.
+    //
+    // A single password stays a plain string, byte-identical to what shipped
+    // before multi-password support, so nothing already published changes.
+    // Two or more become a list. buildYaml's array branch writes one quoted
+    // item per line and never folds, so the base64 is safe either way.
+    const magicOutput = utils.buildVpxMagicOutput ? utils.buildVpxMagicOutput(data) : undefined;
+    // Explicit, not left to OMIT_FROM_YAML: vpxMagicAdditional holds PLAIN
+    // TEXT passwords, so a gap in the omit list would leak them unencoded.
+    delete data.vpxMagic2;
+    delete data.vpxMagic3;
+    delete data.vpxMagicAdditional;
+    delete data.__vpxMagicSlots;
+    if (magicOutput === undefined) delete data.vpxMagic;
+    else data.vpxMagic = magicOutput;
+
+    // A DMD bundled inside the VPX archive carries none of the standalone
+    // download keys. Dropped here as well as disabled in the UI, so a value
+    // typed before the shape was switched cannot leak into the output.
+    if (data.specialDMDBundled === true) {
+      // Same archive, described from each asset's side. The user answers the
+      // format once on the DMD tab; vpxArchiveFormat is mirrored from it here
+      // rather than being a second control asking the same question.
+      if (data.specialDMDArchiveFormat) data.vpxArchiveFormat = data.specialDMDArchiveFormat;
+      // Jason's call 2026-08-26: bundled, the DMD Archive Format field is only
+      // a store for the value vpxArchiveFormat carries, so the DMD key itself
+      // is not written. NOTE this contradicts new-YML-updates.txt, which lists
+      // specialDMDArchiveFormat as REQUIRED in the bundled shape - the spec
+      // text is the thing that is out of date, not this.
+      delete data.specialDMDArchiveFormat;
+      delete data.specialDMDChecksum;
+      delete data.specialDMDNotes;
+      delete data.specialDMDUrlOverride;
+      delete data.specialDMDVersion;
+    } else {
+      // Bundled-shape only. Nothing in the builder edits this key, so the only
+      // way it can be here is an imported bundled YML that has since been
+      // switched to the standalone shape.
+      delete data.vpxArchiveFormat;
     }
 
     // The table-level NSFW flag is exclusive: when set, per-asset NSFW keys

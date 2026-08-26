@@ -151,4 +151,138 @@ const { serializeScalar, UNFOLDABLE_KEYS } = serialize;
     'the unfoldable rule must not leak onto every other field');
 }
 
+// ── slice: the multi-password slot mapping ─────────────────────────────────
+// The builder holds up to four slots; the YML carries one key. These three
+// functions are the whole mapping, so they are sliced and driven directly.
+const inlineKeysDecl = utilsSource.match(/ {2}const VPX_MAGIC_INLINE_KEYS = \[[^\]]*\];/);
+if (!inlineKeysDecl) throw new Error('VPX_MAGIC_INLINE_KEYS not found in utilities.js');
+
+const slots = new Function(
+  inlineKeysDecl[0] + '\n'
+  + sliceFunction(utilsSource, '  function encodeVpxMagic(value) {') + '\n'
+  + sliceFunction(utilsSource, '  function collectVpxMagic(values) {') + '\n'
+  + sliceFunction(utilsSource, '  function distributeVpxMagic(list, values) {') + '\n'
+  + sliceFunction(utilsSource, '  function buildVpxMagicOutput(values) {') + '\n'
+  + ' return { collectVpxMagic, distributeVpxMagic, buildVpxMagicOutput };'
+)();
+const { collectVpxMagic, distributeVpxMagic, buildVpxMagicOutput } = slots;
+
+// 11 ── collect walks the slots in order and drops blanks
+{
+  check('collect returns nothing for empty state', collectVpxMagic({}).length === 0);
+  check('collect returns nothing for null', collectVpxMagic(null).length === 0);
+  check('one slot -> one password',
+    JSON.stringify(collectVpxMagic({ vpxMagic: 'a' })) === '["a"]');
+  check('slots come back in order',
+    JSON.stringify(collectVpxMagic({ vpxMagic: 'a', vpxMagic2: 'b', vpxMagic3: 'c' })) === '["a","b","c"]');
+  check('the overflow list comes last',
+    JSON.stringify(collectVpxMagic({
+      vpxMagic: 'a', vpxMagic2: 'b', vpxMagic3: 'c', vpxMagicAdditional: ['d', 'e']
+    })) === '["a","b","c","d","e"]');
+  check('a blank middle slot is dropped, not stranded',
+    JSON.stringify(collectVpxMagic({ vpxMagic: 'a', vpxMagic2: '   ', vpxMagic3: 'c' })) === '["a","c"]',
+    JSON.stringify(collectVpxMagic({ vpxMagic: 'a', vpxMagic2: '   ', vpxMagic3: 'c' })));
+  check('passwords are trimmed', JSON.stringify(collectVpxMagic({ vpxMagic: '  a  ' })) === '["a"]');
+  check('a non-array overflow value is ignored',
+    JSON.stringify(collectVpxMagic({ vpxMagic: 'a', vpxMagicAdditional: 'oops' })) === '["a"]');
+}
+
+// 12 ── distribute fills the inline slots first, then overflows
+{
+  const one = distributeVpxMagic(['a'], {});
+  check('one password fills only slot 1', one.vpxMagic === 'a' && !('vpxMagic2' in one));
+  check('one password leaves no overflow list', !('vpxMagicAdditional' in one));
+
+  const three = distributeVpxMagic(['a', 'b', 'c'], {});
+  check('three passwords fill the three inline slots',
+    three.vpxMagic === 'a' && three.vpxMagic2 === 'b' && three.vpxMagic3 === 'c');
+  check('three passwords leave no overflow list', !('vpxMagicAdditional' in three));
+
+  const five = distributeVpxMagic(['a', 'b', 'c', 'd', 'e'], {});
+  check('the fourth onward overflow into the list',
+    JSON.stringify(five.vpxMagicAdditional) === '["d","e"]', JSON.stringify(five.vpxMagicAdditional));
+  check('the inline slots are still filled alongside the overflow',
+    five.vpxMagic === 'a' && five.vpxMagic2 === 'b' && five.vpxMagic3 === 'c');
+
+  // Importing a smaller set over a larger one must not leave the old tail.
+  const stale = { vpxMagic: 'a', vpxMagic2: 'b', vpxMagic3: 'c', vpxMagicAdditional: ['d'] };
+  distributeVpxMagic(['z'], stale);
+  check('a shorter import clears the slots it does not fill',
+    stale.vpxMagic === 'z' && !('vpxMagic2' in stale) && !('vpxMagic3' in stale)
+    && !('vpxMagicAdditional' in stale), JSON.stringify(stale));
+
+  check('a bare string is treated as one password',
+    distributeVpxMagic('solo', {}).vpxMagic === 'solo');
+  const empty = distributeVpxMagic([], { vpxMagic: 'old' });
+  check('an empty import clears slot 1 too', !('vpxMagic' in empty));
+}
+
+// 13 ── the YML shape: nothing / scalar / list
+{
+  check('no passwords writes no key', buildVpxMagicOutput({}) === undefined);
+  check('a blank password writes no key', buildVpxMagicOutput({ vpxMagic: '  ' }) === undefined);
+
+  const single = buildVpxMagicOutput({ vpxMagic: 'hunter2' });
+  check('ONE password stays a plain string', typeof single === 'string', typeof single);
+  check('ONE password is byte-identical to the pre-multi-password output',
+    single === encodeVpxMagic('hunter2'),
+    'nothing already published may change shape');
+
+  const many = buildVpxMagicOutput({ vpxMagic: 'a', vpxMagic2: 'b' });
+  check('TWO passwords become a list', Array.isArray(many) === true);
+  check('the list holds both, in order',
+    many.length === 2 && many[0] === encodeVpxMagic('a') && many[1] === encodeVpxMagic('b'));
+  check('every list entry is encoded, not plain',
+    many.every(entry => entry !== 'a' && entry !== 'b'));
+
+  const six = buildVpxMagicOutput({
+    vpxMagic: 'a', vpxMagic2: 'b', vpxMagic3: 'c', vpxMagicAdditional: ['d', 'e', 'f']
+  });
+  check('six passwords all reach the list', six.length === 6, String(six.length));
+}
+
+// 14 ── THE ROUND TRIP: type -> write -> import -> compare, every slot count
+// A password is the one field where losing a character is unrecoverable:
+// nothing downstream can tell a wrong password from a right one.
+{
+  const pool = ['hunter2', 'pässwörd', 'пароль', '密码', 'pass🔑word', 'a b!c#d$e'];
+
+  for (let count = 1; count <= pool.length; count += 1) {
+    const typed = pool.slice(0, count);
+    const state = distributeVpxMagic(typed, {});
+    const written = buildVpxMagicOutput(state);
+
+    // What the YML would carry, back through the importer's path.
+    const raw = Array.isArray(written) ? written : [written];
+    const decoded = raw.map(decodeVpxMagic);
+    const reimported = distributeVpxMagic(decoded, {});
+    const readBack = collectVpxMagic(reimported);
+
+    check(count + ' password(s) survive the full round trip',
+      JSON.stringify(readBack) === JSON.stringify(typed),
+      'typed ' + JSON.stringify(typed) + ' got ' + JSON.stringify(readBack));
+
+    check(count + ' password(s) re-encode identically (no double-encoding)',
+      JSON.stringify(buildVpxMagicOutput(reimported)) === JSON.stringify(written),
+      'import then download must not encode a second time');
+
+    check(count + ' password(s): the written value never contains the plain text',
+      typed.every(word => !raw.some(entry => String(entry) === word)),
+      JSON.stringify(raw));
+  }
+}
+
+// 15 ── every encoded entry is single-line, so the list writer is safe
+{
+  // buildYaml's array branch writes `  - "value"` per item with no folding.
+  // That is only safe because base64 never contains a newline or a quote.
+  const long = buildVpxMagicOutput({ vpxMagic: 'x'.repeat(300), vpxMagic2: 'y'.repeat(300) });
+  check('a long multi-password payload is still a list', Array.isArray(long));
+  check('no encoded entry contains a newline',
+    long.every(entry => !String(entry).includes('\n')));
+  check('no encoded entry contains a double quote',
+    long.every(entry => !String(entry).includes('"')),
+    'the array writer wraps each item in double quotes without escaping');
+}
+
 report('vpxMagic codec and serialization');

@@ -376,6 +376,16 @@
       onBundle: handleBundleChange,
       onNsfw: handleNsfwChange,
       onOverride: handleOverrideChange,
+      // The DMD row's dropdown writes specialDMDType straight through the
+      // normal field path: it picks a type, not a VPS asset, so it must not go
+      // through onSelect and land in `selections`. The extra renderWorkspace is
+      // what lets the DMD tab unlock: handleFieldChange calls
+      // refreshTabStatuses, which only repaints a tab's status classes and
+      // never re-evaluates which tabs are enabled.
+      onChange: (key, value) => {
+        handleFieldChange(key, value);
+        renderWorkspace();
+      },
       onToggleDetail: toggleAssetDetail,
       isDetailOpen: category => state.openAssetDetails.has(category)
     });
@@ -445,6 +455,36 @@
     markChanged();
   }
 
+  // A shape switch takes the keys the new shape does not carry with it.
+  // prepareData already drops them from the YAML and the fields are disabled
+  // either way, but leaving the values on screen reads as "this is still set"
+  // when the output has already let go of it.
+  function clearShapeDisabledFields(step) {
+    if (!step) return;
+    const shapeGated = (step.fields || []).some(field => field.disabledWhen);
+    (step.fields || []).forEach(field => {
+      if (field.disabledWhen && state.values[field.disabledWhen] === true) {
+        delete state.values[field.yml_field];
+      }
+    });
+    // A step whose fields change with the shape is describing a DIFFERENT
+    // archive in each one - bundled, it is the VPX's archive; standalone, it is
+    // the asset's own. So everything derived from the old archive goes with the
+    // switch: the loaded folder list, the root chosen inside it, and its
+    // format. Leaving those behind is what left a stale Archive Root and
+    // Archive Type pointing into a file no longer part of the build.
+    //
+    // A step with no shape-gated fields (PUP, Alt Sound) is deliberately left
+    // alone: its archive means the same thing either way, so a Bundled toggle
+    // must not cost the user the folder list they just loaded.
+    if (!shapeGated) return;
+    delete state.values[`__${step.id}ArchiveDirectories`];
+    (step.fields || []).forEach(field => {
+      if (field.directoryPicker) delete state.values[field.yml_field];
+      if (field.archiveFormatField) delete state.values[field.archiveFormatField];
+    });
+  }
+
   function handleBundleChange(fieldName, checked) {
     state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.bundleField === fieldName);
@@ -452,6 +492,7 @@
     // (either can be independently unchecked, leaving both off), but turning
     // one on always turns the other off.
     if (checked && step?.overrideField) state.values[step.overrideField] = false;
+    clearShapeDisabledFields(step);
     if (!checked && step && !state.selections[step.category] && state.values[step.overrideField] !== true) {
       clearStepData(step, { preserveId: false, preserveBundle: false, preserveOverride: true, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
@@ -465,6 +506,7 @@
     state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.overrideField === fieldName);
     if (checked && step?.bundleField) state.values[step.bundleField] = false;
+    clearShapeDisabledFields(step);
     if (!checked && step && !state.selections[step.category] && state.values[step.bundleField] !== true) {
       clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: false, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.overrideField === fieldName);
@@ -496,6 +538,10 @@
 
   function isStepEnabled(step) {
     if (step.always) return true;
+    // A step may demand one value before it is worth opening at all. The DMD
+    // tab uses this: Bundled or Override says a DMD exists, but the tab cannot
+    // be filled in until its type has been picked on the asset row.
+    if (step.requiresValue && !String(state.values[step.requiresValue] ?? '').trim()) return false;
     if (step.category && state.selections[step.category]) return true;
     if (step.bundleField && state.values[step.bundleField] === true) return true;
     if (step.overrideField && state.values[step.overrideField] === true) return true;
@@ -566,7 +612,16 @@
     });
     if (Object.keys(checksumSources).length) state.values.__checksumSources = checksumSources;
     else delete state.values.__checksumSources;
-    if (step.id === 'pup') delete state.values.__pupArchiveDirectories;
+    // Any tab that browses an archive drops its loaded directory list on
+    // Clear. This used to name PUP explicitly, which left Alt Sound's list
+    // (and later the DMD one) behind after a section was cleared.
+    delete state.values[`__${step.id}ArchiveDirectories`];
+    // Slots 2 and 3 collapse back out of sight, and the overflow list goes
+    // with them - neither is reachable through step.fields alone.
+    if (step.id === 'vpx') {
+      delete state.values.__vpxMagicSlots;
+      delete state.values.vpxMagicAdditional;
+    }
     if (!preserveBundle && step.bundleField) delete state.values[step.bundleField];
     if (!preserveOverride && step.overrideField) delete state.values[step.overrideField];
 
@@ -752,6 +807,42 @@
       });
     }
 
+    // The DMD's two shapes. Gated on the asset row rather than on
+    // isStepEnabled: the tab needs a Type before it opens, so keying off the
+    // tab would make a missing Type the one error that can never be reported.
+    const dmdBundled = state.values.specialDMDBundled === true;
+    const dmdOverride = state.values.specialDMDOverride === true;
+    if (dmdBundled || dmdOverride) {
+      [
+        ['specialDMDType', 'DMD Type'],
+        ['specialDMDArchiveRoot', 'DMD Archive Root'],
+        ['specialDMDArchiveFormat', 'DMD Archive Format']
+      ].forEach(([key, label]) => {
+        if (!hasText(state.values[key])) {
+          addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`);
+        }
+      });
+      // The bundled shape's whole point: one archive, so vpxChecksum has to
+      // carry the archive's MD5 as well as the .vpx's.
+      if (dmdBundled && normalizeChecksumValue(state.values.vpxChecksum).length < 2) {
+        addError('vpx', 'Bundled DMD needs both checksums',
+          'Drop the bundled archive on VPX Checksum: the list must carry the archive MD5 alongside the .vpx MD5.');
+      }
+      // Standalone only. A bundled DMD ships inside the VPX archive, so its
+      // checksum lives in vpxChecksum and it has no download of its own.
+      if (!dmdBundled) {
+        validateChecksum('specialDMDChecksum', 'dmd', 'DMD Checksum', { required: true });
+        [
+          ['specialDMDUrlOverride', 'DMD URL Override'],
+          ['specialDMDVersion', 'DMD Version']
+        ].forEach(([key, label]) => {
+          if (!hasText(state.values[key])) {
+            addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`);
+          }
+        });
+      }
+    }
+
     validateChecksum('diffChecksum', 'vpuPatch', 'VPU Patch Checksum');
     if (hasText(state.values.diffUrlOverride) && !hasText(state.values.diffNotes)) {
       addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.');
@@ -804,19 +895,11 @@
       if (!step) return;
       const status = getSectionStatus(step);
       tab.classList.remove('has-error', 'has-warning', 'has-ready');
-      let marker = tab.querySelector('.config-tab-alert');
       if (status.className === 'error' || status.className === 'warning') {
         tab.classList.add(`has-${status.className}`);
         tab.title = status.label;
-        if (!marker) {
-          marker = document.createElement('span');
-          marker.className = 'config-tab-alert';
-          marker.setAttribute('aria-hidden', 'true');
-          tab.appendChild(marker);
-        }
         tab.setAttribute('aria-label', `${step.label}: ${status.label}`);
       } else {
-        marker?.remove();
         tab.removeAttribute('title');
         tab.setAttribute('aria-label', step.label);
         if (status.className === 'ready') tab.classList.add('has-ready');

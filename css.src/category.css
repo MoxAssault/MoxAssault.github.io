@@ -639,26 +639,17 @@ a.asset-name { color: inherit; text-decoration: none; cursor: pointer; }
 .asset-status.state-red .status-dot { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 .asset-status.state-neutral { color: var(--text-faint); opacity: 0.62; }
 
-/* Tab issue notifications */
+/* Tab issue state. The red/amber colour and the inset top strip carry this on
+   their own - there is deliberately no separate alert dot. */
 .config-tab { position: relative; }
-.config-tab-alert {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
 .config-tab.has-error {
   color: var(--danger);
   box-shadow: inset 0 3px 0 var(--danger);
 }
-.config-tab.has-error .config-tab-alert { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 .config-tab.has-warning {
   color: var(--accent);
   box-shadow: inset 0 3px 0 var(--accent);
 }
-.config-tab.has-warning .config-tab-alert { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 /* A tab with every required field complete stays green whether or not it's
    the active tab — completion is a property of the tab, not of focus. */
 .config-tab.has-ready { box-shadow: inset 0 3px 0 var(--success); }

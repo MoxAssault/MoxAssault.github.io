@@ -91,7 +91,6 @@
       restoreControlLabel(control);
       if (!wrapper.querySelector('.field-error-dot')) {
         wrapper.classList.remove('has-field-error');
-        wrapper.removeAttribute('data-error-count');
       }
     });
   }
@@ -129,7 +128,6 @@
   function presentField(wrapper, messages) {
     if (!wrapper || !messages.length) return;
     wrapper.classList.add('has-field-error', 'feature-has-field-error');
-    wrapper.dataset.errorCount = String(messages.length);
     wrapper.dataset.featureErrorCount = String(messages.length);
     wrapper.dataset.featureErrorMessage = messages.join(' ');
     presentErrorDot(wrapper, messages);

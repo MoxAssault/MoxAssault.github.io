@@ -165,4 +165,56 @@ const findDot = w => w.children.find(c => c.className.split(' ').includes('featu
     fex.includes('.additional-rom-controls.feature-has-field-error::after'));
 }
 
+// ── the multi-error count pill is GONE, on purpose ─────────────────────────
+// It painted a numbered red pill above any field with two or more errors. It
+// spent most of its life painting an EMPTY pill (the count lived on the .field
+// while attr() resolved against the dot), was fixed on 2026-08-26, and was then
+// removed the same day: the dot alone says "there is a problem here", and the
+// tooltip says what it is. Nothing should reintroduce data-error-count.
+{
+  const w = field('checksum-drop-field', 'feature-has-field-error');
+  api.presentErrorDot(w, ['one', 'two', 'three']);
+  const dot = findDot(w);
+  check('a multi-error field still gets its dot', !!dot);
+  check('the dot carries NO error count', dot?.dataset.errorCount === undefined,
+    String(dot?.dataset.errorCount));
+  check('the tooltip still carries every message', dot?.dataset.tooltip === 'one two three');
+
+  const sources = [
+    'js.src/uiEnhancements.js',
+    'js.src/featureValidationController.js',
+    'js.src/additionalRomsController.js',
+    'js.src/v091Corrections.js'
+  ];
+  sources.forEach(rel => {
+    const src = fs.readFileSync(repoPath(...rel.split('/')), 'utf8');
+    check(`${rel} writes no error count`, !src.includes('dataset.errorCount'));
+    check(`${rel} has no data-error-count cleanup left`, !src.includes('data-error-count'));
+  });
+
+  const uie = fs.readFileSync(CSS_DIR + 'uiEnhancements.css', 'utf8');
+  check('no CSS rule reads the count', !uie.includes('attr(data-error-count)'));
+  check('no CSS rule selects on the count', !uie.includes('[data-error-count]'));
+  check('the dot itself is untouched by the removal', uie.includes('.feature-error-dot {'));
+}
+
+// ── the red tab alert dot is GONE too ──────────────────────────────────────
+// A tab in error is red and carries an inset top strip. That is the signal; a
+// separate dot on top of it was noise.
+{
+  const category = fs.readFileSync(CSS_DIR + 'category.css', 'utf8');
+  check('no .config-tab-alert rule survives', !category.includes('.config-tab-alert'));
+  check('the error tab is still coloured red', category.includes('.config-tab.has-error {'));
+  check('the error tab still gets its inset strip',
+    category.includes('inset 0 3px 0 var(--danger)'));
+  check('the warning tab still gets its own colour', category.includes('.config-tab.has-warning {'));
+  check('the ready tab is untouched', category.includes('.config-tab.has-ready'));
+
+  ['js.src/uiHelper.js', 'js.src/main.js'].forEach(rel => {
+    const src = fs.readFileSync(repoPath(...rel.split('/')), 'utf8');
+    check(`${rel} builds no alert marker`, !src.includes('config-tab-alert'));
+    check(`${rel} still sets the has-error class`, src.includes('has-${status.className}'));
+  });
+}
+
 report('feature error dot');

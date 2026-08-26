@@ -438,3 +438,93 @@
   box-shadow: 0 0 0 3px var(--danger-soft);
   content: '';
 }
+
+/* VPX password overflow dialog. Deliberately mirrors the Additional ROMs
+   dialog above: same affordance in the same place on a different tab, so the
+   two read as one system rather than two conventions. The "+" control and the
+   indicator reuse the .additional-rom-* rules outright for the same reason. */
+.vpx-magic-dialog { width: min(560px, calc(100% - 28px)); }
+.vpx-magic-body { display: grid; gap: 12px; }
+.vpx-magic-note { margin: 0; color: var(--text-faint); font-size: 11.5px; }
+.vpx-magic-list { grid-template-columns: 1fr; gap: 10px; padding-top: 0; }
+.vpx-magic-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vpx-magic-row-controls input { flex: 1 1 auto; min-width: 0; }
+.vpx-magic-remove,
+.vpx-magic-slot-remove {
+  flex: 0 0 auto;
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid var(--panel-line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.vpx-magic-remove:hover,
+.vpx-magic-remove:focus-visible,
+.vpx-magic-slot-remove:hover,
+.vpx-magic-slot-remove:focus-visible {
+  border-color: var(--state-red);
+  color: var(--state-red);
+}
+/* The inline slot's remove sits at the right-hand end of the field, level with
+   the input rather than the label above it. */
+.field.vpx-magic-slot { position: relative; }
+.field.vpx-magic-slot > .vpx-magic-slot-remove {
+  position: absolute;
+  right: 6px;
+  bottom: 3px;
+}
+.field.vpx-magic-slot > input { padding-right: 42px; }
+.vpx-magic-add-row {
+  justify-self: start;
+  padding: 6px 10px;
+  border: 1px dashed var(--panel-line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.vpx-magic-add-row:hover,
+.vpx-magic-add-row:focus-visible { border-color: var(--accent); color: var(--accent); }
+.vpx-magic-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.vpx-magic-dialog-actions .preview-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Three-letter badges (VPX, B2S, ROM, DMD) do not need the width a full word
+   needs. Padding alone does nothing here: card.css pins every badge to a fixed
+   80px with matching min/max, so the WIDTH is what has to be overridden. */
+.asset-badge.is-short {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+}
+
+/* Tabs share the row equally rather than each sizing to its own label.
+   category.css gives them `flex: 1 0 auto` - grow, but never shrink - which is
+   what forced the strip to scroll sideways once it got crowded. Equal basis
+   plus a shrink factor makes every tab the same width and keeps the whole set
+   on one line; the ellipsis is a floor for very narrow viewports, not the
+   normal case. */
+.config-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -34,6 +34,20 @@
     vpuPatchFiles: {
       label: 'VPU Patch', singular: 'VPU Patch file', stepId: 'vpuPatch', idField: 'diffVPSId', bundleField: 'diffBundled', nsfwField: 'diffNSFW', overrideField: 'diffOverride',
       sourceFields: ['vpuPatchFiles', 'vpuPatches', 'patchFiles']
+    },
+    specialDMD: {
+      // A DMD is not a traditional asset. VPS holds no per-DMD entry, so there
+      // is no VPS ID — hence no idField, and no name link or info button on the
+      // row. The type is declared as a feature on the VPX file itself.
+      //
+      // dmdTypes is the fixed list the row's dropdown always offers. It is
+      // deliberately NOT filtered by what the table declares: VPS feature tags
+      // are not reliably labelled, so the tags drive the status light only and
+      // the user picks the real type. It lives on the config so getCategoryItems
+      // and renderAssetMatrix read one list instead of each keeping a copy.
+      label: 'DMD', singular: 'DMD pack', stepId: 'dmd', bundleField: 'specialDMDBundled',
+      nsfwField: 'specialDMDNSFW', overrideField: 'specialDMDOverride',
+      customAssetRow: 'dmd', dmdTypes: ['FlexDMD', 'UltraDMD']
     }
   };
 
@@ -75,13 +89,41 @@
         { name: 'VPX ID', yml_field: 'vpxVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'VPX Checksum', yml_field: 'vpxChecksum', type: 'str', wide: true, maxlength: 32,
-          checksumExtensions: ['.vpx', '.zip', '.rar', '.7z'], archiveScanExtension: '.vpx'
+          checksumExtensions: ['.vpx', '.zip', '.rar', '.7z'], archiveScanExtension: '.vpx',
+          // When a DMD is bundled into this same archive, ONE drop has to do
+          // the work of two tabs: the .vpx inside stays the primary checksum,
+          // the archive's own MD5 joins it as a second entry, and the archive's
+          // format, folder list and hash all cross over to the DMD tab.
+          //
+          // Only in that shape. An ordinary table's drop is untouched, which
+          // matters because that behaviour is already live on the site.
+          bundledPairing: {
+            when: 'specialDMDBundled',
+            checksumField: 'specialDMDChecksum',
+            formatField: 'specialDMDArchiveFormat',
+            rootField: 'specialDMDArchiveRoot',
+            directoriesKey: '__dmdArchiveDirectories'
+          }
         },
         { name: 'VPX Notes', yml_field: 'tableNotes', type: 'str', multiline: true, wide: true },
         // Standard text in the UI and in state; written to the YML
         // base64-encoded by VPS_UTILS.encodeVpxMagic. `advanced: true` is what
         // creates the Advanced Config section on this tab, which had none.
-        { name: 'Password', yml_field: 'vpxMagic', type: 'str', wide: true, advanced: true }
+        { name: 'Password', yml_field: 'vpxMagic', type: 'str', wide: true, advanced: true },
+        // Slots 2 and 3 are revealed on demand by vpxMagicController's "+"
+        // control and stay hidden until added. All four slots collapse into the
+        // single vpxMagic key at serialize time, so none of these three may
+        // ever reach the YML - see OMIT_FROM_YAML below, and the explicit
+        // deletes in prepareData, which matter because vpxMagicAdditional
+        // holds PLAIN TEXT passwords.
+        { name: 'Password 2', yml_field: 'vpxMagic2', type: 'str', wide: true, advanced: true },
+        { name: 'Password 3', yml_field: 'vpxMagic3', type: 'str', wide: true, advanced: true },
+        {
+          // customRenderer: rendered by vpxMagicController, not uiHelper
+          // (productionUiExtensions strips these before the generic renderer).
+          name: 'Additional Passwords', yml_field: 'vpxMagicAdditional',
+          type: 'additional-passwords', advanced: true, customRenderer: true
+        }
       ]
     },
     {
@@ -161,7 +203,8 @@
         { name: 'PUP Pack ID', yml_field: 'pupVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'PUP Pack Checksum', yml_field: 'pupChecksum', type: 'str', wide: true, maxlength: 32,
-          checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true, archiveFormatField: 'pupArchiveFormat'
+          checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true,
+          archiveFormatField: 'pupArchiveFormat', archiveRootField: 'pupArchiveRoot'
         },
         { name: 'PUP Pack Notes', yml_field: 'pupNotes', type: 'str', multiline: true, wide: true },
         { name: 'PUP Pack Version', yml_field: 'pupVersion', type: 'str' },
@@ -221,6 +264,62 @@
         { name: 'Patch URL Override', yml_field: 'diffUrlOverride', type: 'url', wide: true, advanced: true },
         { name: 'Patch Version Override', yml_field: 'diffVersionOverride', type: 'str', wide: true, advanced: true }
       ]
+    },
+    {
+      // The DMD tab's own fields are piece D of new-YML-updates.txt and are not
+      // built yet. The step is registered now regardless, because
+      // handleBundleChange and handleOverrideChange in main.js resolve their
+      // step out of WIZARD_STEPS: with no entry here, ticking Bundled would not
+      // untick Override, and unticking neither would clear the DMD values.
+      //
+      // No category — a DMD has no VPS entry to select, so this tab unlocks on
+      // Bundled or Override only (see isStepEnabled).
+      //
+      // requiresValue gates the tab on a DMD type having been picked: ticking a
+      // box alone is not enough to make the tab interactable.
+      //
+      // specialDMDType is registered here rather than left to piece D because
+      // clearStepData walks step.fields — with an empty list, unticking both
+      // boxes left the type behind in the YAML. It is readonly for the same
+      // reason pupVPSId is: the asset row's dropdown owns the value, the tab
+      // only displays it.
+      id: 'dmd', label: 'DMD', legend: 'DMD', bundleField: 'specialDMDBundled',
+      overrideField: 'specialDMDOverride', requiresValue: 'specialDMDType',
+      // Laid out like the PUP Pack tab, minus its Required checkbox.
+      //
+      // The four disabledWhen fields are exactly the keys the BUNDLED shape
+      // does not carry (see new-YML-updates.txt): a DMD shipping inside the
+      // VPX's own archive has no download of its own, so it has no checksum,
+      // notes, version or URL. Standalone (Override) needs all of them.
+      overrideRequiredFields: ['specialDMDUrlOverride', 'specialDMDVersion'],
+      fields: [
+        { name: 'DMD Type', yml_field: 'specialDMDType', type: 'str', readonly: true, wide: true },
+        {
+          name: 'DMD Checksum', yml_field: 'specialDMDChecksum', type: 'str', wide: true, maxlength: 32,
+          checksumExtensions: ['.zip', '.rar', '.7z'], archiveBrowser: true,
+          archiveFormatField: 'specialDMDArchiveFormat', archiveRootField: 'specialDMDArchiveRoot',
+          disabledWhen: 'specialDMDBundled',
+          // Bundled, this is a VIEW of vpxChecksum's second entry rather than a
+          // value of its own - same archive, one hash. Deriving it instead of
+          // storing a copy is what stops the two drifting apart when the user
+          // edits the VPX additional checksum by hand.
+          mirrorFrom: { when: 'specialDMDBundled', field: 'vpxChecksum', index: 1 },
+          disabledHint: 'Bundled with the VPX — enter this on the VPX tab instead.'
+        },
+        { name: 'DMD Notes', yml_field: 'specialDMDNotes', type: 'str', multiline: true, wide: true, disabledWhen: 'specialDMDBundled' },
+        { name: 'DMD Version', yml_field: 'specialDMDVersion', type: 'str', disabledWhen: 'specialDMDBundled' },
+        { name: 'DMD URL Override', yml_field: 'specialDMDUrlOverride', type: 'url', disabledWhen: 'specialDMDBundled' },
+        { name: 'DMD Archive Root', yml_field: 'specialDMDArchiveRoot', type: 'str', directoryPicker: true },
+        {
+          name: 'DMD Archive Format', yml_field: 'specialDMDArchiveFormat', type: 'select', hideLabel: true,
+          options: [
+            { label: 'DMD Archive Format', value: '' },
+            { label: 'ZIP', value: 'zip' },
+            { label: 'RAR', value: 'rar' },
+            { label: '7Z', value: '7z' }
+          ]
+        }
+      ]
     }
   ];
 
@@ -228,6 +327,7 @@
     'coloredROMChecksumSecondary',
     '__pupArchiveDirectories',
     '__altSoundArchiveDirectories',
+    '__dmdArchiveDirectories',
     '__checksumSources',
     '__tableManufacturer',
     // Override checkboxes are a builder-only convenience that unlocks a tab
@@ -238,7 +338,14 @@
     'coloredROMOverride',
     'pupOverride',
     'altSoundOverride',
-    'diffOverride'
+    'diffOverride',
+    'specialDMDOverride',
+    // Password slots 2+ are builder-only state. They are collapsed into the
+    // single vpxMagic key by prepareData; the raw keys must never be written.
+    'vpxMagic2',
+    'vpxMagic3',
+    'vpxMagicAdditional',
+    '__vpxMagicSlots'
   ]);
   const PRESET_FIELDS = new Set(['enabled', 'fps', 'testers', 'pupArchiveFormat', 'altSoundArchiveFormat']);
 

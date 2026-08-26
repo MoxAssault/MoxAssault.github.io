@@ -79,10 +79,19 @@
         if (!normalizeNames(values.testers).length) add('testers', 'At least one tester is required.');
         break;
       }
-      case 'vpx':
+      case 'vpx': {
         if (!hasText(values.vpxVPSId)) add('vpxVPSId', 'A VPX file must be selected.');
         validateChecksum('vpxChecksum', 'VPX Checksum', { required: true });
+        // Hand-mirrored from validateBuild in main.js - these two validators
+        // never read each other (see VPXS Layered Validation).
+        const bundledPair = Array.isArray(values.vpxChecksum)
+          ? values.vpxChecksum.filter(entry => String(entry || '').trim()).length
+          : 0;
+        if (values.specialDMDBundled === true && bundledPair < 2) {
+          add('vpxChecksum', 'A bundled DMD needs both the archive and .vpx checksums.');
+        }
         break;
+      }
       case 'b2s':
         validateChecksum('backglassChecksum', 'Backglass Checksum', { required: true });
         if (hasText(values.backglassUrlOverride) && !hasText(values.backglassNotes)) {
@@ -138,6 +147,22 @@
         if (!hasText(values.pupArchiveFormat)) add('pupArchiveFormat', 'PUP Pack Archive Format is required.');
         break;
       }
+      case 'dmd': {
+        // Hand-mirrored from validateBuild in main.js. These two validators
+        // never read each other (see VPXS Layered Validation), so any rule
+        // change here has to be made in both or the dots and the blocking
+        // errors disagree.
+        const dmdBundled = values.specialDMDBundled === true;
+        if (!hasText(values.specialDMDType)) add('specialDMDType', 'DMD Type is required.');
+        if (!hasText(values.specialDMDArchiveRoot)) add('specialDMDArchiveRoot', 'DMD Archive Root is required.');
+        if (!hasText(values.specialDMDArchiveFormat)) add('specialDMDArchiveFormat', 'DMD Archive Format is required.');
+        if (!dmdBundled) {
+          validateChecksum('specialDMDChecksum', 'DMD Checksum', { required: true });
+          if (!hasText(values.specialDMDUrlOverride)) add('specialDMDUrlOverride', 'DMD URL Override is required.');
+          if (!hasText(values.specialDMDVersion)) add('specialDMDVersion', 'DMD Version is required.');
+        }
+        break;
+      }
       case 'vpuPatch':
         validateChecksum('diffChecksum', 'VPU Patch Checksum');
         if (hasText(values.diffUrlOverride) && !hasText(values.diffNotes)) {
@@ -172,7 +197,6 @@
   function clearFieldErrors(container) {
     container?.querySelectorAll('.field.has-field-error').forEach(field => {
       field.classList.remove('has-field-error');
-      field.removeAttribute('data-error-count');
       field.querySelector(':scope > .field-error-dot')?.remove();
     });
   }
@@ -188,7 +212,6 @@
     if (!wrapper || !messages?.length) return false;
 
     wrapper.classList.add('has-field-error');
-    wrapper.dataset.errorCount = String(messages.length);
 
     const dot = document.createElement('span');
     dot.className = 'field-error-dot';

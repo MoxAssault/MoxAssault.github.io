@@ -86,7 +86,6 @@
 
     idField.querySelectorAll(':scope > .field-error-dot').forEach(dot => dot.remove());
     idField.classList.remove('has-field-error');
-    idField.removeAttribute('data-error-count');
   }
 
   function applyCorrections(container = document) {

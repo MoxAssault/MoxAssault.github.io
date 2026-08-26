@@ -102,7 +102,6 @@
   function clearFieldErrorPresentation(node) {
     node.querySelectorAll('.field.has-field-error').forEach(field => {
       field.classList.remove('has-field-error');
-      field.removeAttribute('data-error-count');
       field.querySelector(':scope > .field-error-dot')?.remove();
     });
   }
@@ -119,7 +118,6 @@
       const wrapper = node.querySelector(`#${FIELD_CONTROL_IDS[field]}`)?.closest('.field');
       if (!wrapper) return;
       wrapper.classList.add('has-field-error');
-      wrapper.dataset.errorCount = String(messages.length);
       const dot = document.createElement('span');
       dot.className = 'field-error-dot';
       dot.dataset.tooltip = messages.join(' ');

@@ -148,6 +148,32 @@
       }));
     }
 
+    if (category === 'specialDMD') {
+      // A DMD has no VPS entry of its own — it is declared as a feature on the
+      // VPX file. These pseudo-items exist ONLY to drive the asset row's status
+      // light: Available when the table declares a DMD, Unavailable when it
+      // does not. They deliberately do NOT feed the row's dropdown, which always
+      // offers every config.dmdTypes entry, because VPS feature tags are not
+      // reliably labelled and a wrong tag must not block the user.
+      const types = Array.isArray(config.dmdTypes) ? config.dmdTypes : [];
+      const selectedVpxId = String(context?.selections?.tableFiles ?? context?.selectedVpxId ?? '').trim();
+      // A DMD belongs to one specific VPX, so with no VPX chosen there is
+      // nothing to declare it. Falling back to "scan every table file" here lit
+      // the row up as Available on a fresh search, before any VPX was picked.
+      if (!selectedVpxId) return [];
+      const tableFiles = Array.isArray(record.tableFiles) ? record.tableFiles : [];
+      const source = tableFiles.filter(item => String(item?.id ?? '').trim() === selectedVpxId);
+      const declared = new Set();
+      source.forEach(item => {
+        normalizeList(item?.features ?? item?.Features).forEach(feature => {
+          const label = String(feature).trim().toLowerCase();
+          const match = types.find(type => type.toLowerCase() === label);
+          if (match) declared.add(match);
+        });
+      });
+      return types.filter(type => declared.has(type)).map(type => ({ id: type, name: type }));
+    }
+
     const sourceFields = Array.isArray(config.sourceFields) && config.sourceFields.length
       ? config.sourceFields
       : [category];
@@ -740,6 +766,53 @@
     }
   }
 
+  // The builder holds passwords in four places: vpxMagic (the original field),
+  // vpxMagic2 and vpxMagic3 (revealed on demand in Advanced Config), and
+  // vpxMagicAdditional (a list owned by the overflow dialog). The YML carries
+  // ONE key. These two functions are the only place that mapping lives, for
+  // the same reason encode and decode are shared: a second copy is how the two
+  // halves of a round trip drift apart.
+  const VPX_MAGIC_INLINE_KEYS = ['vpxMagic', 'vpxMagic2', 'vpxMagic3'];
+
+  // State -> ordered list of plain-text passwords, blanks dropped. Dropping
+  // blanks is what lets slot 2 be cleared without stranding slot 3.
+  function collectVpxMagic(values) {
+    const source = values || {};
+    const extra = Array.isArray(source.vpxMagicAdditional) ? source.vpxMagicAdditional : [];
+    return [...VPX_MAGIC_INLINE_KEYS.map(key => source[key]), ...extra]
+      .map(entry => String(entry ?? '').trim())
+      .filter(Boolean);
+  }
+
+  // The inverse, used on import: fill the inline slots in order, then overflow
+  // the rest into the dialog's list. Mutates and returns `values`.
+  function distributeVpxMagic(list, values) {
+    const target = values || {};
+    const clean = (Array.isArray(list) ? list : [list])
+      .map(entry => String(entry ?? '').trim())
+      .filter(Boolean);
+    VPX_MAGIC_INLINE_KEYS.forEach((key, index) => {
+      if (clean[index]) target[key] = clean[index];
+      else delete target[key];
+    });
+    const overflow = clean.slice(VPX_MAGIC_INLINE_KEYS.length);
+    if (overflow.length) target.vpxMagicAdditional = overflow;
+    else delete target.vpxMagicAdditional;
+    return target;
+  }
+
+  // The single decision about what the YML actually carries, kept here beside
+  // the codec so a test can drive it without standing up prepareData's world.
+  //
+  // Returns undefined when there is nothing to write, a plain base64 string for
+  // one password - byte-identical to what shipped before multi-password
+  // support, so nothing already published changes - and a list for two or more.
+  function buildVpxMagicOutput(values) {
+    const encoded = collectVpxMagic(values).map(encodeVpxMagic).filter(Boolean);
+    if (!encoded.length) return undefined;
+    return encoded.length === 1 ? encoded[0] : encoded;
+  }
+
   window.VPS_UTILS = {
     escapeHtml,
     humanize,
@@ -770,6 +843,10 @@
     cssEscape,
     // Shared so the serializer and the YML importer cannot drift apart.
     encodeVpxMagic,
-    decodeVpxMagic
+    decodeVpxMagic,
+    collectVpxMagic,
+    distributeVpxMagic,
+    buildVpxMagicOutput,
+    VPX_MAGIC_INLINE_KEYS
   };
 })();

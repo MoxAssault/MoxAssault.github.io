@@ -942,6 +942,8 @@
         } else {
           badge.setAttribute('aria-label', `${config.label}: ${assetState.label}`);
         }
+        // VPX, B2S, ROM and DMD do not need the width a full word needs.
+        if (String(config.label).length <= 3) badge.classList.add('is-short');
         badge.textContent = config.label;
         badgeContainer.appendChild(badge);
       });
@@ -1003,11 +1005,105 @@
     return thumbnail;
   }
 
+  // The DMD row is deliberately not built by the generic loop in
+  // renderAssetMatrix. A DMD has no VPS entry, so it gets no name link, no info
+  // button and no detail panel, and its dropdown picks a *type* rather than a
+  // VPS asset — which is why the value is written to values.specialDMDType
+  // through the normal field-change path and never into `selections`. Keeping it
+  // out of `selections` is exactly what stops getAssetState's Conflict branch
+  // firing the moment a type is chosen alongside Bundled or Override.
+  function appendDmdAssetRow(container, config, assetState, values, callbacks) {
+    const bundled = values[config.bundleField] === true;
+    const overridden = values[config.overrideField] === true;
+    const unlocked = bundled || overridden;
+
+    const row = element('div', 'asset-row asset-row-dmd');
+    row.dataset.category = 'specialDMD';
+    row.appendChild(element('div', 'asset-name', config.label));
+
+    // assetState.items holds the DMD types the selected VPX actually declares,
+    // so an empty list means either no VPX is chosen yet or the chosen one
+    // carries no DMD tag. Both read the same to the user: nothing to configure.
+    const declared = (assetState.items || []).length > 0;
+
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', `Select ${config.singular} type`);
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = unlocked
+      ? 'Select DMD Type'
+      : declared ? 'Bundled w/ VPX or Override' : 'No DMD Available';
+    select.appendChild(placeholder);
+    (config.dmdTypes || []).forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      option.selected = String(values.specialDMDType || '') === type;
+      select.appendChild(option);
+    });
+    // Every type is always offered; the table's tags drive the status light
+    // only. The control stays locked until the user declares a shape, because
+    // the type is meaningless until then.
+    select.disabled = !unlocked;
+    select.addEventListener('change', () => callbacks.onChange?.('specialDMDType', select.value));
+
+    const selectWrap = element('div', 'asset-select-wrap');
+    selectWrap.appendChild(select);
+    row.appendChild(selectWrap);
+
+    const toggles = element('div', 'asset-toggle-stack');
+
+    const bundleLabel = element('label', 'bundle-toggle');
+    const bundleCheck = document.createElement('input');
+    bundleCheck.type = 'checkbox';
+    bundleCheck.checked = bundled;
+    bundleCheck.addEventListener('change', () => callbacks.onBundle(config.bundleField, bundleCheck.checked));
+    bundleLabel.append(bundleCheck, document.createTextNode('Bundled'));
+    toggles.appendChild(bundleLabel);
+
+    const nsfwLabel = element('label', 'bundle-toggle nsfw-toggle');
+    const nsfwCheck = document.createElement('input');
+    nsfwCheck.type = 'checkbox';
+    nsfwCheck.checked = values[config.nsfwField] === true;
+    // The table-level NSFW flag owns the per-asset flags while checked.
+    nsfwCheck.disabled = !unlocked || values.nsfw === true;
+    nsfwCheck.setAttribute('aria-label', `Mark ${config.singular} NSFW`);
+    nsfwCheck.addEventListener('change', () => callbacks.onNsfw?.(config.nsfwField, nsfwCheck.checked));
+    nsfwLabel.append(nsfwCheck, document.createTextNode('NSFW'));
+    toggles.appendChild(nsfwLabel);
+
+    const overrideLabel = element('label', 'bundle-toggle override-toggle');
+    const overrideCheck = document.createElement('input');
+    overrideCheck.type = 'checkbox';
+    overrideCheck.checked = overridden;
+    overrideCheck.setAttribute('aria-label', `Override ${config.singular} — unlock this tab without a VPS entry`);
+    overrideCheck.addEventListener('change', () => callbacks.onOverride?.(config.overrideField, overrideCheck.checked));
+    overrideLabel.append(overrideCheck, document.createTextNode('Override'));
+    toggles.appendChild(overrideLabel);
+
+    row.appendChild(toggles);
+
+    const status = element('div', `asset-status state-${assetState.key}`);
+    status.append(element('span', 'status-dot'), document.createTextNode(assetState.label));
+    row.appendChild(status);
+
+    // No info button and no detail panel — both need a VPS item and a DMD has
+    // none. The empty span holds the row's fifth grid column so the DMD row
+    // lines up with the seven above it.
+    row.appendChild(element('span'));
+
+    container.appendChild(row);
+  }
+
   function renderAssetMatrix(container, record, selections, values, callbacks) {
     container.innerHTML = '';
 
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
       const assetState = getAssetState(record, category, config, selections, values);
+      if (config.customAssetRow === 'dmd') {
+        appendDmdAssetRow(container, config, assetState, values, callbacks);
+        return;
+      }
       const items = assetState.items;
       const selectedId = selections[category] || '';
       const selectedItem = items.find(item => item.id === selectedId) || null;
@@ -1163,15 +1259,47 @@
       if (name === 'altSoundArchiveFormat') return ' field-alt-format';
       if (name === 'altSoundArchiveRoot') return ' field-alt-root';
     }
+    // The DMD tab uses the default field grid, so this carries sizing only:
+    // two rows (72px) to match PUP Notes, rather than the three-row default
+    // every other multiline field falls through to.
+    if (stepId === 'dmd' && name === 'specialDMDNotes') return ' field-wide field-textarea-two';
     if (field.readonly) return ' field-compact-id field-id-standard';
     if (/Checksum/i.test(field.name)) return ' field-checksum field-checksum-standard';
     if (field.multiline) return ' field-wide field-textarea-three';
     return field.wide ? ' field-wide' : '';
   }
 
+  // Three ways a field can be locked: outright, UNLESS another value is true,
+  // or WHEN another value is true. The third is what lets a shape switch lock
+  // the keys that shape does not carry - the DMD tab uses it so ticking Bundled
+  // greys the four standalone-only fields instead of letting them be filled in
+  // and silently dropped at serialize time.
+  function fieldIsDisabled(field, values) {
+    if (field.disabled) return true;
+    if (field.disabledUnless && values[field.disabledUnless] !== true) return true;
+    if (field.disabledWhen && values[field.disabledWhen] === true) return true;
+    return false;
+  }
+
+  // Each tab keeps its OWN loaded directory list. The key is derived from the
+  // step id, which already matches the two that existed before this was
+  // generalised: pup -> __pupArchiveDirectories, altSound ->
+  // __altSoundArchiveDirectories. Sharing one key (and one hardcoded picker id)
+  // meant a DMD archive drop repainted the PUP picker and overwrote PUP's list.
+  function archiveDirectoriesKey(stepId) {
+    return `__${stepId}ArchiveDirectories`;
+  }
+
   function createFieldControl(field, values, onChange, stepId) {
     const wrapper = element('div', `field${getFieldLayoutClass(stepId, field)}`);
-    const value = values[field.yml_field] ?? '';
+    // A mirrored field displays another field's value and stores nothing of
+    // its own, so the two can never disagree.
+    const mirror = field.mirrorFrom && values[field.mirrorFrom.when] === true
+      ? values[field.mirrorFrom.field]
+      : undefined;
+    const value = mirror !== undefined
+      ? (Array.isArray(mirror) ? (mirror[field.mirrorFrom.index] ?? '') : '')
+      : (values[field.yml_field] ?? '');
     const controlId = `field-${field.yml_field}`;
 
     if (field.type === 'bool') {
@@ -1186,7 +1314,7 @@
       // underlying field is explicitly false, and checking the box writes
       // false while unchecking it omits the key entirely.
       input.checked = field.invertBoolean ? value === false : value === true;
-      input.disabled = Boolean(field.disabledUnless && values[field.disabledUnless] !== true);
+      input.disabled = fieldIsDisabled(field, values);
       input.setAttribute('aria-label', field.name);
       input.addEventListener('change', () => {
         const nextValue = field.invertBoolean
@@ -1288,7 +1416,7 @@
     input.value = Array.isArray(value) ? (value[0] || '') : value;
     if (isChecksumField && input.value) input.value = String(input.value).toUpperCase();
     input.setAttribute('aria-label', field.name);
-    input.disabled = Boolean(field.disabled) || Boolean(field.disabledUnless && values[field.disabledUnless] !== true);
+    input.disabled = fieldIsDisabled(field, values);
     if (usesPlaceholderLabel) {
       const hint = field.placeholder || (field.type === 'array' ? 'comma-separated' : '');
       input.placeholder = hint ? `${field.name} — ${hint}` : field.name;
@@ -1320,11 +1448,14 @@
     });
 
     if (field.directoryPicker) {
-      const directories = Array.isArray(values.__pupArchiveDirectories) ? values.__pupArchiveDirectories : [];
+      const directoriesKey = archiveDirectoriesKey(stepId);
+      const directories = Array.isArray(values[directoriesKey]) ? values[directoriesKey] : [];
+      // "PUP Pack Archive Root" -> "PUP Pack", "DMD Archive Root" -> "DMD".
+      const assetName = String(field.name).replace(/\s*Archive Root$/i, '') || 'archive';
       const picker = createDirectoryPicker({
         id: `${controlId}-directory-select`,
-        ariaLabel: 'Choose PUP Pack archive root from loaded directories',
-        emptyText: 'Drop a PUP Pack archive to browse directories',
+        ariaLabel: `Choose ${assetName} archive root from loaded directories`,
+        emptyText: `Drop a ${assetName} archive to browse directories`,
         getValue: () => input.value,
         onSelect: directory => {
           input.value = directory;
@@ -1345,6 +1476,13 @@
       loadingTrack.appendChild(element('span', 'checksum-loading-dot'));
       const hintExtensions = field.colorRomArchiveScan ? [...allowed, ...ARCHIVE_EXTENSIONS] : allowed;
       const dropHint = element('span', 'checksum-drop-hint', `Drop ${hintExtensions.join(' / ')} file to calculate MD5${field.archiveBrowser ? ' and browse folders' : ''}`);
+      // A field the current shape does not use explains itself rather than
+      // inviting a drop it would ignore. Set before defaultHint is captured, so
+      // clearing the status restores the explanation and not the invitation.
+      if (input.disabled && field.disabledHint) {
+        dropHint.textContent = field.disabledHint;
+        statusRow.dataset.tooltip = field.disabledHint;
+      }
       // paintChecksumStatus restores this when a field's status is cleared.
       dropHint.dataset.defaultHint = dropHint.textContent;
       statusRow.append(loadingTrack, dropHint);
@@ -1438,6 +1576,15 @@
           if (formatSelect) formatSelect.value = format;
         }
 
+        // One archive holding both the VPX and its DMD. Everything below is
+        // gated on this being non-null, so a normal drop takes the same path it
+        // always has.
+        const pairing = field.bundledPairing
+          && values[field.bundledPairing.when] === true
+          && ARCHIVE_EXTENSIONS.includes(extension)
+          ? field.bundledPairing
+          : null;
+
         const scanExtension = getArchiveScanExtension(field, values);
         // Only a manufacturer-driven scan is allowed to fall back. A table
         // archive with no .vpx inside really is an error; a Stern archive
@@ -1461,19 +1608,57 @@
               return scanFallback();
             })
           : hashWholeFile();
-        const archiveTask = field.archiveBrowser
+        // A bundled drop browses folders too, for the DMD tab's picker, even
+        // though the VPX checksum field is not itself an archive browser.
+        const archiveTask = (field.archiveBrowser || pairing)
           ? readArchiveDirectories(file)
           : Promise.resolve(null);
-        const [checksumResult, archiveResult] = await Promise.allSettled([checksumTask, archiveTask]);
+        // The whole archive's own MD5, alongside the .vpx extracted from it.
+        const pairedHashTask = pairing ? calculateMd5FromBlob(file) : Promise.resolve(null);
+        const [checksumResult, archiveResult, pairedHashResult] =
+          await Promise.allSettled([checksumTask, archiveTask, pairedHashTask]);
         // Cleared, or superseded by a newer drop, while this ran: the build
         // this result belongs to is gone, so none of it may be written back.
         if (!isChecksumGenerationCurrent(controlId, generation)) return;
 
         const messages = [];
         let hadError = false;
+        // An archive with no folders inside it is not a bundle, it is just a
+        // .vpx in a zip - so it earns no second hash and no cross-writes.
+        const pairedDirectories = pairing && archiveResult.status === 'fulfilled'
+          ? (archiveResult.value || [])
+          : [];
+        const pairedHash = pairing && pairedDirectories.length && pairedHashResult.status === 'fulfilled'
+          ? String(pairedHashResult.value || '').trim()
+          : '';
+
         if (checksumResult.status === 'fulfilled' && checksumResult.value?.checksum) {
           input.value = checksumResult.value.checksum;
-          onChange(field.yml_field, replacePrimaryChecksum(values[field.yml_field], checksumResult.value.checksum), field);
+          if (pairedHash) {
+            // Exactly the pair the bundled shape calls for, and in that order:
+            // the .vpx inside is the primary (it is what this field shows, and
+            // what a non-bundled drop has always produced), the archive's own
+            // MD5 is the second entry. Any earlier "additional" values are
+            // replaced rather than kept - in this shape the list IS the pair.
+            onChange(field.yml_field, [checksumResult.value.checksum, pairedHash], field);
+            // The archive's format is the DMD's format too - the user answers it
+            // once, on the DMD tab, and prepareData mirrors it to
+            // vpxArchiveFormat at write time rather than asking twice. Written
+            // HERE, behind the same folder check as the hash: a .vpx sitting in
+            // a bare zip is not a bundle and must set nothing at all.
+            const pairedFormat = extension.slice(1);
+            onChange(pairing.formatField, pairedFormat, { yml_field: pairing.formatField, type: 'select' });
+            const pairedSelect = document.getElementById(`field-${pairing.formatField}`);
+            if (pairedSelect) pairedSelect.value = pairedFormat;
+            // Nothing is written to the DMD checksum: it mirrors this list's
+            // second entry, so it follows automatically - including when the
+            // user edits the additional checksum by hand later.
+            const pairedInput = document.getElementById(`field-${pairing.checksumField}`);
+            if (pairedInput) pairedInput.value = pairedHash.toUpperCase();
+            messages.push('archive MD5 paired');
+          } else {
+            onChange(field.yml_field, replacePrimaryChecksum(values[field.yml_field], checksumResult.value.checksum), field);
+          }
           const sources = { ...(values.__checksumSources || {}) };
           sources[field.yml_field] = { name: file.name, extension };
           onChange('__checksumSources', sources, { uiOnly: true });
@@ -1489,13 +1674,22 @@
           console.warn('MD5 failed:', checksumResult.reason);
         }
 
-        if (field.archiveBrowser) {
+        if (field.archiveBrowser || pairing) {
           if (archiveResult.status === 'fulfilled') {
             const directories = archiveResult.value || [];
-            onChange('__pupArchiveDirectories', directories, { uiOnly: true });
+            // A bundled drop fills the DMD tab's list, not this tab's.
+            onChange(pairing ? pairing.directoriesKey : archiveDirectoriesKey(stepId),
+              directories, { uiOnly: true });
             // A freshly dropped archive starts collapsed, even if the previous
-            // one had been expanded.
-            getDirectoryPicker('field-pupArchiveRoot-directory-select')?.setDirectories(directories, { collapse: true });
+            // one had been expanded. The picker is addressed through the field's
+            // own archiveRootField: hardcoding PUP's id here is what made a DMD
+            // drop repaint the PUP picker and leave the DMD one empty until a
+            // tab switch rebuilt it from state.
+            const rootField = pairing ? pairing.rootField : field.archiveRootField;
+            if (rootField) {
+              getDirectoryPicker(`field-${rootField}-directory-select`)
+                ?.setDirectories(directories, { collapse: true });
+            }
             messages.push(directories.length
               ? `${directories.length} director${directories.length === 1 ? 'y' : 'ies'} loaded`
               : 'no directories found');
@@ -1586,9 +1780,6 @@
       if (status.className === 'error' || status.className === 'warning') {
         tab.classList.add(`has-${status.className}`);
         tab.title = status.label;
-        const marker = element('span', 'config-tab-alert');
-        marker.setAttribute('aria-hidden', 'true');
-        tab.appendChild(marker);
         tab.setAttribute('aria-label', `${step.label}: ${status.label}`);
       } else if (status.className === 'ready') {
         tab.classList.add('has-ready');
