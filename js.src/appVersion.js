@@ -12,5 +12,5 @@
   //
   // Bump this whenever anything under vendor/ changes.
   // See vendor/libarchive/VERSION.md.
-  window.VPS_APP_VERSION = '2026-08-24';
+  window.VPS_APP_VERSION = '2026-08-26';
 })();
