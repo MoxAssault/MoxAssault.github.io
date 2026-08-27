@@ -307,8 +307,13 @@
   let unrarModulePromise = null;
 
   function loadUnrarModule() {
-    // libarchive.js cannot decompress RAR entries, so RAR extraction goes
-    // through node-unrar-js (vendored WASM build of the official unrar lib).
+    // Fallback engine for RAR only. libarchive DOES decompress RAR4 and RAR5
+    // (measured 2026-08-26/27, extracted bytes compared against WinRAR), so it
+    // is tried first in extractArchiveEntries. What it refuses outright is a
+    // SOLID RAR4 - "RAR solid archive support unavailable" - and node-unrar-js
+    // (the vendored WASM build of the official unrar lib) is the only engine
+    // here that reads one. It does a whole-file read, so it is the
+    // size-limited path and must stay the exception rather than the default.
     if (!unrarModulePromise) {
       const moduleUrl = archiveAssetUrl('vendor/unrar/unrar.bundle.js');
       const wasmUrl = archiveAssetUrl('vendor/unrar/unrar.wasm');
@@ -353,7 +358,21 @@
     try {
       const entries = (await archive.getFilesArray()) || [];
       const entryName = entry => `${String(entry?.path || '')}${String(entry?.file?.name || '')}`;
-      const wanted = selectNames(entries.map(entryName));
+      // selectNames throws a user-facing "no matching file inside" error. That
+      // means the archive was read fine, so it must NOT trigger the RAR
+      // fallback in extractArchiveEntries - re-reading a multi-GB archive
+      // through unrar to arrive at the identical message is exactly the
+      // whole-file read this routing exists to avoid. Tag it so the caller can
+      // tell it apart from a genuine read failure.
+      let wanted;
+      try {
+        wanted = selectNames(entries.map(entryName));
+      } catch (selectionError) {
+        if (selectionError && typeof selectionError === 'object') {
+          selectionError.archiveWasRead = true;
+        }
+        throw selectionError;
+      }
       const output = [];
       for (const name of wanted) {
         const entry = entries.find(candidate => entryName(candidate) === name);
@@ -369,10 +388,33 @@
 
   // selectNames receives every file entry name in the archive and returns the
   // names to extract (it may throw a user-facing Error instead).
-  function extractArchiveEntries(file, selectNames) {
-    return getFileExtension(file.name) === '.rar'
-      ? extractRarEntries(file, selectNames)
-      : extractLibarchiveEntries(file, selectNames);
+  //
+  // Everything goes to libarchive, which mounts the file lazily and so has no
+  // size ceiling. RAR keeps unrar as a fallback for the one case libarchive
+  // refuses - a solid RAR4 - so a failed RAR read is retried there before
+  // giving up. A selector error is not a read failure and never retries.
+  async function extractArchiveEntries(file, selectNames) {
+    if (getFileExtension(file.name) !== '.rar') {
+      return extractLibarchiveEntries(file, selectNames);
+    }
+    try {
+      return await extractLibarchiveEntries(file, selectNames);
+    } catch (error) {
+      if (error && error.archiveWasRead) throw error;
+      console.warn('libarchive could not read this RAR, falling back to unrar:', error);
+      try {
+        return await extractRarEntries(file, selectNames);
+      } catch (fallbackError) {
+        // Surface the fallback's error: it is what the user saw before this
+        // routing existed, and for an archive neither engine can read unrar's
+        // message is usually the more accurate of the two. Keep libarchive's
+        // as the cause so the first failure is still reachable in the console.
+        if (fallbackError && typeof fallbackError === 'object' && !fallbackError.cause) {
+          fallbackError.cause = error;
+        }
+        throw fallbackError;
+      }
+    }
   }
 
   // requireExactlyOne is opt-in and only set for manufacturer-driven scans.
