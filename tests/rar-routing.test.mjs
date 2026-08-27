@@ -33,7 +33,7 @@ import { check, report, repoPath } from './harness.mjs';
 // -- slice the real source --------------------------------------------------
 const source = readFileSync(repoPath('js.src', 'uiHelper.js'), 'utf8');
 
-const LIB_START = '  async function extractLibarchiveEntries(file, selectNames) {';
+const LIB_START = '  async function extractLibarchiveEntries(file, selectNames, options = {}) {';
 const DISPATCH_START = '  // selectNames receives every file entry name';
 const DISPATCH_END = '  // requireExactlyOne is opt-in';
 
@@ -56,9 +56,11 @@ check('the sliced dispatcher is the async fallback version, not the old ternary'
   && !dispatchBlock.includes('? extractRarEntries(file, selectNames)'),
   'the slice does not contain the routing under test');
 
-const buildLibarchive = (loadArchiveModule, archiveReadError) =>
-  new Function('loadArchiveModule', 'archiveReadError',
-    libBlock + '\n; return extractLibarchiveEntries;')(loadArchiveModule, archiveReadError);
+// extractLibarchiveEntries delegates opening (and password unlocking) to
+// openArchiveUnlocked, which has its own file: archive-password.test.mjs.
+const buildLibarchive = openArchiveUnlocked =>
+  new Function('openArchiveUnlocked',
+    libBlock + '\n; return extractLibarchiveEntries;')(openArchiveUnlocked);
 
 const buildDispatcher = (getFileExtension, extractLibarchiveEntries, extractRarEntries, console) =>
   new Function('getFileExtension', 'extractLibarchiveEntries', 'extractRarEntries', 'console',
@@ -78,8 +80,8 @@ const file = name => ({ name, size: 1024 });
 // A spy that records calls and returns/throws whatever it was configured with.
 function engine(behaviour) {
   const calls = [];
-  const fn = async (f, selectNames) => {
-    calls.push({ name: f.name, selectNames });
+  const fn = async (f, selectNames, options) => {
+    calls.push({ name: f.name, selectNames, options });
     return behaviour(f, selectNames);
   };
   fn.calls = calls;
@@ -147,6 +149,20 @@ const SOLID_RAR4 = 'RAR solid archive support unavailable';
     typeof rar.calls[0].selectNames === 'function');
 }
 
+{
+  // Options must survive BOTH hops. If the fallback drops them, a solid RAR4
+  // would lose its passwords at exactly the moment it needs them.
+  const lib = refuses(SOLID_RAR4);
+  const rar = ok();
+  const run = buildDispatcher(getFileExtension, lib, rar, quietConsole);
+  const opts = { passwords: ['pw'], requireExactlyOne: true };
+  await run(file('solid.rar'), () => ['x'], opts);
+  check('options reach libarchive on the first attempt', lib.calls[0]?.options === opts,
+    'got ' + JSON.stringify(lib.calls[0]?.options));
+  check('options survive the fallback to unrar', rar.calls[0]?.options === opts,
+    'the fallback would lose the passwords: ' + JSON.stringify(rar.calls[0]?.options));
+}
+
 // -- a selector error is not a read failure --------------------------------
 {
   const notFound = new Error('No .vpx file found inside "pack.rar".');
@@ -191,25 +207,31 @@ const SOLID_RAR4 = 'RAR solid archive support unavailable';
 }
 
 // -- the tag itself, in extractLibarchiveEntries ---------------------------
-const archiveOver = (names, onClose) => ({
-  getFilesArray: async () => names.map(n => ({
-    path: n.includes('/') ? n.slice(0, n.lastIndexOf('/') + 1) : '',
-    file: { name: n.split('/').pop(), extract: async () => 'BYTES:' + n }
-  })),
-  close: async () => { if (onClose) onClose(); }
-});
-
-const readError = (verb, remedy, f, error) => {
-  const wrapped = new Error('Could not ' + verb + ' "' + f.name + '": ' + error.message);
-  wrapped.cause = error;
-  return wrapped;
+// openArchiveUnlocked is stubbed here; it has its own coverage in
+// archive-password.test.mjs. What matters in this file is what
+// extractLibarchiveEntries does with the entries it is handed, and how it
+// labels a selector throw so the dispatcher above can tell it apart.
+const unlockerOver = (names, onClose) => {
+  const calls = [];
+  const fn = async (f, passwords, verb, remedy) => {
+    calls.push({ name: f.name, passwords, verb, remedy });
+    return {
+      archive: { close: async () => { if (onClose) onClose(); } },
+      entries: names.map(n => ({
+        path: n.includes('/') ? n.slice(0, n.lastIndexOf('/') + 1) : '',
+        file: { name: n.split('/').pop(), size: n.length, extract: async () => 'BYTES:' + n }
+      })),
+      usedPassword: null
+    };
+  };
+  fn.calls = calls;
+  return fn;
 };
 
 {
   const selectorError = new Error('No .vpx file found inside "pack.rar".');
   let closed = false;
-  const load = async () => ({ open: async () => archiveOver(['a/readme.txt'], () => { closed = true; }) });
-  const run = buildLibarchive(load, readError);
+  const run = buildLibarchive(unlockerOver(['a/readme.txt'], () => { closed = true; }));
   let threw = null;
   try { await run(file('pack.rar'), () => { throw selectorError; }); } catch (e) { threw = e; }
   check('a selector throw is tagged archiveWasRead', threw?.archiveWasRead === true,
@@ -220,28 +242,26 @@ const readError = (verb, remedy, f, error) => {
 }
 
 {
-  const openFailure = new Error(SOLID_RAR4);
-  const load = async () => ({ open: async () => { throw openFailure; } });
-  const run = buildLibarchive(load, readError);
-  let threw = null;
-  try { await run(file('solid.rar'), () => ['x']); } catch (e) { threw = e; }
-  check('a genuine read failure is NOT tagged archiveWasRead',
-    threw != null && threw.archiveWasRead !== true,
-    'tagged - solid RAR4 would never reach unrar');
-  check('a genuine read failure is wrapped for the user',
-    /Could not scan "solid\.rar"/.test(threw?.message || ''),
-    'got ' + threw?.message);
-}
-
-{
-  const load = async () => ({ open: async () => archiveOver(['Top/TheMatrix.vpx', 'readme.txt']) });
-  const run = buildLibarchive(load, readError);
+  const run = buildLibarchive(unlockerOver(['Top/TheMatrix.vpx', 'readme.txt']));
   const out = await run(file('pack.rar'), names => names.filter(n => n.endsWith('.vpx')));
   check('a successful read returns the selected entry',
     out.length === 1 && out[0].name === 'Top/TheMatrix.vpx',
     JSON.stringify(out.map(e => e.name)));
   check('the selector is shown full paths, not bare filenames',
     out[0].blob === 'BYTES:Top/TheMatrix.vpx', 'got ' + out[0].blob);
+}
+
+{
+  // The passwords have to reach the unlocker or an encrypted archive fails no
+  // matter what the user saved. This is the whole wiring of the feature.
+  const unlock = unlockerOver(['Top/TheMatrix.vpx']);
+  const run = buildLibarchive(unlock);
+  await run(file('pack.rar'), names => names, { passwords: ['one', 'two'] });
+  check('options.passwords is forwarded to the unlocker',
+    JSON.stringify(unlock.calls[0]?.passwords) === JSON.stringify(['one', 'two']),
+    'got ' + JSON.stringify(unlock.calls[0]?.passwords));
+  check('the unlocker is told this is a scan, so its errors read correctly',
+    unlock.calls[0]?.verb === 'scan', 'got ' + unlock.calls[0]?.verb);
 }
 
 report('RAR engine routing');

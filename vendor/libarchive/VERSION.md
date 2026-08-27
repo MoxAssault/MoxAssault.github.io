@@ -33,8 +33,12 @@ at the new commit exactly. Only the worker bundle and the wasm moved.
 Measured on 2026-08-26 against this exact wasm, using archives built with
 WinRAR and 7-Zip holding 560 KB of real compressed payload. Every "yes" below
 means the extracted bytes were sha256-compared against the original file and
-matched. **This is capability, not a feature: nothing in the app supplies a
-password yet.**
+matched. **The app started supplying passwords on 2026-08-27.**
+`openArchiveUnlocked` in `js.src/uiHelper.js` reads them from the `vpxMagic`
+VPX Password slots and tries each in turn against one open handle; the solid
+RAR4 fallback in `extractRarEntries` takes the same list. Encrypted 7z is
+refused in the app's own words rather than the engine's - see the 7z notes
+below. Behaviour is pinned by `tests/archive-password.test.mjs`.
 
 | Format | Encrypted | Listable without the password | Decrypts |
 |---|---|---|---|
@@ -57,22 +61,58 @@ read one.
 **7z encryption is not supported and no commit addresses it.** libarchive has
 never decrypted 7-Zip. Do not plan around this changing.
 
-Three behaviours worth knowing before writing any password UI:
+What to know before writing any password UI. Measured 2026-08-26 and
+substantially corrected and extended 2026-08-27 against WinRAR-built `-p` and
+`-hp` archives in both RAR versions, plus 7-Zip AES-256 and ZipCrypto ZIPs:
 
 - **A wrong password never yields wrong bytes.** Every wrong-password case
   raised an error. That is the property that matters here, and it was checked
   explicitly rather than assumed.
-- **Wrong-password errors are only clean for header-encrypted archives**
-  ("Incorrect passphrase"). For `-p` archives the listing succeeds and the
-  *extraction* fails with decompression noise instead — "Truncated RAR file
-  data", "Invalid location to Huffman tree specified", "Unsupported block header
-  size". Do not surface those verbatim; after every known password has been
-  tried, say the archive could not be opened with any of them.
-- **Listing an encrypted RAR now throws without a password** ("Passphrase
-  required for this entry"), where the previous pin listed entry names happily
-  and only failed at extraction. So a failed *listing* is now the signal that a
-  password is needed. `hasEncryptedData()` is not that signal — it returns
-  `false` for an encrypted 7z.
+- **Where the "wrong password" answer comes from depends on the format, and
+  most of them are clean.** Header-encrypted RAR (`-hp`, both versions) answers
+  **at listing, from the header, decompressing nothing** — "Incorrect
+  passphrase" on RAR5, "Incorrect passphrase or corrupt encrypted RAR4 header"
+  on RAR4. Encrypted ZIP raises a clean "Incorrect passphrase" too, in **both**
+  AES-256 and legacy ZipCrypto. **Only RAR `-p` is noisy**: its listing succeeds
+  under any password at all, and the *extraction* fails with decompression
+  garbage instead — "Invalid location to Huffman tree specified",
+  "Unsupported block header size", "Block checksum error", "Truncated RAR file
+  data". Never surface those verbatim.
+  *(Corrected 2026-08-27. This bullet previously claimed clean errors came only
+  from header-encrypted archives, which is wrong: encrypted ZIP is not
+  header-encrypted and still answers cleanly.)*
+- **NEVER probe a zero-byte entry, and never trust a single one.** An empty
+  file has no bytes to decrypt, so it proves nothing either way — and on
+  **RAR4 libarchive fails one outright with "Zero window size is invalid"
+  even when the password is correct**. Found 2026-08-27 against a real table
+  pack: it held a zero-byte placeholder, that entry sorted first, the probe
+  picked it, and the app reported a wrong password while every other entry in
+  the archive decrypted fine. RAR5 does not have this problem, which is what
+  made it look format-specific rather than size-specific. `probeCandidates`
+  in `js.src/uiHelper.js` now skips empty entries and returns the three
+  smallest, and any one of them decrypting is enough; an archive with no
+  probeable entry is treated as open rather than condemned on no evidence.
+- **Validating a password is cheap, and the cost does not scale with archive
+  size.** Probe the **smallest non-empty** entry rather than the one actually wanted — a
+  32-byte entry settles it, and that is what makes `-p` archives a non-problem
+  despite the noisy errors above: you report pass/fail from the probe and never
+  show the string. Measured on a 0.38 MB archive: RAR4 `-hp` 36-47 ms, RAR5
+  `-p` 63-71 ms, RAR4 `-p` 56-177 ms, ZIP AES-256 6-19 ms, ZIP ZipCrypto 3-8 ms.
+- **One open archive accepts repeated `usePassword()` attempts — RAR included.**
+  Verified by trying three passwords against a single handle and having the
+  third accepted, with no re-open and no re-read. **Do not carry unrar's
+  constraint across:** `node-unrar-js` fixes the password at
+  `createExtractorFromData`, so a retry there genuinely is a fresh whole-file
+  read. libarchive does not work that way. A note in this project asserted that
+  it did, and trying a password list was written off as expensive on RAR on the
+  strength of it; it is not.
+- **Listing an encrypted RAR throws without a password** ("Passphrase required
+  for this entry", or "… for encrypted RAR4 headers" / "… for this archive" on
+  `-hp`), where the previous pin listed entry names happily and only failed at
+  extraction. So a failed *listing* is the detect-a-password signal for RAR. ZIP
+  headers stay readable, so use `hasEncryptedData()` there — it returned `true`
+  correctly for every encrypted ZIP and RAR tested here. It is still **not**
+  trustworthy for 7z, where it returns `false`.
 
 ### Solid RAR
 

@@ -11,7 +11,9 @@
     getAssetState,
     extractArchiveDirectories,
     listArchiveEntryPaths,
-    replacePrimaryChecksum
+    replacePrimaryChecksum,
+    // The VPX Password slots double as the key ring for encrypted archives.
+    collectVpxMagic
   } = window.VPS_UTILS;
   const { CATEGORY_CONFIG } = window.VPS_YML_FIELDS;
 
@@ -268,7 +270,7 @@
     return archiveModulePromise;
   }
 
-  async function readArchiveDirectories(file) {
+  async function readArchiveDirectories(file, passwords) {
     // Fast path: streaming header parsers (currently RAR5) that work for archives
     // of any size — they never load the whole file into memory.
     try {
@@ -280,7 +282,6 @@
       console.warn('Streaming archive parse failed, falling back to libarchive:', error);
     }
 
-    const Archive = await loadArchiveModule();
     // Fallback path: libarchive.js. The vendored fork mounts the file with
     // WORKERFS and reads only the blocks it needs, so the File is handed over
     // as-is. Do NOT reintroduce an arrayBuffer()/Blob round-trip here: it was
@@ -288,14 +289,9 @@
     // re-imposes the ~2 GB ceiling the fork exists to remove, and the Blob
     // constructor refuses a buffer that large before libarchive is ever
     // reached. See vendor/libarchive/VERSION.md.
-    let archive;
+    const { archive, entries } = await openArchiveUnlocked(
+      file, passwords, 'browse', 'enter the directory manually');
     try {
-      archive = await Archive.open(file);
-    } catch (error) {
-      throw archiveReadError('browse', 'enter the directory manually', file, error);
-    }
-    try {
-      const entries = await archive.getFilesArray();
       return extractArchiveDirectories(entries);
     } finally {
       try { await archive.close(); } catch (_) { /* worker may already be closed */ }
@@ -328,35 +324,226 @@
     return unrarModulePromise;
   }
 
-  async function extractRarEntries(file, selectNames) {
+  async function extractRarEntries(file, selectNames, options = {}) {
     const { module, wasmBinary } = await loadUnrarModule();
     const data = await file.arrayBuffer();
-    const extractor = await module.createExtractorFromData({ wasmBinary, data });
-    const names = [...extractor.getFileList().fileHeaders]
-      .filter(header => !header.flags?.directory)
-      .map(header => String(header.name || ''));
-    const wanted = selectNames(names);
-    if (!wanted.length) return [];
-    const extracted = [...extractor.extract({ files: wanted }).files];
-    return wanted.map(name => {
-      const entry = extracted.find(candidate => String(candidate?.fileHeader?.name || '') === name && candidate?.extraction);
-      if (!entry) throw new Error(`Could not extract "${name}" from "${file.name}".`);
-      return { name, blob: new Blob([entry.extraction]) };
-    });
+    const passwords = (Array.isArray(options.passwords) ? options.passwords : [])
+      .map(entry => String(entry ?? '').trim())
+      .filter(Boolean);
+
+    // unrar DOES fix the password at construction, so unlike libarchive each
+    // attempt needs a fresh extractor. That is cheap here: it is rebuilt from
+    // the ArrayBuffer already in memory, so the whole-file read above happens
+    // once no matter how many passwords are tried. This path only runs for a
+    // solid RAR4, the one archive libarchive refuses.
+    let sawPasswordError = false;
+    for (const password of [null, ...passwords]) {
+      const extractor = await module.createExtractorFromData(
+        password === null ? { wasmBinary, data } : { wasmBinary, data, password });
+      try {
+        const names = [...extractor.getFileList().fileHeaders]
+          .filter(header => !header.flags?.directory)
+          .map(header => String(header.name || ''));
+        const wanted = selectNames(names);
+        if (!wanted.length) return [];
+        const extracted = [...extractor.extract({ files: wanted }).files];
+        return wanted.map(name => {
+          const entry = extracted.find(candidate => String(candidate?.fileHeader?.name || '') === name && candidate?.extraction);
+          if (!entry) throw new Error(`Could not extract "${name}" from "${file.name}".`);
+          return { name, blob: new Blob([entry.extraction]) };
+        });
+      } catch (error) {
+        // A selector throw ("no .vpx inside") and a genuine corruption are both
+        // real answers - only a password complaint is worth another attempt.
+        if (!isPassphraseError(error)) throw error;
+        sawPasswordError = true;
+      }
+    }
+    throw archiveLockedError(file, passwords);
   }
 
-  async function extractLibarchiveEntries(file, selectNames) {
+  // ---- Encrypted archives -------------------------------------------------
+  //
+  // The vendored fork decrypts ZIP (AES-256 and legacy ZipCrypto) and every RAR
+  // variant including solid RAR5. It cannot decrypt 7z and never will. The full
+  // measured matrix is in vendor/libarchive/VERSION.md; three findings from
+  // 2026-08-27 dictate the shape of the code below, and each was measured
+  // rather than assumed:
+  //
+  //   * WHERE a wrong password is reported depends on the format.
+  //     Header-encrypted RAR (-hp) answers at LISTING, straight out of the
+  //     header. ZIP and data-encrypted RAR (-p) list happily under ANY
+  //     password and only fail when an entry is actually read. So a successful
+  //     listing is NOT proof that an archive is unlocked.
+  //   * Validity is therefore settled by decrypting the SMALLEST entry rather
+  //     than the one we want: 3-19 ms on ZIP, 36-177 ms on RAR, and
+  //     independent of archive size. Probing does not disturb a later
+  //     extraction on the same handle - that was checked explicitly.
+  //   * ONE open archive accepts repeated usePassword() calls, RAR included.
+  //     Never re-open per attempt. Re-opening is node-unrar-js's constraint,
+  //     not libarchive's, and believing otherwise is what made trying a
+  //     password list look too expensive to offer.
+
+  function isPassphraseError(error) {
+    // libarchive says "Passphrase required" / "Incorrect passphrase"; unrar
+    // says "Wrong password is specified" and puts its code on `reason`.
+    const text = `${String(error?.message || '')} ${String(error?.reason || '')}`;
+    return /passphrase|password/i.test(text);
+  }
+
+  // libarchive's way of saying "this is encrypted and I have no cipher for
+  // it". In practice that means 7z, in both its modes: "The archive header is
+  // encrypted, but currently not supported" (-mhe=on, thrown at listing) and
+  // "The file content is encrypted, but currently not supported" (plain AES,
+  // thrown when an entry is read). Neither is a wrong password, so trying more
+  // passwords is pointless - it is a hard refusal, and the user needs telling
+  // that rather than being sent to check a password that was never the problem.
+  function isUnsupportedEncryptionError(error) {
+    return /encrypted, but currently not supported/i.test(String(error?.message || ''));
+  }
+
+  // The cheapest entries to test a password against, smallest first.
+  //
+  // ZERO-BYTE ENTRIES ARE EXCLUDED, and that exclusion is load-bearing. An
+  // empty file has no bytes to decrypt, so it proves nothing either way - and
+  // worse, libarchive fails one outright on RAR4 with "Zero window size is
+  // invalid" EVEN WHEN THE PASSWORD IS CORRECT. Probing one is exactly what
+  // made a real table pack report a wrong password on 2026-08-27: the pack
+  // held a zero-byte placeholder, it sorted first, it failed, and every other
+  // entry in the archive decrypted fine.
+  //
+  // Several candidates are returned rather than one because a single entry can
+  // fail for reasons that have nothing to do with the password, and one such
+  // entry must never be able to condemn the whole archive.
+  function probeCandidates(entries, limit = 3) {
+    return (entries || [])
+      .filter(entry => entry?.file
+        && typeof entry.file.extract === 'function'
+        && typeof entry.file.size === 'number'
+        && entry.file.size > 0)
+      .sort((a, b) => a.file.size - b.file.size)
+      .slice(0, limit);
+  }
+
+  // Kept as the single-candidate view of the same rule.
+  function smallestExtractableEntry(entries) {
+    return probeCandidates(entries, 1)[0] || null;
+  }
+
+  // Does the archive actually decrypt under whatever password is set now?
+  // Returns 'ok', 'locked' (wrong or missing password - try another), or
+  // 'unsupported' (no cipher exists; stop immediately).
+  async function probeArchive(entries) {
+    const candidates = probeCandidates(entries);
+    // Nothing worth probing (an archive of only empty files, say). Say 'ok'
+    // and let the real extraction report the truth rather than inventing a
+    // password problem out of an archive we never actually tested.
+    if (!candidates.length) return 'ok';
+    for (const candidate of candidates) {
+      try {
+        await candidate.file.extract();
+        return 'ok';
+      } catch (error) {
+        // No cipher exists for this format; more attempts cannot help.
+        if (isUnsupportedEncryptionError(error)) return 'unsupported';
+      }
+    }
+    return 'locked';
+  }
+
+  // Never carries the engine's own text. A wrong password on a -p archive fails
+  // with decompression garbage - "Unsupported block header size", "Invalid
+  // location to Huffman tree specified" - which means nothing to anyone and
+  // reads like a corrupt file.
+  function archiveLockedError(file, passwords) {
+    const name = file?.name || 'archive';
+    const count = passwords.length;
+    let reason;
+    if (getFileExtension(name) === '.7z') {
+      // libarchive has never decrypted 7z and no upstream commit addresses it.
+      reason = 'encrypted 7z archives cannot be opened in the browser \u2014 extract it and drop the file from inside instead';
+    } else if (!count) {
+      reason = 'it is password protected \u2014 add the password under VPX Password in Advanced Config, then drop the file again';
+    } else {
+      reason = `none of your ${count} saved password${count === 1 ? '' : 's'} opened it \u2014 check VPX Password in Advanced Config`;
+    }
+    const error = new Error(`Could not open "${name}": ${reason}.`);
+    error.archiveLocked = true;
+    // A locked archive must never fall through to unrar: it has no password
+    // either, so the only result would be a whole-file read that fails anyway.
+    error.archiveWasRead = true;
+    return error;
+  }
+
+  // Opens `file` and, when it is encrypted, unlocks it with the first password
+  // in `passwords` that works. Returns { archive, entries, usedPassword }; the
+  // CALLER owns closing the archive.
+  async function openArchiveUnlocked(file, passwords, verb, remedy) {
     const Archive = await loadArchiveModule();
-    // As in readArchiveDirectories: hand the File straight to the fork so its
-    // lazy WORKERFS mount engages. Buffering here would cap the scan at ~2 GB.
+    const list = (Array.isArray(passwords) ? passwords : [])
+      .map(entry => String(entry ?? '').trim())
+      .filter(Boolean);
+
     let archive;
     try {
       archive = await Archive.open(file);
     } catch (error) {
-      throw archiveReadError('scan', 'drop the contained file directly', file, error);
+      throw archiveReadError(verb, remedy, file, error);
     }
+
+    // `null` first: an unencrypted archive costs nothing extra this way, and
+    // one saved password is the overwhelmingly common encrypted case.
+    for (const password of [null, ...list]) {
+      try {
+        if (password !== null) await archive.usePassword(password);
+        const entries = await archive.getFilesArray();
+        let encrypted = false;
+        try { encrypted = (await archive.hasEncryptedData()) === true; } catch (_) { /* older builds */ }
+        // Nothing encrypted: return without probing. Probing every ordinary
+        // archive would cost a decrypt on every drop AND misreport an
+        // unrelated read failure as a password problem.
+        //
+        // 7z is the exception and must always be probed: hasEncryptedData()
+        // returns FALSE for an AES-encrypted 7z, so trusting it there would
+        // hand back an archive that fails later with the engine's own words.
+        if (!encrypted && getFileExtension(file.name) !== '.7z') {
+          return { archive, entries, usedPassword: password };
+        }
+        const verdict = await probeArchive(entries);
+        if (verdict === 'ok') return { archive, entries, usedPassword: password };
+        if (verdict === 'unsupported') {
+          try { await archive.close(); } catch (_) { /* worker may already be closed */ }
+          throw archiveLockedError(file, list);
+        }
+      } catch (error) {
+        if (error?.archiveLocked) throw error;
+        if (isUnsupportedEncryptionError(error)) {
+          // A header-encrypted 7z fails here rather than at the probe. Same
+          // hard refusal, so say so in our own words instead of leaking
+          // "The archive header is encrypted, but currently not supported".
+          try { await archive.close(); } catch (_) { /* worker may already be closed */ }
+          throw archiveLockedError(file, list);
+        }
+        if (!isPassphraseError(error)) {
+          // A genuine read failure - corrupt file, unsupported format, solid
+          // RAR4. Not a password problem, so let the caller deal with it.
+          try { await archive.close(); } catch (_) { /* worker may already be closed */ }
+          throw archiveReadError(verb, remedy, file, error);
+        }
+        // Locked, or wrong password. Keep going down the list on this handle.
+      }
+    }
+
+    try { await archive.close(); } catch (_) { /* worker may already be closed */ }
+    throw archiveLockedError(file, list);
+  }
+
+  async function extractLibarchiveEntries(file, selectNames, options = {}) {
+    // As in readArchiveDirectories: hand the File straight to the fork so its
+    // lazy WORKERFS mount engages. Buffering here would cap the scan at ~2 GB.
+    const { archive, entries } = await openArchiveUnlocked(
+      file, options.passwords, 'scan', 'drop the contained file directly');
     try {
-      const entries = (await archive.getFilesArray()) || [];
       const entryName = entry => `${String(entry?.path || '')}${String(entry?.file?.name || '')}`;
       // selectNames throws a user-facing "no matching file inside" error. That
       // means the archive was read fine, so it must NOT trigger the RAR
@@ -393,17 +580,17 @@
   // size ceiling. RAR keeps unrar as a fallback for the one case libarchive
   // refuses - a solid RAR4 - so a failed RAR read is retried there before
   // giving up. A selector error is not a read failure and never retries.
-  async function extractArchiveEntries(file, selectNames) {
+  async function extractArchiveEntries(file, selectNames, options = {}) {
     if (getFileExtension(file.name) !== '.rar') {
-      return extractLibarchiveEntries(file, selectNames);
+      return extractLibarchiveEntries(file, selectNames, options);
     }
     try {
-      return await extractLibarchiveEntries(file, selectNames);
+      return await extractLibarchiveEntries(file, selectNames, options);
     } catch (error) {
       if (error && error.archiveWasRead) throw error;
       console.warn('libarchive could not read this RAR, falling back to unrar:', error);
       try {
-        return await extractRarEntries(file, selectNames);
+        return await extractRarEntries(file, selectNames, options);
       } catch (fallbackError) {
         // Surface the fallback's error: it is what the user saw before this
         // routing existed, and for an archive neither engine can read unrar's
@@ -430,7 +617,7 @@
       if (options.requireExactlyOne) return targets.length === 1 ? targets : [];
       if (!targets.length) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
       return [targets[0]];
-    });
+    }, options);
     if (!matches.length) return null;
     const { name, blob } = matches[0];
     const checksum = await calculateMd5FromBlob(blob);
@@ -439,7 +626,7 @@
 
   const COLOR_ROM_EXTENSIONS = ['.pal', '.vni', '.crz', '.pac', '.cromc'];
 
-  async function extractColorRomArchiveChecksums(file) {
+  async function extractColorRomArchiveChecksums(file, options = {}) {
     const entries = await extractArchiveEntries(file, names => {
       const matches = names.filter(name => COLOR_ROM_EXTENSIONS.includes(getFileExtension(name)));
       if (!matches.length) {
@@ -450,7 +637,7 @@
       if (pal && vni) return [pal, vni];
       if (matches.length === 1) return matches;
       throw new Error(`"${file.name}" contains multiple Color ROM files — expected one file or a .pal/.vni pair.`);
-    });
+    }, options);
     const results = [];
     for (const entry of entries) {
       results.push({
@@ -1565,7 +1752,7 @@
 
         if (isColorArchiveDrop) {
           try {
-            const results = await extractColorRomArchiveChecksums(file);
+            const results = await extractColorRomArchiveChecksums(file, { passwords: collectVpxMagic(values) });
             // Cleared, or superseded by a newer drop, while this ran.
             if (!isChecksumGenerationCurrent(controlId, generation)) return;
             const pal = results.find(result => result.extension === '.pal');
@@ -1636,7 +1823,8 @@
         const isArchiveScanDrop = Boolean(scanExtension) && ARCHIVE_EXTENSIONS.includes(extension);
         const scanFallback = () => hashWholeFile().then(value => ({ ...value, scannedWhole: scanExtension }));
         const checksumTask = isArchiveScanDrop
-          ? extractArchiveEntryChecksum(file, scanExtension, { requireExactlyOne: scanMayFallBack })
+          ? extractArchiveEntryChecksum(file, scanExtension,
+            { requireExactlyOne: scanMayFallBack, passwords: collectVpxMagic(values) })
             .then(result => result || scanFallback())
             .catch(error => {
               // An archive that cannot be opened (corrupt, encrypted, too large
@@ -1645,6 +1833,11 @@
               // drop that would have worked on a non-Stern table. Only the
               // manufacturer path may do this: a table archive with no .vpx
               // inside is a genuine error and still surfaces as one.
+              // A locked archive IS now distinguishable from one without a
+              // match, so it must say so rather than quietly hashing the
+              // wrapper - the user has a password to add and no way to guess
+              // that from a checksum that silently came from the wrong bytes.
+              if (error?.archiveLocked) throw error;
               if (!scanMayFallBack) throw error;
               console.warn('Archive scan failed, hashing the archive whole:', error);
               return scanFallback();
@@ -1653,7 +1846,7 @@
         // A bundled drop browses folders too, for the DMD tab's picker, even
         // though the VPX checksum field is not itself an archive browser.
         const archiveTask = (field.archiveBrowser || pairing)
-          ? readArchiveDirectories(file)
+          ? readArchiveDirectories(file, collectVpxMagic(values))
           : Promise.resolve(null);
         // The whole archive's own MD5, alongside the .vpx extracted from it.
         const pairedHashTask = pairing ? calculateMd5FromBlob(file) : Promise.resolve(null);
@@ -1743,7 +1936,14 @@
           }
         }
 
-        setChecksumStatus(controlId, { message: `${messages.join(' · ')} from ${file.name}`, error: hadError });
+        // The success wording reads "MD5 calculated (x.vpx) from pack.rar". A
+        // failure already names the file inside its own sentence, so appending
+        // it again produced "Could not open "pack.rar": ... drop the file
+        // again. from pack.rar". Only the success path earns the suffix.
+        setChecksumStatus(controlId, {
+          message: hadError ? messages.join(' · ') : `${messages.join(' · ')} from ${file.name}`,
+          error: hadError
+        });
       });
       wrapper.append(input, statusRow);
       return wrapper;
