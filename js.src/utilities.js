@@ -70,6 +70,15 @@
     return (usable || list.find(entry => entry && typeof entry.url === 'string' && entry.url.trim()))?.url?.trim() || '';
   }
 
+  // The VPS website's own listing page for a table. Lives here rather than at
+  // the call site so the one external URL the app links to is written once.
+  const VPS_LISTING_BASE = 'https://virtualpinballspreadsheet.github.io/games';
+
+  function getVpsListingUrl(id) {
+    const value = String(id ?? '').trim();
+    return value ? `${VPS_LISTING_BASE}?game=${encodeURIComponent(value)}` : '';
+  }
+
   const EXCLUDED_VPX_FORMATS = new Set(['FP', 'FX', 'FX2', 'FX3']);
 
   function normalizeList(value) {
@@ -453,7 +462,14 @@
     if (!item) return '';
     const id = item.id || 'Unknown ID';
     const version = item.version ? String(item.version).replace(/^v/i, '') : '—';
-    return `${id} · ${version} · ${formatDateDMY(item.createdAt)}`;
+    // The UPDATED date, not the created one: what matters when choosing between
+    // versions is when the file last changed. Resolved through
+    // itemUpdatedTimestamp rather than reading item.updatedAt directly, because
+    // VPS records are inconsistent about which key carries it - that helper
+    // already walks updatedAt / modifiedAt / lastUpdated / updated and falls
+    // back to createdAt, so a record without an update stamp still shows a date
+    // instead of an em-dash.
+    return `${id} · ${version} · ${formatDateDMY(itemUpdatedTimestamp(item))}`;
   }
 
   function extractArchiveDirectories(entries) {
@@ -819,6 +835,7 @@
     formatDate,
     isItemBroken,
     getItemUrl,
+    getVpsListingUrl,
     isExcludedVpxFormat,
     isVpuPatchItem,
     getParentId,

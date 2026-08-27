@@ -7,6 +7,7 @@
     getItemLabel,
     isItemBroken,
     getItemUrl,
+    getVpsListingUrl,
     getCategoryItems,
     getAssetState,
     extractArchiveDirectories,
@@ -1145,7 +1146,23 @@
     }
 
     const summary = element('div', 'table-summary');
-    summary.appendChild(element('h1', '', record?.name || record?.id || 'Unknown table'));
+    // The title links to the table's VPS listing, matching the asset-row names.
+    // Without an id there is nothing to link to, so it stays plain text.
+    const titleText = record?.name || record?.id || 'Unknown table';
+    const heading = element('h1');
+    const listingUrl = getVpsListingUrl(record?.id);
+    if (listingUrl) {
+      const titleLink = document.createElement('a');
+      titleLink.className = 'table-title-link';
+      titleLink.href = listingUrl;
+      titleLink.target = '_blank';
+      titleLink.rel = 'noopener noreferrer';
+      titleLink.textContent = titleText;
+      heading.appendChild(titleLink);
+    } else {
+      heading.textContent = titleText;
+    }
+    summary.appendChild(heading);
     const meta = [];
     if (record?.manufacturer) meta.push(record.manufacturer);
     if (record?.year) meta.push(record.year);
@@ -1196,11 +1213,20 @@
     return div.innerHTML;
   }
 
+  // Returns whether anything was rendered, so the caller can lay the grid out
+  // around a column that turned out to be empty.
+  //
+  // The value goes in its own element rather than a bare text node because the
+  // detail row is height-capped and the value is what gets line-clamped; a text
+  // node cannot carry the clamp or be measured for the overflow tooltip.
   function appendAssetDetail(container, label, value) {
-    if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) return;
-    const block = element('div');
-    block.append(element('strong', '', label), document.createTextNode(Array.isArray(value) ? value.join(', ') : String(value)));
+    if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) return false;
+    const block = element('div', 'asset-detail-cell');
+    block.dataset.detail = label;
+    const text = Array.isArray(value) ? value.join(', ') : String(value);
+    block.append(element('strong', '', label), element('span', 'asset-detail-value', text));
     container.appendChild(block);
+    return true;
   }
 
   function getAssetImageUrl(item) {
@@ -1426,8 +1452,15 @@
       status.append(element('span', 'status-dot'), document.createTextNode(assetState.label));
       row.appendChild(status);
 
-      const infoButton = element('button', 'asset-info-button', detailOpen ? 'Hide info' : 'Info');
+      // The label never changes, so the button never changes width. The open
+      // state is carried entirely by the red outline from `is-open`.
+      const infoButton = element('button', `asset-info-button${detailOpen ? ' is-open' : ''}`, 'Info');
       infoButton.type = 'button';
+      // Both states read "Info" and the only visual difference is a border
+      // colour, so the open/closed distinction has to reach assistive tech
+      // some other way.
+      infoButton.setAttribute('aria-expanded', detailOpen ? 'true' : 'false');
+      infoButton.setAttribute('aria-label', `${detailOpen ? 'Hide' : 'Show'} ${config.singular} info`);
       infoButton.disabled = !selectedItem;
       if (selectedItem) {
         infoButton.addEventListener('click', () => callbacks.onToggleDetail(category));
@@ -1438,13 +1471,15 @@
 
       const detail = element('div', 'asset-detail');
       if (selectedItem) {
+        // Five columns, in this order, narrow enough to sit on one row.
         appendAssetDetail(detail, 'VPS ID', selectedItem.id);
         appendAssetDetail(detail, 'Version', selectedItem.version);
+        appendAssetDetail(detail, 'Created', formatDate(selectedItem.createdAt));
         appendAssetDetail(detail, 'Authors', selectedItem.authors);
-        appendAssetDetail(detail, 'Format', selectedItem.tableFormat);
-        appendAssetDetail(detail, 'File', selectedItem.fileName);
-        appendAssetDetail(detail, 'Updated', formatDate(selectedItem.updatedAt));
-        if (selectedItem.comment) detail.appendChild(element('div', 'asset-comment', selectedItem.comment));
+        const hasFormat = appendAssetDetail(detail, 'Format', selectedItem.tableFormat);
+        // No format to show: Authors takes the freed column rather than every
+        // column growing, since Authors is the one that actually runs long.
+        if (!hasFormat) detail.classList.add('asset-detail-no-format');
       }
       row.appendChild(detail);
       container.appendChild(row);

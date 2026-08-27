@@ -414,6 +414,20 @@
     else delete status.dataset.tooltip;
   }, true);
 
+  // Clamped asset-detail values expose their full text as a hover tooltip.
+  // Measured on hover rather than at render for the same reason as the hint
+  // above: .asset-detail is display:none until its row is opened, and a hidden
+  // element measures as zero (see the detached-node trap in VPXS UI Gotchas).
+  document.addEventListener('mouseover', event => {
+    const value = event.target instanceof Element ? event.target.closest('.asset-detail-value') : null;
+    const cell = value?.closest('.asset-detail-cell');
+    if (!cell) return;
+    const clipped = value.scrollHeight > value.clientHeight + 1
+      || value.scrollWidth > value.clientWidth + 1;
+    if (clipped) cell.dataset.tooltip = value.textContent;
+    else delete cell.dataset.tooltip;
+  }, true);
+
   function startPreviewObserver() {
     const preview = document.getElementById('previewYaml');
     if (!preview || typeof MutationObserver === 'undefined') return;
