@@ -455,17 +455,50 @@
     markChanged();
   }
 
+  // Which of a step's mirrored fields are live right now. A mirrored field is a
+  // VIEW of another field's list entry rather than a value of its own - bundled,
+  // the DMD checksum IS vpxChecksum's second entry - so the value lives on a tab
+  // this step does not own, and a shape switch has to reach across to tear it
+  // down. Nothing else in clearShapeDisabledFields leaves the step's own fields.
+  //
+  // Captured BEFORE the switch on purpose. Read afterwards, this cannot tell
+  // "the user just left the bundled shape" from "the user was never in it", and
+  // the second case must never touch a hand-entered additional checksum.
+  function liveMirrors(step) {
+    return (step?.fields || [])
+      .filter(field => field.mirrorFrom && state.values[field.mirrorFrom.when] === true)
+      .map(field => field.mirrorFrom);
+  }
+
   // A shape switch takes the keys the new shape does not carry with it.
   // prepareData already drops them from the YAML and the fields are disabled
   // either way, but leaving the values on screen reads as "this is still set"
   // when the output has already let go of it.
-  function clearShapeDisabledFields(step) {
+  function clearShapeDisabledFields(step, mirrorsBefore = []) {
     if (!step) return;
     const shapeGated = (step.fields || []).some(field => field.disabledWhen);
     (step.fields || []).forEach(field => {
       if (field.disabledWhen && state.values[field.disabledWhen] === true) {
         delete state.values[field.yml_field];
       }
+    });
+    // Leaving a mirrored shape takes the borrowed entry with it. The bundled DMD
+    // writes the archive MD5 into vpxChecksum's second slot; switch to Override
+    // and the DMD carries its own checksum again, so that entry now describes an
+    // archive this build bundles nothing into. It was staying behind on the VPX
+    // tab as a stale "additional checksum" - the whole DMD side cleared and the
+    // hash it had cross-written did not.
+    //
+    // Deliberately ahead of the shapeGated guard below: a mirror is a claim on
+    // ANOTHER field's value, and it has to be released whether or not this step
+    // also happens to gate its own fields on the shape.
+    mirrorsBefore.forEach(mirror => {
+      if (state.values[mirror.when] === true) return;
+      const hashes = normalizeChecksumValue(state.values[mirror.field]);
+      if (hashes.length <= mirror.index) return;
+      hashes.splice(mirror.index, 1);
+      if (!hashes.length) delete state.values[mirror.field];
+      else state.values[mirror.field] = hashes.length === 1 ? hashes[0] : hashes;
     });
     // A step whose fields change with the shape is describing a DIFFERENT
     // archive in each one - bundled, it is the VPX's archive; standalone, it is
@@ -486,13 +519,15 @@
   }
 
   function handleBundleChange(fieldName, checked) {
-    state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.bundleField === fieldName);
+    // Read before the shape moves — see liveMirrors.
+    const mirrorsBefore = liveMirrors(step);
+    state.values[fieldName] = checked;
     // Bundled and Override are mutually exclusive — not native radio inputs
     // (either can be independently unchecked, leaving both off), but turning
     // one on always turns the other off.
     if (checked && step?.overrideField) state.values[step.overrideField] = false;
-    clearShapeDisabledFields(step);
+    clearShapeDisabledFields(step, mirrorsBefore);
     if (!checked && step && !state.selections[step.category] && state.values[step.overrideField] !== true) {
       clearStepData(step, { preserveId: false, preserveBundle: false, preserveOverride: true, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.bundleField === fieldName);
@@ -503,10 +538,12 @@
   }
 
   function handleOverrideChange(fieldName, checked) {
-    state.values[fieldName] = checked;
     const step = WIZARD_STEPS.find(candidate => candidate.overrideField === fieldName);
+    // Read before the shape moves — see liveMirrors.
+    const mirrorsBefore = liveMirrors(step);
+    state.values[fieldName] = checked;
     if (checked && step?.bundleField) state.values[step.bundleField] = false;
-    clearShapeDisabledFields(step);
+    clearShapeDisabledFields(step, mirrorsBefore);
     if (!checked && step && !state.selections[step.category] && state.values[step.bundleField] !== true) {
       clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: false, rerender: false });
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.overrideField === fieldName);

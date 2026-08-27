@@ -272,9 +272,19 @@ const archiveDirectoriesKey = new Function(
 
 // ── a shape switch takes its values off screen ─────────────────────────────
 const mainSourceForClear = fs.readFileSync(MAIN, 'utf8');
-const clearShapeDisabledFields = new Function('state',
-  sliceFunction(mainSourceForClear, '  function clearShapeDisabledFields(step) {')
+// The mirror-teardown branch added for the Bundled -> Override fix calls
+// normalizeChecksumValue, so the slice needs it in scope. Baked in here rather
+// than threaded through, so every call site below keeps its one-argument shape.
+// The teardown itself is covered in tests/dmd-bundled.test.js section 9.
+const normalizeChecksumValue = new Function(
+  sliceFunction(fs.readFileSync(repoPath('js.src', 'utilities.js'), 'utf8'),
+    '  function normalizeChecksumValue(value) {')
+  + '\n return normalizeChecksumValue;')();
+const buildClearShapeDisabledFields = new Function('state', 'normalizeChecksumValue',
+  sliceFunction(mainSourceForClear, '  function clearShapeDisabledFields(step, mirrorsBefore = []) {')
   + '\n return clearShapeDisabledFields;');
+const clearShapeDisabledFields = state =>
+  buildClearShapeDisabledFields(state, normalizeChecksumValue);
 
 // 14 ── only the fields the new shape drops are cleared
 {

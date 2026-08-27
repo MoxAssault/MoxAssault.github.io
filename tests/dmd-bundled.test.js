@@ -235,4 +235,172 @@ const applyBundledShape = new Function('data', block + '\n return data;');
     'otherwise the restored second checksum is in state but invisible');
 }
 
+// 9 ── leaving the bundled shape releases the entry it borrowed on the VPX tab
+// Drives the REAL liveMirrors and clearShapeDisabledFields, sliced out of the
+// shipped js.src/main.js at run time, against the REAL normalizeChecksumValue
+// out of js.src/utilities.js. Nothing here is a copy of the logic.
+//
+// The bug this pins: bundled, the DMD checksum is a VIEW of vpxChecksum's
+// second entry, so the archive MD5 physically lives on the VPX tab. Switching
+// to Override cleared the whole DMD side and left that hash behind as an
+// "additional checksum" for an archive the build no longer bundles into.
+//
+// The subtle half is WHEN the mirror list is read. Read after the switch, the
+// code cannot tell "just left the bundled shape" from "was never in it", and
+// the second case would eat a hand-entered additional checksum.
+{
+  const UTILS = repoPath('js.src', 'utilities.js');
+
+  const mainSource = fs.readFileSync(MAIN, 'utf8');
+  const START = "  // Which of a step's mirrored fields are live right now.";
+  const start = mainSource.indexOf(START);
+  const anchor = mainSource.indexOf('if (field.archiveFormatField) delete', start);
+  const blockEnd = mainSource.indexOf('\n  }', anchor) + '\n  }'.length;
+  const block = mainSource.slice(start, blockEnd);
+
+  check('the shape-switch block was located in main.js',
+    start !== -1 && anchor !== -1
+    && block.includes('function liveMirrors')
+    && block.includes('function clearShapeDisabledFields'),
+    'markers moved — update the slice in this test');
+
+  const utilSource = fs.readFileSync(UTILS, 'utf8');
+  const nStart = utilSource.indexOf('  function normalizeChecksumValue(value) {');
+  const nEnd = utilSource.indexOf('\n  }', nStart) + '\n  }'.length;
+  check('normalizeChecksumValue was located in utilities.js', nStart !== -1);
+  const normalizeChecksumValue = new Function(
+    utilSource.slice(nStart, nEnd) + '\n; return normalizeChecksumValue;')();
+
+  const build = state => new Function('state', 'normalizeChecksumValue',
+    block + '\n; return { liveMirrors, clearShapeDisabledFields };')(state, normalizeChecksumValue);
+
+  // The two real handlers in main.js do exactly this, in exactly this order.
+  // Reproduced here rather than sliced because they also renderWorkspace().
+  function toggle(values, step, fieldName, checked) {
+    const state = { values };
+    const { liveMirrors, clearShapeDisabledFields } = build(state);
+    const mirrorsBefore = liveMirrors(step);
+    state.values[fieldName] = checked;
+    const partner = fieldName === step.bundleField ? step.overrideField : step.bundleField;
+    if (checked && partner) state.values[partner] = false;
+    clearShapeDisabledFields(step, mirrorsBefore);
+    return state.values;
+  }
+
+  const bundledState = () => ({
+    specialDMDBundled: true,
+    specialDMDType: 'FlexDMD',
+    specialDMDArchiveRoot: 'DMD/',
+    specialDMDArchiveFormat: 'zip',
+    __dmdArchiveDirectories: ['DMD/'],
+    vpxChecksum: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
+  });
+
+  // ── Bundled → Override: the reported bug
+  {
+    const values = toggle(bundledState(), dmd, 'specialDMDOverride', true);
+    check('Bundled → Override drops the borrowed archive MD5',
+      values.vpxChecksum === 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      'got ' + JSON.stringify(values.vpxChecksum));
+    check('...collapsing a one-entry list back to a plain string',
+      typeof values.vpxChecksum === 'string',
+      'an array of one would still render an empty additional-checksum row');
+    check('...and the DMD side still clears with it',
+      values.specialDMDArchiveRoot === undefined
+      && values.specialDMDArchiveFormat === undefined
+      && values.__dmdArchiveDirectories === undefined);
+  }
+
+  // ── Bundled → neither: unticking Bundled is the same departure
+  {
+    const values = toggle(bundledState(), dmd, 'specialDMDBundled', false);
+    check('unticking Bundled drops it too',
+      values.vpxChecksum === 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      'got ' + JSON.stringify(values.vpxChecksum));
+  }
+
+  // ── entering the shape must not touch the VPX tab
+  {
+    const values = toggle({
+      specialDMDOverride: true,
+      specialDMDChecksum: 'cccccccccccccccccccccccccccccccc',
+      vpxChecksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    }, dmd, 'specialDMDBundled', true);
+    check('Override → Bundled leaves vpxChecksum alone',
+      values.vpxChecksum === 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    check('...and still clears the DMD checksum the new shape cannot carry',
+      values.specialDMDChecksum === undefined);
+  }
+
+  // ── the precision guard: a shape the user was never in
+  // This is what the before-the-switch capture buys. Without it, unticking
+  // Override on a table that never bundled anything would eat a hand-entered
+  // additional VPX checksum.
+  {
+    const values = toggle({
+      specialDMDOverride: true,
+      vpxChecksum: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'dddddddddddddddddddddddddddddddd']
+    }, dmd, 'specialDMDOverride', false);
+    check('a hand-entered additional checksum survives a shape the user never bundled in',
+      Array.isArray(values.vpxChecksum) && values.vpxChecksum.length === 2
+      && values.vpxChecksum[1] === 'dddddddddddddddddddddddddddddddd',
+      'got ' + JSON.stringify(values.vpxChecksum));
+  }
+
+  // ── only the borrowed slot goes
+  {
+    const values = toggle({
+      specialDMDBundled: true,
+      vpxChecksum: [
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+      ]
+    }, dmd, 'specialDMDOverride', true);
+    check('a third checksum is not collateral damage',
+      Array.isArray(values.vpxChecksum) && values.vpxChecksum.length === 2
+      && values.vpxChecksum[0] === 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+      && values.vpxChecksum[1] === 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      'got ' + JSON.stringify(values.vpxChecksum));
+  }
+
+  // ── the pair was never completed
+  {
+    const values = toggle({
+      specialDMDBundled: true,
+      vpxChecksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    }, dmd, 'specialDMDOverride', true);
+    check('a lone primary is left exactly as it was',
+      values.vpxChecksum === 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  }
+
+  // ── a step with no mirror keeps its hands off
+  {
+    const pup = WIZARD_STEPS.find(step => step.id === 'pup');
+    const values = toggle({
+      pupBundled: true,
+      vpxChecksum: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
+    }, pup, 'pupBundled', false);
+    check('a PUP toggle never reaches the VPX checksum',
+      Array.isArray(values.vpxChecksum) && values.vpxChecksum.length === 2,
+      'got ' + JSON.stringify(values.vpxChecksum));
+  }
+
+  // ── the ordering, in the shipped handlers
+  // The behaviour above is only correct because both handlers read the mirror
+  // list before they move the shape. A future edit that hoists the assignment
+  // back above it would pass every check above and still be wrong.
+  ['handleBundleChange', 'handleOverrideChange'].forEach(name => {
+    const from = mainSource.indexOf('function ' + name + '(');
+    const body = mainSource.slice(from, mainSource.indexOf('renderWorkspace();', from));
+    check(name + ' reads liveMirrors before it moves the shape',
+      from !== -1
+      && body.indexOf('liveMirrors(step)') !== -1
+      && body.indexOf('liveMirrors(step)') < body.indexOf('state.values[fieldName] = checked'),
+      'capturing after the switch cannot tell "just left" from "never entered"');
+    check(name + ' passes the captured list on',
+      body.includes('clearShapeDisabledFields(step, mirrorsBefore)'));
+  });
+}
+
 report('bundled DMD');
