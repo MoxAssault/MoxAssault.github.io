@@ -1,9 +1,16 @@
-// Builds the large test fixtures that are too big to commit.
+// Builds the one large test fixture that is too big to commit.
 //
 // Only pup-zip64.zip needs this: it carries 70,000 entries purely to push the
 // entry count past the 65,535 that a classic End Of Central Directory record
 // can express, which is what forces a reader down the ZIP64 path. The file is
-// ~9.5 MB of almost nothing, so it is generated rather than stored in git.
+// ~9 MB of almost nothing, so it is generated rather than stored in git.
+//
+// Everything ELSE in fixtures/generated/ is now committed (changed 2026-09-05).
+// Those fourteen archives were built by hand in WinRAR and 7-Zip on 2026-08-27
+// and this script does not produce them - nothing does. They are the evidence
+// behind the archive routing, encryption and solid-RAR claims, and while they
+// were gitignored a fresh clone had none of them and none of those claims could
+// be re-verified. ~12 MB, and worth it.
 //
 // The small fixtures (pup-normal.zip, pup-comment.zip, pup-rar5.rar) ARE
 // committed, in fixtures/ — they are a few hundred bytes each and having them
