@@ -21,9 +21,10 @@
 //      otherwise is what made a password list look too expensive to offer.
 //
 // What this does NOT cover: real decryption, which is WASM in a browser
-// worker. The archive is stubbed. The real thing was driven in a browser
-// against the encrypted fixtures in fixtures/generated/ - see the rebuild
-// recipe in the Archive Size Limits vault note.
+// worker. The archive is stubbed here. Real decryption of every encrypted
+// fixture in fixtures/generated/ is covered by archive-wasm.test.mjs, in
+// headless Chrome. PW below is this file's stub value; it happens to equal the
+// real fixtures' password, which is set in archive-wasm.test.mjs.
 
 import { readFileSync } from 'node:fs';
 import { check, report, repoPath } from './harness.mjs';

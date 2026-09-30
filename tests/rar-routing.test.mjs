@@ -22,10 +22,10 @@
 //      accurate of the two. libarchive's is kept as .cause.
 //
 // What this does NOT cover: the actual decompression. That is WASM in a
-// browser worker and belongs to the headless-browser harness that still does
-// not exist. Both engines are stubbed here; the routing decision is the
-// behaviour under test. The real decompression was verified in a browser
-// against WinRAR-built RAR4/RAR5 plain and solid fixtures on 2026-08-27.
+// browser worker. Both engines are stubbed here; the routing decision is the
+// behaviour under test. archive-wasm.test.mjs runs the real engines in
+// headless Chrome against the WinRAR-built fixtures, including which engine
+// each RAR actually reached.
 
 import { readFileSync } from 'node:fs';
 import { check, report, repoPath } from './harness.mjs';

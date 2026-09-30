@@ -51,19 +51,27 @@ let totalPassed = 0;
 let totalFailed = 0;
 const broken = [];
 
+// The browser tests drive a real Chrome, and a hung browser must not hang CI
+// with it. A file that runs past this is killed and reported as errored.
+const FILE_TIMEOUT_MS = 180000;
+
 for (const file of files) {
   const result = spawnSync(process.execPath, [path.join(TESTS, file)], {
     encoding: 'utf8',
-    cwd: path.join(TESTS, '..')
+    cwd: path.join(TESTS, '..'),
+    timeout: FILE_TIMEOUT_MS
   });
 
   const out = (result.stdout || '') + (result.stderr || '');
   const match = out.match(/##RESULT## passed=(\d+) failed=(\d+)/);
 
   if (!match) {
-    // The file never reached report() — it threw, or it is not using the harness.
+    // The file never reached report() — it threw, timed out, or it is not using the harness.
     broken.push(file);
-    console.log('ERROR  ' + file + '  (did not report; exit ' + result.status + ')');
+    const why = result.error && result.error.code === 'ETIMEDOUT'
+      ? 'timed out after ' + (FILE_TIMEOUT_MS / 1000) + ' s'
+      : 'did not report; exit ' + result.status;
+    console.log('ERROR  ' + file + '  (' + why + ')');
     console.log(out.trim().split('\n').map(l => '       ' + l).join('\n'));
     continue;
   }
