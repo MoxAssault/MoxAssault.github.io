@@ -258,7 +258,12 @@ export async function openApp({ page = 'index.html' } = {}) {
         pending.delete(id);
         reject(error);
       }
-    }), CALL_TIMEOUT_MS, method).finally(() => pending.delete(id));
+    }), CALL_TIMEOUT_MS, method)
+      .finally(() => pending.delete(id))
+      // During teardown, abandon ANY failure - including this call's own
+      // timeout, which can still fire while cleanup runs - so nothing reaches
+      // the test's top-level await before cleanup has finished.
+      .catch(error => abandoning ? new Promise(() => {}) : Promise.reject(error));
   };
 
   let sessionId;
