@@ -31,6 +31,8 @@ import { REPO } from './harness.mjs';
 
 const START_TIMEOUT_MS = 20000;
 const CALL_TIMEOUT_MS = 60000;
+// Under run.js's 180 s per-file limit, so this file always cleans up first.
+const WATCHDOG_MS = 150000;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -75,7 +77,15 @@ export function findChrome() {
 async function serveRepo() {
   const root = path.resolve(REPO);
   const server = createServer(async (req, res) => {
-    const rel = decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/^\/+/, '') || 'index.html';
+    // A malformed escape ("%E0%A4%A") makes decodeURIComponent throw, and a
+    // throw in an async handler is an unhandled rejection that kills the run.
+    let rel;
+    try {
+      rel = decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/^\/+/, '') || 'index.html';
+    } catch {
+      res.writeHead(400).end();
+      return;
+    }
     const full = path.resolve(root, rel);
     if (full !== root && !full.startsWith(root + path.sep)) {
       res.writeHead(403).end();
@@ -126,24 +136,64 @@ export async function openApp({ page = 'index.html' } = {}) {
 
   const chrome = spawn(chromePath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
+  const running = () => chrome.exitCode === null && chrome.signalCode === null;
 
-  const cleanup = async () => {
-    try { chrome.kill(); } catch (_) { /* already gone */ }
-    if (chrome.exitCode === null) {
+  // Last resort if this process ends without close(): a crash, process.exit,
+  // or the watchdog below. 'exit' handlers must be synchronous, so this only
+  // kills Chrome; the temp profile is left for the OS to reap.
+  const killOnExit = () => { if (running()) { try { chrome.kill(); } catch (_) { /* gone */ } } };
+  process.once('exit', killOnExit);
+
+  // run.js kills a file that runs past 180 s, but on Windows that kill is a
+  // TerminateProcess - no signal, no handler, and Chrome would be orphaned.
+  // So the file keeps its own shorter deadline and cleans up first.
+  // Set while the watchdog or a signal is tearing down. Calls still in
+  // flight are then abandoned rather than rejected: a rejection would reach
+  // the test's top-level await and end the process before cleanup finished.
+  let abandoning = false;
+  const watchdog = setTimeout(async () => {
+    console.error('browser.mjs: watchdog fired after ' + WATCHDOG_MS / 1000 + ' s - closing Chrome');
+    abandoning = true;
+    await cleanup();
+    process.exit(1);
+  }, WATCHDOG_MS);
+  watchdog.unref();
+
+  // SIGTERM is how a Linux runner stops a job; clean up rather than orphan.
+  const onSignal = async () => { abandoning = true; await cleanup(); process.exit(1); };
+  process.once('SIGTERM', onSignal);
+  process.once('SIGINT', onSignal);
+
+  let cleaned = null;
+  const cleanup = () => cleaned || (cleaned = (async () => {
+    clearTimeout(watchdog);
+    process.off('SIGTERM', onSignal);
+    process.off('SIGINT', onSignal);
+    if (running()) {
+      try { chrome.kill(); } catch (_) { /* already gone */ }
       await withTimeout(new Promise(resolve => chrome.once('exit', resolve)), 5000, 'chrome exit').catch(() => {});
     }
+    process.off('exit', killOnExit);
+    // Drop any connection Chrome still holds, or close() waits on it.
+    server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
     await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(() => {});
-  };
+  })());
 
   let ws;
   try {
     const wsUrl = await withTimeout(new Promise((resolve, reject) => {
-      chrome.stderr.on('data', chunk => {
+      const onData = chunk => {
         stderr += chunk;
         const match = stderr.match(/DevTools listening on (ws:\/\/\S+)/);
-        if (match) resolve(match[1]);
-      });
+        if (match) {
+          // Found it; stop collecting for the life of the process.
+          chrome.stderr.off('data', onData);
+          chrome.stderr.resume();
+          resolve(match[1]);
+        }
+      };
+      chrome.stderr.on('data', onData);
       chrome.once('error', reject);
       chrome.once('exit', code => reject(new Error('chrome exited (' + code + ') before it was ready:\n' + stderr)));
     }), START_TIMEOUT_MS, 'chrome start');
@@ -185,11 +235,31 @@ export async function openApp({ page = 'index.html' } = {}) {
     events.forEach(listener => listener(message));
   });
 
-  const send = (method, params = {}, sessionId) => withTimeout(new Promise((resolve, reject) => {
+  // If Chrome dies mid-test, fail every call in flight now rather than let
+  // each one sit out its full timeout.
+  let closedReason = null;
+  const failPending = reason => {
+    closedReason = closedReason || reason;
+    if (abandoning) return;
+    for (const { reject } of pending.values()) reject(new Error(closedReason));
+    pending.clear();
+  };
+  ws.addEventListener('close', () => failPending('connection to chrome closed'));
+  ws.addEventListener('error', () => failPending('connection to chrome failed'));
+
+  const send = (method, params = {}, sessionId) => {
     const id = ++nextId;
-    pending.set(id, { resolve, reject });
-    ws.send(JSON.stringify({ id, method, params, sessionId }));
-  }), CALL_TIMEOUT_MS, method);
+    return withTimeout(new Promise((resolve, reject) => {
+      if (closedReason) { reject(new Error(closedReason + ' (' + method + ')')); return; }
+      pending.set(id, { resolve, reject });
+      try {
+        ws.send(JSON.stringify({ id, method, params, sessionId }));
+      } catch (error) {
+        pending.delete(id);
+        reject(error);
+      }
+    }), CALL_TIMEOUT_MS, method).finally(() => pending.delete(id));
+  };
 
   let sessionId;
   try {
