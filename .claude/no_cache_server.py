@@ -61,7 +61,7 @@ def make_server(port):
     try:
         return DualStackServer(('::', port), NoCacheHTTPRequestHandler)
     except OSError as err:
-        if err.errno == errno.EADDRINUSE:
+        if err.errno not in (errno.EAFNOSUPPORT, errno.EPROTONOSUPPORT, errno.ENOPROTOOPT):
             raise
         print(f'IPv6 unavailable ({err}); serving IPv4 only - use http://127.0.0.1:{port}')
         return LocalOnlyServer(('', port), NoCacheHTTPRequestHandler)
