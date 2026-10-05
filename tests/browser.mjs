@@ -20,6 +20,21 @@
 //   const value = await app.run(async name => { ... in the page ... }, 'arg');
 //   app.warnings  -> every console.warn the page has logged
 //   await app.close();
+//
+// Two options for tests that drive the builder like a user (added 2026-10-02):
+//
+//   openApp({ db: records })   installs records as window.__VPS_DB_OVERRIDE__
+//                              before any page script runs, so the app's own
+//                              preload takes them instead of the network.
+//                              It survives app.reload().
+//   openApp({ downloads: true }) saves what the page downloads to a temp
+//                              folder; await app.nextDownload() returns
+//                              { filename, text } for the next one.
+//
+//   await app.reload();        reloads the page and waits for its load event.
+//   openApp({ windowSize: [1400, 900] }) sizes the window, for tests that
+//                              measure layout (Chrome's default is 800x600,
+//                              which is the app's one-column phone layout).
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -113,10 +128,12 @@ function withTimeout(promise, ms, what) {
   ]).finally(() => clearTimeout(timer));
 }
 
-export async function openApp({ page = 'index.html' } = {}) {
+export async function openApp({ page = 'index.html', db = null, downloads = false, windowSize = null } = {}) {
   const chromePath = findChrome();
   const { server, base } = await serveRepo();
   const profile = await mkdtemp(path.join(tmpdir(), 'vpxs-chrome-'));
+  // Inside the profile, so the cleanup that deletes the profile takes it too.
+  const downloadDir = path.join(profile, 'downloads');
 
   const args = [
     '--headless=new',
@@ -132,6 +149,7 @@ export async function openApp({ page = 'index.html' } = {}) {
   // GitHub's ubuntu-24.04 runners block the user namespaces Chrome's sandbox
   // needs, so Chrome will not start there with it on. Off on CI only.
   if (process.env.CI) args.push('--no-sandbox');
+  if (windowSize) args.push('--window-size=' + windowSize.join(','));
   args.push('about:blank');
 
   const chrome = spawn(chromePath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -232,7 +250,9 @@ export async function openApp({ page = 'index.html' } = {}) {
       const details = message.params.exceptionDetails;
       errors.push(details.exception?.description || details.text);
     }
-    events.forEach(listener => listener(message));
+    // A copy: a one-shot listener removes itself mid-loop, and iterating the
+    // live array would then skip the listener after it.
+    [...events].forEach(listener => listener(message));
   });
 
   // If Chrome dies mid-test, fail every call in flight now rather than let
@@ -266,17 +286,59 @@ export async function openApp({ page = 'index.html' } = {}) {
       .catch(error => abandoning ? new Promise(() => {}) : Promise.reject(error));
   };
 
+  // Resolves on the first event that matches, then stops listening.
+  const nextEvent = match => new Promise(resolve => {
+    const listener = message => {
+      if (!match(message)) return;
+      events.splice(events.indexOf(listener), 1);
+      resolve(message);
+    };
+    events.push(listener);
+  });
+
   let sessionId;
+  const loadPage = async action => {
+    const loaded = nextEvent(message => message.method === 'Page.loadEventFired' && message.sessionId === sessionId);
+    await action();
+    await withTimeout(loaded, CALL_TIMEOUT_MS, 'page load');
+  };
+
+  // Downloads are reported on the browser connection, not the page session.
+  // Chrome names the saved file after the page's suggested filename.
+  const started = new Map();
+  const finished = [];
+  const waiting = [];
+  if (downloads) {
+    events.push(message => {
+      if (message.method === 'Browser.downloadWillBegin') {
+        started.set(message.params.guid, message.params.suggestedFilename);
+      }
+      if (message.method === 'Browser.downloadProgress' && message.params.state !== 'inProgress') {
+        const filename = started.get(message.params.guid);
+        const entry = { filename, state: message.params.state };
+        const waiter = waiting.shift();
+        if (waiter) waiter(entry);
+        else finished.push(entry);
+      }
+    });
+  }
+
   try {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
     ({ sessionId } = await send('Target.attachToTarget', { targetId, flatten: true }));
     await send('Runtime.enable', {}, sessionId);
     await send('Page.enable', {}, sessionId);
-    const loaded = new Promise(resolve => events.push(message => {
-      if (message.method === 'Page.loadEventFired' && message.sessionId === sessionId) resolve();
-    }));
-    await send('Page.navigate', { url: base + page }, sessionId);
-    await withTimeout(loaded, CALL_TIMEOUT_MS, 'page load');
+    if (db) {
+      await send('Page.addScriptToEvaluateOnNewDocument', {
+        source: 'window.__VPS_DB_OVERRIDE__ = ' + JSON.stringify(db) + ';'
+      }, sessionId);
+    }
+    if (downloads) {
+      await send('Browser.setDownloadBehavior', {
+        behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true
+      });
+    }
+    await loadPage(() => send('Page.navigate', { url: base + page }, sessionId));
   } catch (error) {
     try { ws.close(); } catch (_) { /* ignore */ }
     await cleanup();
@@ -298,10 +360,26 @@ export async function openApp({ page = 'index.html' } = {}) {
     return result.result.value;
   }
 
+  async function reload() {
+    await loadPage(() => send('Page.reload', { ignoreCache: true }, sessionId));
+  }
+
+  // The next finished download, read back from disk. A download that Chrome
+  // cancels or fails rejects rather than returning nothing.
+  async function nextDownload(ms = 10000) {
+    if (!downloads) throw new Error('openApp was not given downloads: true');
+    const entry = finished.shift() || await withTimeout(
+      new Promise(resolve => waiting.push(resolve)), ms, 'download'
+    );
+    if (entry.state !== 'completed') throw new Error('download of ' + entry.filename + ' ended ' + entry.state);
+    const text = await readFile(path.join(downloadDir, entry.filename), 'utf8');
+    return { filename: entry.filename, text };
+  }
+
   async function close() {
     try { ws.close(); } catch (_) { /* ignore */ }
     await cleanup();
   }
 
-  return { run, close, warnings, errors, base };
+  return { run, reload, nextDownload, close, warnings, errors, base };
 }
