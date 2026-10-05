@@ -124,7 +124,13 @@
           <button class="text-btn readme-action-btn" id="manualReadmeBtn" type="button">Manual README</button>
           <button class="text-btn readme-action-btn" id="wizardReadmeBtn" type="button">Wizard README</button>
         </div>
-        <pre id="previewYaml" class="mono" tabindex="0"></pre>
+        <div class="preview-yaml-frame">
+          <label class="preview-wrap-toggle">
+            <input type="checkbox" id="previewWrapToggle" checked>
+            <span>WRAP</span>
+          </label>
+          <pre id="previewYaml" class="mono" tabindex="0"></pre>
+        </div>
       </aside>
     </section>
 
