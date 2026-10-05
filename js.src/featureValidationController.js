@@ -157,8 +157,11 @@
 
     grouped.forEach((messages, key) => {
       const fieldName = key.slice(key.indexOf(':') + 1);
+      // Scoped to the ROM tab: the VPX tab's Additional Passwords control
+      // shares the .additional-rom-controls class, and an unscoped lookup put
+      // Additional ROM errors on it whenever the VPX tab was open (2026-10-04).
       const wrapper = fieldName === 'additionalRoms'
-        ? document.querySelector('.additional-rom-controls')
+        ? document.querySelector('#config-panel-rom .additional-rom-controls')
         : document.getElementById(`field-${fieldName}`)?.closest('.field');
       presentField(wrapper, messages);
     });
