@@ -258,15 +258,18 @@
   function customValidationErrors() {
     const errors = [];
     const add = (stepId, fieldName, title, message) => errors.push({ stepId, fieldName, title, message });
-    const pair = (stepId, urlField, versionField, label) => {
+    const pair = (stepId, urlField, versionField, label, { urlOptional = false } = {}) => {
       if (!stepEnabled(stepId)) return;
       const hasUrl = hasText(readValue(urlField));
       const hasVersion = hasText(readValue(versionField));
       if (hasUrl && !hasVersion) add(stepId, versionField, `${label} version override is required`, `Add ${label} Version Override when using ${label} URL Override.`);
-      if (hasVersion && !hasUrl) add(stepId, urlField, `${label} URL override is required`, `Add ${label} URL Override when using ${label} Version Override.`);
+      if (hasVersion && !hasUrl && !urlOptional) add(stepId, urlField, `${label} URL override is required`, `Add ${label} URL Override when using ${label} Version Override.`);
     };
 
-    pair('rom', 'romUrlOverride', 'romVersionOverride', 'ROM');
+    // A bundled ROM ships inside the table's own download, so there is no URL
+    // to give, but it can still need a Version Override naming the ROM the
+    // table loads (Jason's call, 2026-10-02). A URL still needs a version.
+    pair('rom', 'romUrlOverride', 'romVersionOverride', 'ROM', { urlOptional: readValue('romBundled') === true });
     pair('coloredRom', 'coloredROMUrlOverride', 'coloredROMVersionOverride', 'Color ROM');
     pair('vpuPatch', 'diffUrlOverride', 'diffVersionOverride', 'Patch');
 
