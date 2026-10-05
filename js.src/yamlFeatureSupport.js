@@ -278,13 +278,29 @@
     return yaml;
   }
 
+  // A folded or literal value (`key: >-`, `key: |`) carries on over every
+  // following line indented deeper than its key. Those lines are text, not
+  // keys, so they stay plain even when they hold a colon: a mainNotes of
+  // "Note: There is a known bug..." was coloured as a key and value
+  // (found 2026-10-04).
+  const BLOCK_SCALAR_HEADER = /:\s*[>|][1-9+-]{0,2}\s*(#.*)?$/;
+
   function highlightYaml(yaml) {
+    let blockIndent = -1;
     return String(yaml)
       .split('\n')
       .map(line => {
+        const indent = line.length - line.trimStart().length;
+        if (blockIndent >= 0) {
+          if (!line.trim() || indent > blockIndent) return escapeHtml(line);
+          blockIndent = -1;
+        }
+
         if (line.startsWith('#') || line.trimStart().startsWith('#') || line === '---') {
           return `<span class="yml-comment">${escapeHtml(line)}</span>`;
         }
+
+        if (BLOCK_SCALAR_HEADER.test(line)) blockIndent = indent;
 
         const objectListMatch = line.match(/^(\s*-\s+)([^:#][^:]*):(.*)$/);
         if (objectListMatch) {
