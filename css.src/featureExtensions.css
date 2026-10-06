@@ -40,6 +40,13 @@
   z-index: 510;
   border-color: var(--panel-raised);
 }
+/* ID fields carry the same 5px padding as the drop zones (.field-id-standard in
+   category.css), so their dot needs the same shift to sit on the visible box. */
+.field-id-standard > .field-error-dot,
+.field-id-standard > .feature-error-dot {
+  top: 1px;
+  right: 1px;
+}
 .checksum-drop-field.has-field-error > input {
   border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
 }

@@ -5,10 +5,10 @@
 // files are built and yaml-scenarios.mjs for the runner.
 //   SNAPSHOT=print node tests/yaml-rules-rom.test.mjs
 
-import { report } from './harness.mjs';
+import { check, report } from './harness.mjs';
 import { startScenarios } from './yaml-scenarios.mjs';
 
-const { app, scenario } = await startScenarios();
+const { app, scenario, PRINT } = await startScenarios();
 
 const MD5_VPX = 'E6DF3800F7C9286FA195E84034DA683A';
 const MD5_ROM = 'E4C898AFCDCF6FD2A884C77C7FD6C3A9';
@@ -88,6 +88,24 @@ await scenario('ROM picked from VPS and given a URL too', [...ROM,
   ],
   download: 'blocked'
 });
+// Where the dots sit, measured on the page this scenario left open. Every dot
+// is on its visible box's top-right corner, 4px out each way. ID fields are
+// padded to line up with the checksum drop zones, and until 2026-10-06 their
+// dot sat 5px further out than the rest (Jason spotted it on the ROM ID).
+if (!PRINT) {
+  const corners = await app.run(async () => {
+    document.getElementById('validationDialog').close();
+    document.getElementById('config-tab-rom').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))));
+    return [...document.querySelectorAll('#config-panel-rom .field-error-dot')].map(dot => {
+      const box = dot.closest('.field').querySelector('input, textarea, select, .readonly-id').getBoundingClientRect();
+      const spot = dot.getBoundingClientRect();
+      return dot.closest('.field').querySelector('[id^="field-"]').id + ' ' + Math.round(spot.right - box.right) + ',' + Math.round(box.top - spot.top);
+    });
+  });
+  check('dots: ROM ID and URL dots both measured', corners.length === 2, corners.join('\n'));
+  corners.forEach(corner => check('dots: ' + corner.split(' ')[0] + ' sits 4px out from its box corner', corner.endsWith(' 4,4'), corner));
+}
 await scenario('ROM URL without a version', [...PINK_FLOYD,
   ['bundle', 'romFiles', true], ['fill', 'romChecksum', MD5_ROM], ['fill', 'romNotes', 'In the table download'], ['fill', 'romUrlOverride', ROM_URL]
 ], {
