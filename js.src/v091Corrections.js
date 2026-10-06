@@ -80,18 +80,11 @@
     if (tooltip && tooltip.textContent !== text) tooltip.textContent = text;
   }
 
-  function clearIncorrectVpuPatchIdError() {
-    const idField = document.getElementById('field-diffVPSId')?.closest('.field');
-    if (!idField) return;
-
-    idField.querySelectorAll(':scope > .field-error-dot').forEach(dot => dot.remove());
-    idField.classList.remove('has-field-error');
-  }
-
+  // The VPU Patch ID's dot removal lives in uiEnhancements.js (NO_DOT_FIELDS)
+  // since 2026-10-06, where every error dot is now drawn.
   function applyCorrections(container = document) {
     applyColorChecksumPlaceholder(container);
     applyEnableTooltipCorrection();
-    clearIncorrectVpuPatchIdError();
   }
 
   function scheduleCorrections(container = document) {
@@ -170,9 +163,7 @@
     const observer = new MutationObserver(records => {
       const relevant = records.some(record => {
         const target = record.target instanceof Element ? record.target : record.target.parentElement;
-        return target?.closest?.('#accordionStack') || [...record.addedNodes].some(node => (
-          node instanceof Element && (node.matches('.field-error-dot') || node.querySelector('.field-error-dot'))
-        ));
+        return target?.closest?.('#accordionStack');
       });
       if (relevant) scheduleCorrections();
     });

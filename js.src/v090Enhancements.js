@@ -26,7 +26,6 @@
       enhanceGameVpsId();
       enhanceAssetBadges();
       enhanceColorRomFields();
-      decorateCustomValidation();
       refreshPreviewBreakdown();
     });
   }
@@ -288,48 +287,8 @@
     return errors;
   }
 
-  function fieldWrapper(fieldName) {
-    return document.getElementById(`field-${fieldName}`)?.closest('.field') || null;
-  }
-
-  function clearCustomFieldDots() {
-    document.querySelectorAll('.field-error-dot.v090-error-dot').forEach(dot => {
-      const wrapper = dot.closest('.field');
-      dot.remove();
-      if (!wrapper?.querySelector('.field-error-dot')) wrapper?.classList.remove('has-field-error');
-    });
-  }
-
-  function addCustomFieldDot(error) {
-    const wrapper = fieldWrapper(error.fieldName);
-    if (!wrapper) return;
-    wrapper.classList.add('has-field-error');
-    const dot = document.createElement('span');
-    dot.className = 'field-error-dot v090-error-dot';
-    dot.dataset.tooltip = error.message;
-    dot.setAttribute('role', 'img');
-    dot.setAttribute('aria-label', error.message);
-    dot.tabIndex = 0;
-    wrapper.appendChild(dot);
-  }
-
-  function decorateCustomValidation() {
-    document.querySelectorAll('.field-error-dot[title]').forEach(dot => {
-      dot.dataset.tooltip = dot.getAttribute('title') || dot.getAttribute('aria-label') || '';
-      dot.removeAttribute('title');
-      dot.tabIndex = 0;
-    });
-
-    clearCustomFieldDots();
-    const errors = customValidationErrors();
-    const activeStep = document.querySelector('#accordionStack .config-tab-panel')?.dataset.step;
-    errors.filter(error => error.stepId === activeStep).forEach(addCustomFieldDot);
-
-    // Tab-level has-error/has-warning classes are now written exclusively by
-    // main.js's refreshTabStatuses(), which merges this same customValidationErrors()
-    // output alongside base and feature validation into one canonical per-tab
-    // status. Duplicating that write here used to race with it.
-  }
+  // This file's field dots, and the tooltip conversion for the older dots, are
+  // drawn by uiEnhancements.js from validationRules.js since 2026-10-06.
 
   function firstErrorStep() {
     const custom = customValidationErrors();
@@ -342,7 +301,7 @@
   }
 
   function navigateToFirstError() {
-    decorateCustomValidation();
+    window.VPS_ERROR_DOTS?.refresh?.();
     const stepId = firstErrorStep();
     if (stepId) {
       jumpToConfig(stepId);

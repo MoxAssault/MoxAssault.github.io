@@ -1,10 +1,12 @@
 'use strict';
-// Drives the REAL presentErrorDot + the refresh() sweep, sliced out of the
-// shipped js.src/featureValidationController.js at run time.
+// Drives the REAL presentErrorDot + the decorateCurrentFields sweep, sliced
+// out of the shipped js.src/uiEnhancements.js at run time. Both moved there
+// from featureValidationController.js on 2026-10-06, when one pass began
+// drawing every error dot.
 
 const fs = require('fs');
 const { check, report, repoPath } = require('./harness');
-const FVC = repoPath('js.src', 'featureValidationController.js');
+const DOTS = repoPath('js.src', 'uiEnhancements.js');
 const CSS_DIR = repoPath('css.src') + '/';
 
 const all = [];
@@ -57,7 +59,7 @@ const documentStub = {
 };
 
 // ── slice the real functions ───────────────────────────────────────────────
-const source = fs.readFileSync(FVC, 'utf8');
+const source = fs.readFileSync(DOTS, 'utf8');
 const start = source.indexOf('  function presentErrorDot(wrapper, messages) {');
 if (start < 0) throw new Error('presentErrorDot not found');
 const end = source.indexOf('\n  }', start) + 4;

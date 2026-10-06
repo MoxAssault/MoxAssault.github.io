@@ -194,10 +194,26 @@
     return errors;
   }
 
+  // Every error dot in the builder, drawn in one pass from the merged rulebook
+  // (validationRules.js). Until 2026-10-06 four scripts drew them, each on its
+  // own frame: this file (getFieldErrors and the fallback dot),
+  // featureValidationController.js, v090Enhancements.js, and v091Corrections.js,
+  // which deleted any dot drawn on the VPU Patch ID. Phase 1 of the merge keeps
+  // every dot exactly as it looked, so each system still gets the dot it had:
+  //   field   - .field-error-dot, one per field, its messages one per line
+  //   v090    - .field-error-dot.v090-error-dot, one per issue
+  //   feature - .feature-error-dot, one per field, messages joined by a space
+  //             and written into the control's aria-label too
+  // Drawn in that order, which is the order the old frames left them in.
+
+  // v091Corrections.js removed every dot here; in practice that was the
+  // fallback dot, which picks a tab's read-only ID field first.
+  const NO_DOT_FIELDS = new Set(['diffVPSId']);
+
   function clearFieldErrors(container) {
     container?.querySelectorAll('.field.has-field-error').forEach(field => {
       field.classList.remove('has-field-error');
-      field.querySelector(':scope > .field-error-dot')?.remove();
+      field.querySelectorAll(':scope > .field-error-dot').forEach(dot => dot.remove());
     });
   }
 
@@ -207,57 +223,164 @@
     return control?.closest('.field') || null;
   }
 
-  function addFieldErrorDot(container, fieldName, messages) {
+  function addFieldErrorDot(container, fieldName, messages, { v090 = false } = {}) {
+    if (NO_DOT_FIELDS.has(fieldName)) return false;
     const wrapper = findFieldWrapper(container, fieldName);
     if (!wrapper || !messages?.length) return false;
 
     wrapper.classList.add('has-field-error');
 
     const dot = document.createElement('span');
-    dot.className = 'field-error-dot';
+    dot.className = v090 ? 'field-error-dot v090-error-dot' : 'field-error-dot';
     dot.setAttribute('role', 'img');
     dot.setAttribute('aria-label', messages.join(' '));
-    dot.title = messages.join('\n');
-    wrapper.appendChild(dot);
+    dot.dataset.tooltip = messages.join('\n');
+    dot.tabIndex = 0;
+    // Ahead of a feature dot, which is kept between passes while these are
+    // redrawn, so a field carrying both always lists them in the same order.
+    wrapper.insertBefore(dot, wrapper.querySelector(':scope > .feature-error-dot'));
     return true;
+  }
+
+  function restoreControlLabel(control) {
+    if (!control) return;
+    if (control.dataset.featureOriginalAriaLabel !== undefined) {
+      const original = control.dataset.featureOriginalAriaLabel;
+      if (original) control.setAttribute('aria-label', original);
+      else control.removeAttribute('aria-label');
+      delete control.dataset.featureOriginalAriaLabel;
+    }
+    control.removeAttribute('aria-invalid');
+  }
+
+  function clearFeaturePresentation() {
+    document.querySelectorAll('.feature-has-field-error').forEach(wrapper => {
+      wrapper.classList.remove('feature-has-field-error');
+      wrapper.removeAttribute('data-feature-error-message');
+      wrapper.removeAttribute('data-feature-error-count');
+      const control = wrapper.matches('.additional-rom-controls')
+        ? wrapper.querySelector('.additional-rom-add')
+        : wrapper.querySelector('input, textarea, select, button, .readonly-id');
+      restoreControlLabel(control);
+      if (!wrapper.querySelector('.field-error-dot')) {
+        wrapper.classList.remove('has-field-error');
+      }
+    });
+  }
+
+  // The dot is a real element rather than a pseudo-element on the field
+  // wrapper. CSS cannot scope :hover to a pseudo-element, so the old
+  // attribute-only version popped its tooltip from anywhere in the field —
+  // including the hint line underneath it — while every other checksum error
+  // in the app pops only from its dot. A real element can own the hover, so
+  // this now behaves and looks identical to the legacy dots.
+  //
+  // Deliberately NOT class `field-error-dot`: clearFieldErrors above and
+  // additionalRomsController remove `.field-error-dot` wholesale, and this one
+  // is updated in place instead. The CSS gives both classes the same rules.
+  //
+  // .additional-rom-controls keeps the pseudo-element version — it is a
+  // different widget with its own dot logic and its own cleanup.
+  function presentErrorDot(wrapper, messages) {
+    if (wrapper.matches('.additional-rom-controls')) return;
+    let dot = wrapper.querySelector(':scope > .feature-error-dot');
+    if (!dot) {
+      dot = document.createElement('span');
+      dot.className = 'feature-error-dot';
+      dot.setAttribute('role', 'img');
+      wrapper.appendChild(dot);
+    }
+    // Updated in place, and swept in decorateCurrentFields only once the error
+    // clears, so a field with a standing error causes no DOM mutation between passes.
+    const tooltip = messages.join(' ');
+    if (dot.dataset.tooltip !== tooltip) dot.dataset.tooltip = tooltip;
+    if (dot.getAttribute('aria-label') !== tooltip) dot.setAttribute('aria-label', tooltip);
+  }
+
+  function presentFeatureField(wrapper, messages) {
+    if (!wrapper || !messages.length) return;
+    wrapper.classList.add('has-field-error', 'feature-has-field-error');
+    wrapper.dataset.featureErrorCount = String(messages.length);
+    wrapper.dataset.featureErrorMessage = messages.join(' ');
+    presentErrorDot(wrapper, messages);
+
+    const control = wrapper.matches('.additional-rom-controls')
+      ? wrapper.querySelector('.additional-rom-add')
+      : wrapper.querySelector('input, textarea, select, button, .readonly-id');
+    if (!control) return;
+    if (control.dataset.featureOriginalAriaLabel === undefined) {
+      control.dataset.featureOriginalAriaLabel = control.getAttribute('aria-label') || '';
+    }
+    const original = control.dataset.featureOriginalAriaLabel;
+    control.setAttribute('aria-label', `${original ? `${original}. ` : ''}${messages.join(' ')}`);
+    control.setAttribute('aria-invalid', 'true');
+  }
+
+  // Messages per field, in the order the rulebook lists them, each once.
+  function groupMessages(issues, keyOf) {
+    const grouped = new Map();
+    issues.forEach(issue => {
+      const key = keyOf(issue);
+      const messages = grouped.get(key) || [];
+      if (!messages.includes(issue.message)) messages.push(issue.message);
+      grouped.set(key, messages);
+    });
+    return grouped;
   }
 
   function decorateCurrentFields() {
     if (!accordionContext?.container?.isConnected) return;
+    const ctx = window.VPS_MAIN?.validationContext?.();
+    if (!ctx || !window.VPS_VALIDATION) return;
 
-    const { container, steps, values, callbacks } = accordionContext;
+    const { container, steps } = accordionContext;
+    const issues = window.VPS_VALIDATION.collectAllErrors(ctx);
     clearFieldErrors(container);
+    clearFeaturePresentation();
 
+    // Only the open tab is in the DOM, so only its dots can be drawn.
     const panel = container.querySelector('.config-tab-panel');
     const step = steps.find(candidate => candidate.id === panel?.dataset.step);
-    if (!step) return;
+    if (step) {
+      const onStep = system => issues.filter(issue => issue.system === system && issue.stepId === step.id);
+      let added = 0;
+      groupMessages(onStep('field'), issue => issue.fieldName).forEach((messages, fieldName) => {
+        if (addFieldErrorDot(container, fieldName, messages)) added += 1;
+      });
 
-    const errors = getFieldErrors(step, values, callbacks);
-    let added = 0;
-    errors.forEach((messages, fieldName) => {
-      if (addFieldErrorDot(container, fieldName, messages)) added += 1;
+      // A tab in error with no dot of its own points at its first field, so
+      // the user is not left looking for the problem.
+      const tab = container.querySelector(`.config-tab[data-step="${utils.cssEscape(step.id)}"]`);
+      const hasExtendedFieldError = issues.some(issue => (
+        (issue.system === 'feature' || issue.system === 'v090') && issue.stepId === step.id
+      ));
+      if (!added && !hasExtendedFieldError && tab?.classList.contains('has-error')) {
+        const fallback = step.fields.find(field => field.readonly)
+          || step.fields.find(field => !field.advanced)
+          || step.fields[0];
+        if (fallback) {
+          addFieldErrorDot(container, fallback.yml_field, ['This section contains an unresolved validation error.']);
+        }
+      }
+
+      onStep('v090').forEach(issue => addFieldErrorDot(container, issue.fieldName, [issue.message], { v090: true }));
+    }
+
+    const feature = issues.filter(issue => issue.system === 'feature');
+    groupMessages(feature, issue => `${issue.stepId}:${issue.fieldName}`).forEach((messages, key) => {
+      const fieldName = key.slice(key.indexOf(':') + 1);
+      // Scoped to the ROM tab: the VPX tab's Additional Passwords control
+      // shares the .additional-rom-controls class, and an unscoped lookup put
+      // Additional ROM errors on it whenever the VPX tab was open (2026-10-04).
+      const wrapper = fieldName === 'additionalRoms'
+        ? document.querySelector('#config-panel-rom .additional-rom-controls')
+        : document.getElementById(`field-${fieldName}`)?.closest('.field');
+      presentFeatureField(wrapper, messages);
     });
 
-    const tab = container.querySelector(`.config-tab[data-step="${utils.cssEscape(step.id)}"]`);
-    // Steps validated exclusively by the newer feature-validation layer (e.g.
-    // Alt Sound) have no case in getFieldErrors above, so `added` is always 0
-    // for them. Query that layer's errors directly (a pure read of current
-    // state) rather than checking for its `.feature-has-field-error` DOM
-    // marker — that marker is applied by an independently rAF-scheduled
-    // pass and isn't guaranteed to have run yet on this same frame.
-    const extendedErrors = [
-      ...(window.VPS_FEATURE_VALIDATION?.errors?.() || []),
-      ...(window.VPS_V090_VALIDATION?.errors?.() || [])
-    ];
-    const hasExtendedFieldError = extendedErrors.some(entry => entry.stepId === step.id);
-    if (!added && !hasExtendedFieldError && tab?.classList.contains('has-error')) {
-      const fallback = step.fields.find(field => field.readonly)
-        || step.fields.find(field => !field.advanced)
-        || step.fields[0];
-      if (fallback) {
-        addFieldErrorDot(container, fallback.yml_field, ['This section contains an unresolved validation error.']);
-      }
-    }
+    document.querySelectorAll('.feature-error-dot').forEach(dot => {
+      if (!dot.parentElement?.classList.contains('feature-has-field-error')) dot.remove();
+    });
   }
 
   function classState(element) {
@@ -401,6 +524,10 @@
     queueStatusRefresh();
     return result;
   };
+
+  // For the controllers that change state outside an input or change event
+  // (an archive scan finishing, a dialog saving) and redraw at once.
+  window.VPS_ERROR_DOTS = Object.freeze({ refresh: decorateCurrentFields });
 
   document.addEventListener('input', queueStatusRefresh, true);
   document.addEventListener('change', queueStatusRefresh, true);

@@ -369,7 +369,7 @@
       }
 
       setStatus({ message: `${messages.join(' · ')} from ${file.name}`, error: hadError });
-      window.VPS_FEATURE_VALIDATION?.refresh?.();
+      window.VPS_ERROR_DOTS?.refresh?.();
     }, true);
   }
 
