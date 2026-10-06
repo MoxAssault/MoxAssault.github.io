@@ -918,6 +918,19 @@
     return state.validation;
   }
 
+  // The inputs every validator reads, and validateBuild's own verdict, for
+  // validationRules.js and the tests that compare it to the old validators.
+  window.VPS_MAIN = Object.freeze({
+    validationContext: () => ({
+      record: state.record,
+      selections: state.selections,
+      values: state.values,
+      yaml: state.yaml,
+      isStepEnabled
+    }),
+    validateBuild
+  });
+
   function issue(type, stepId, title, message) {
     return { type, stepId, title, message };
   }
