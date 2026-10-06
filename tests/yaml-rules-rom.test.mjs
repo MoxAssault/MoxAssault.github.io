@@ -421,5 +421,37 @@ await scenario('Additional ROM listed twice', imported([{ vpsId: 'WshhKlRf', che
   download: 'blocked'
 });
 
+// Pinned from the pre-merge validators on 2026-10-05 (validator merge, Phase 1
+// piece 2). The first is the one-line-per-entry rule above with two problems on
+// one entry; the second has a v090 and a feature issue in the dialog at once,
+// which no other scenario does, so it pins their order.
+await scenario('Additional ROM with two problems', imported([{ checksum: 'NOT-A-HASH' }]), {
+  rule: 'Additional ROM 1 needs attention',
+  keys: ['additionalRoms', 'checksum', 'fps', 'romChecksum', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: Additional ROM 1 needs attention | Select a ROM VPS ID.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'rom additionalRoms: Select a ROM VPS ID. Checksum must contain exactly 32 hexadecimal characters.'
+  ],
+  download: 'blocked'
+});
+const withRomVersion = entries => [['import', talesFromTheCrypt(entries).replace('vpxChecksum:', 'romVersionOverride: "tftc_303"\nvpxChecksum:')]];
+await scenario('v090 and feature issues together', withRomVersion([{ checksum: MD5_ADD }]), {
+  rule: 'ROM URL override is required',
+  keys: ['additionalRoms', 'checksum', 'fps', 'romChecksum', 'romVersionOverride', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: ROM URL override is required | Add ROM URL Override when using ROM Version Override.',
+    'error: Additional ROM 1 needs attention | Select a ROM VPS ID.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'rom additionalRoms: Select a ROM VPS ID.',
+    'rom field-romUrlOverride: Add ROM URL Override when using ROM Version Override.'
+  ],
+  download: 'blocked'
+});
+
 await app.close();
 report('yaml-rules-rom');

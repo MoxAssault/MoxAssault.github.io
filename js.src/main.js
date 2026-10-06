@@ -674,10 +674,29 @@
     });
   }
 
+  // The inputs every rule reads. Built fresh on each call, because selectRecord
+  // and startNext replace state.values and state.selections outright.
+  function validationContext() {
+    return {
+      record: state.record,
+      selections: state.selections,
+      values: state.values,
+      yaml: state.yaml,
+      isStepEnabled
+    };
+  }
+
+  // The feature and v090 issues, read live from the rulebook on every call -
+  // the two validators were queried the same way before the merge, which is
+  // what lets the Additional ROM dialog change a tab's count without a field
+  // change here.
+  function extendedIssues() {
+    return window.VPS_VALIDATION.collectAllErrors(validationContext())
+      .filter(entry => entry.system === 'feature' || entry.system === 'v090');
+  }
+
   function getExtendedStepErrors(stepId) {
-    const featureErrors = window.VPS_FEATURE_VALIDATION?.errors?.() || [];
-    const v090Errors = window.VPS_V090_VALIDATION?.errors?.() || [];
-    return [...featureErrors, ...v090Errors].filter(entry => entry.stepId === stepId);
+    return extendedIssues().filter(entry => entry.stepId === stepId);
   }
 
   function getSectionStatus(step) {
@@ -918,25 +937,35 @@
     return state.validation;
   }
 
+  // validateBuild's issues, from the merged rulebook (validationRules.js).
+  // validateBuild itself no longer feeds any screen; it stays only so the
+  // tests can compare it to the rulebook, until the old validators are deleted.
+  function refreshValidation() {
+    const build = window.VPS_VALIDATION.collectAllErrors(validationContext())
+      .filter(entry => entry.system === 'build');
+    state.validation = {
+      errors: build.filter(entry => entry.type === 'error'),
+      warnings: build.filter(entry => entry.type === 'warning')
+    };
+    return state.validation;
+  }
+
   // The inputs every validator reads, and validateBuild's own verdict, for
-  // validationRules.js and the tests that compare it to the old validators.
-  window.VPS_MAIN = Object.freeze({
-    validationContext: () => ({
-      record: state.record,
-      selections: state.selections,
-      values: state.values,
-      yaml: state.yaml,
-      isStepEnabled
-    }),
-    validateBuild
-  });
+  // the tests that compare the rulebook to the old validators.
+  window.VPS_MAIN = Object.freeze({ validationContext, validateBuild });
 
   function issue(type, stepId, title, message) {
     return { type, stepId, title, message };
   }
 
   function updateValidationSummary() {
-    validateBuild();
+    refreshValidation();
+  }
+
+  // Anything that blocks Copy and Download. The feature and v090 issues used to
+  // block by intercepting those clicks before this file saw them.
+  function hasBlockingIssues() {
+    return state.validation.errors.length > 0 || extendedIssues().length > 0;
   }
 
   function refreshTabStatuses() {
@@ -957,8 +986,19 @@
     });
   }
 
+  function validationItem(entry, className) {
+    const item = document.createElement('li');
+    item.className = className;
+    const title = document.createElement('strong');
+    title.textContent = entry.title;
+    const message = document.createElement('span');
+    message.textContent = entry.message;
+    item.append(title, message);
+    return item;
+  }
+
   function showValidationDialog() {
-    validateBuild();
+    refreshValidation();
     dom.validationBody.innerHTML = '';
     const all = [...state.validation.errors, ...state.validation.warnings];
     const list = document.createElement('ul');
@@ -969,17 +1009,29 @@
       item.innerHTML = '<strong>Everything looks good.</strong><span>The build is ready to copy or download.</span>';
       list.appendChild(item);
     } else {
-      all.forEach(entry => {
-        const item = document.createElement('li');
-        item.className = `validation-item ${entry.type}`;
-        const title = document.createElement('strong');
-        title.textContent = entry.title;
-        const message = document.createElement('span');
-        message.textContent = entry.message;
-        item.append(title, message);
-        list.appendChild(item);
-      });
+      all.forEach(entry => list.appendChild(validationItem(entry, `validation-item ${entry.type}`)));
     }
+
+    // The v090 and then the feature issues follow, each skipped when its title
+    // is already listed. Until 2026-10-05 the two validators appended these
+    // themselves a moment after the dialog opened, and this keeps exactly what
+    // they produced: v090 checks titles against validateBuild's alone, so two
+    // v090 issues sharing a title both show, while the feature validator also
+    // skips titles it has just added.
+    const extended = extendedIssues();
+    const appendExtended = (entries, className, rememberOwnTitles) => {
+      if (!entries.length) return;
+      list.querySelector('.validation-item.success')?.remove();
+      const listed = new Set([...list.querySelectorAll('.validation-item strong')].map(node => node.textContent));
+      entries.forEach(entry => {
+        if (listed.has(entry.title)) return;
+        if (rememberOwnTitles) listed.add(entry.title);
+        list.appendChild(validationItem(entry, `validation-item error ${className}`));
+      });
+    };
+    appendExtended(extended.filter(entry => entry.system === 'v090'), 'v090-validation-item', false);
+    appendExtended(extended.filter(entry => entry.system === 'feature'), 'feature-validation-item', true);
+
     dom.validationBody.appendChild(list);
     renderAccordions();
     openDialog(dom.validationDialog);
@@ -1009,8 +1061,8 @@
   }
 
   async function copyYaml(button) {
-    validateBuild();
-    if (state.validation.errors.length) {
+    refreshValidation();
+    if (hasBlockingIssues()) {
       showValidationDialog();
       return;
     }
@@ -1034,8 +1086,8 @@
   }
 
   function downloadYaml() {
-    validateBuild();
-    if (state.validation.errors.length) {
+    refreshValidation();
+    if (hasBlockingIssues()) {
       showValidationDialog();
       return;
     }

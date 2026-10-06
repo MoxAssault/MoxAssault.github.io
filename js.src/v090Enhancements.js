@@ -331,31 +331,6 @@
     // status. Duplicating that write here used to race with it.
   }
 
-  function appendCustomErrorsToDialog() {
-    const errors = customValidationErrors();
-    if (!errors.length) return;
-    const list = document.querySelector('#validationBody .validation-list');
-    if (!list) return;
-    list.querySelector('.validation-item.success')?.remove();
-    const existing = new Set([...list.querySelectorAll('.validation-item strong')].map(node => node.textContent));
-    errors.forEach(error => {
-      if (existing.has(error.title)) return;
-      const item = document.createElement('li');
-      item.className = 'validation-item error v090-validation-item';
-      const title = document.createElement('strong');
-      title.textContent = error.title;
-      const message = document.createElement('span');
-      message.textContent = error.message;
-      item.append(title, message);
-      list.appendChild(item);
-    });
-  }
-
-  function openValidationWithCustomErrors() {
-    document.getElementById('validateBtn')?.click();
-    window.setTimeout(appendCustomErrorsToDialog, 0);
-  }
-
   function firstErrorStep() {
     const custom = customValidationErrors();
     for (const step of WIZARD_STEPS) {
@@ -545,32 +520,9 @@
 
   document.addEventListener('input', queueRefresh, true);
 
-  document.addEventListener('click', event => {
-    const button = event.target instanceof Element ? event.target.closest('button') : null;
-    if (!button) return;
-
-    if (button.id === 'validateBtn') {
-      window.setTimeout(appendCustomErrorsToDialog, 0);
-      return;
-    }
-
-    if ((button.id === 'drawerCopyBtn' || button.id === 'downloadBtn') && customValidationErrors().length) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      openValidationWithCustomErrors();
-    }
-  }, true);
-
-  document.addEventListener('keydown', event => {
-    if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return;
-    if (event.shiftKey && customValidationErrors().length) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      openValidationWithCustomErrors();
-    } else {
-      window.setTimeout(appendCustomErrorsToDialog, 0);
-    }
-  }, true);
+  // The Validate dialog lines and Copy/Download blocking for these rules now
+  // come from main.js through validationRules.js. This file used to append to
+  // the dialog and intercept those clicks and Ctrl+Enter itself.
 
   function init() {
     initHelpTabs();

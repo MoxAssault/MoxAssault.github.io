@@ -42,10 +42,10 @@ const DB = JSON.parse(readFileSync(repoPath('fixtures', 'vpsdb-five.json'), 'utf
 // getFieldErrors is private to uiEnhancements.js, so it is sliced out of the
 // shipped source (with the three helpers above it) and rebuilt in the page.
 const UI_ENHANCEMENTS = readFileSync(repoPath('js.src', 'uiEnhancements.js'), 'utf8').replace(/\r\n/g, '\n');
-const FIELD_ERRORS_SOURCE = UI_ENHANCEMENTS.slice(
-  UI_ENHANCEMENTS.indexOf('  function hasText(value) {'),
-  UI_ENHANCEMENTS.indexOf('  function clearFieldErrors(container) {')
-);
+const FIELD_ERRORS_START = UI_ENHANCEMENTS.indexOf('  function hasText(value) {');
+const FIELD_ERRORS_END = UI_ENHANCEMENTS.indexOf('  function clearFieldErrors(container) {');
+if (FIELD_ERRORS_START < 0 || FIELD_ERRORS_END < FIELD_ERRORS_START) throw new Error('could not find getFieldErrors in uiEnhancements.js');
+const FIELD_ERRORS_SOURCE = UI_ENHANCEMENTS.slice(FIELD_ERRORS_START, FIELD_ERRORS_END);
 if (!FIELD_ERRORS_SOURCE.includes('function getFieldErrors(')) throw new Error('could not slice getFieldErrors out of uiEnhancements.js');
 
 // Phase 1 of the validator merge: js.src/validationRules.js must reproduce each
