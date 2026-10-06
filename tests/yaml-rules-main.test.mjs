@@ -307,7 +307,7 @@ await scenario('backglass override with nothing filled', [...BASE, ['override', 
 // Defensive: the dropdown disables a broken entry and the importer refuses
 // one, so only a saved draft can carry it.
 //
-// validateBuild's other asset rule, "<asset> ID is unavailable", has no
+// The build rules' other asset rule, "<asset> ID is unavailable", has no
 // scenario because nothing can reach it: sanitizeAssetSelections in main.js
 // drops any selection the table does not offer every time a table loads,
 // a restored draft included (checked 2026-10-04). The merge may drop it.

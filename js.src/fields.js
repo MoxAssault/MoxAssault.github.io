@@ -195,7 +195,7 @@
       id: 'pup', label: 'PUP Pack', legend: 'PUP Pack', category: 'pupPackFiles', bundleField: 'pupBundled',
       overrideField: 'pupOverride',
       // Version/Archive Root/Archive Format are unconditionally required
-      // whenever this tab is enabled (see main.js validateBuild). URL is
+      // whenever this tab is enabled (see validationRules.js). URL is
       // only required when Override is checked — a selected or bundled
       // PUP Pack doesn't need a manual download URL — same as Notes.
       overrideRequiredFields: ['pupNotes', 'pupFileUrl'],

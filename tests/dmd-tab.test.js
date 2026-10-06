@@ -10,9 +10,9 @@
 //     are locked out when Bundled is ticked
 //   - a value typed before the shape was switched is dropped from the YML
 //     rather than leaking, so disabling in the UI is not the only guard
-//   - main.js and uiEnhancements.js name the same keys. Those two validators
-//     never read each other (see VPXS Layered Validation), so nothing but a
-//     test stops them drifting apart.
+//   - the rulebook's build and field sections name the same keys. They are
+//     still separate copies of two old validators (see VPXS Layered
+//     Validation), so nothing but a test stops them drifting apart.
 
 const fs = require('fs');
 const { check, report, repoPath } = require('./harness');
@@ -21,7 +21,17 @@ const FIELDS = repoPath('js.src', 'fields.js');
 const UI_HELPER = repoPath('js.src', 'uiHelper.js');
 const YAML = repoPath('js.src', 'yamlFeatureSupport.js');
 const MAIN = repoPath('js.src', 'main.js');
-const ENHANCEMENTS = repoPath('js.src', 'uiEnhancements.js');
+const RULES = repoPath('js.src', 'validationRules.js');
+// The rulebook's build and field sections, each sliced on its own so a key in
+// one cannot satisfy a check meant for the other. Until 2026-10-06 these were
+// validateBuild in main.js and getFieldErrors in uiEnhancements.js.
+function ruleSection(name, next) {
+  const source = fs.readFileSync(RULES, 'utf8');
+  const start = source.indexOf('  function ' + name + '(');
+  const end = source.indexOf('  function ' + next + '(', start);
+  if (start < 0 || end < 0) throw new Error('could not slice ' + name + ' out of validationRules.js');
+  return source.slice(start, end);
+}
 
 // ── the real field definitions ─────────────────────────────────────────────
 // fields.js is pure data with no DOM use, so a bare window stub runs it.
@@ -208,22 +218,22 @@ const applyBundledShape = new Function('data', dropBlock + '\n return data;');
     Boolean(declared) && declared[0].includes('specialDMDChecksum'));
 }
 
-// ── drift guard across the two independent validators ──────────────────────
+// ── drift guard across the rulebook's two DMD sections ─────────────────────
 // 11 ── both must know the same keys, or the dots and the blocking errors
 //       disagree and the user gets a tab that will not clear.
 {
-  const mainSource = fs.readFileSync(MAIN, 'utf8');
-  const enhancedSource = fs.readFileSync(ENHANCEMENTS, 'utf8');
+  const buildRules = ruleSection('buildIssues', 'fieldIssues');
+  const fieldRules = ruleSection('fieldIssues', 'featureIssues');
 
   [...BOTH_SHAPES, 'specialDMDChecksum', 'specialDMDUrlOverride', 'specialDMDVersion'].forEach(key => {
-    check(`validateBuild knows ${key}`, mainSource.includes(key));
-    check(`the per-field dot validator knows ${key}`, enhancedSource.includes(key));
+    check(`the build rules know ${key}`, buildRules.includes(key));
+    check(`the field rules know ${key}`, fieldRules.includes(key));
   });
 
-  check('both validators gate the standalone rules on specialDMDBundled',
-    mainSource.includes('specialDMDBundled') && enhancedSource.includes('specialDMDBundled'));
-  check('the dot validator has a dmd case',
-    /case 'dmd'/.test(enhancedSource));
+  check('both sections gate the standalone rules on specialDMDBundled',
+    buildRules.includes('specialDMDBundled') && fieldRules.includes('specialDMDBundled'));
+  check('the field rules have a dmd case',
+    /case 'dmd'/.test(fieldRules));
 }
 
 // ── one directory list per tab ─────────────────────────────────────────────

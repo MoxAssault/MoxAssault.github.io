@@ -214,7 +214,7 @@
     // Same rule as the URL branch above: yamllint measures the whole line, so
     // fold on the length of `name: "value"` as written, not the value alone.
     // Measuring the value let a 118-character tagline out as a 129-character
-    // line, which validateBuild then refused (found 2026-10-02). A folded line
+    // line, which the build validation then refused (found 2026-10-02). A folded line
     // carries a 2-space indent on top of the text, so wrap 2 short of 120.
     const quotedLength = indent.length + name.length + 4 + cleanValue.length;
     if (cleanValue.includes('\n') || quotedLength > 120) {

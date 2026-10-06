@@ -11,7 +11,7 @@
 //     never edited, and never written outside the bundled shape
 //   - the importer recognises that derived key, so a bundled YML does not come
 //     back reporting it as outdated
-//   - both independent validators demand the checksum PAIR
+//   - both the build and the field rules demand the checksum PAIR
 //
 // NOT covered here: the drop handler itself. Hashing an archive twice and
 // cross-writing to another tab needs a real browser and a real archive; this
@@ -25,7 +25,17 @@ const FIELDS = repoPath('js.src', 'fields.js');
 const YAML = repoPath('js.src', 'yamlFeatureSupport.js');
 const UI_HELPER = repoPath('js.src', 'uiHelper.js');
 const MAIN = repoPath('js.src', 'main.js');
-const ENHANCEMENTS = repoPath('js.src', 'uiEnhancements.js');
+const RULES = repoPath('js.src', 'validationRules.js');
+// The rulebook's build and field sections, each sliced on its own so a key in
+// one cannot satisfy a check meant for the other. Until 2026-10-06 these were
+// validateBuild in main.js and getFieldErrors in uiEnhancements.js.
+function ruleSection(name, next) {
+  const source = fs.readFileSync(RULES, 'utf8');
+  const start = source.indexOf('  function ' + name + '(');
+  const end = source.indexOf('  function ' + next + '(', start);
+  if (start < 0 || end < 0) throw new Error('could not slice ' + name + ' out of validationRules.js');
+  return source.slice(start, end);
+}
 const IMPORT = repoPath('js.src', 'ymlImport.js');
 
 const windowStub = {};
@@ -138,19 +148,19 @@ const applyBundledShape = new Function('data', block + '\n return data;');
     'otherwise a bundled YML imports with it flagged outdated and stripped');
 }
 
-// 6 ── both validators demand the pair
+// 6 ── both rule sections demand the pair
 {
-  const mainSource = fs.readFileSync(MAIN, 'utf8');
-  const enhancedSource = fs.readFileSync(ENHANCEMENTS, 'utf8');
-  check('validateBuild checks vpxChecksum length when bundled',
-    mainSource.includes('normalizeChecksumValue(state.values.vpxChecksum).length < 2'),
-    'the blocking validator must refuse a single checksum in the bundled shape');
-  check('validateBuild files that error against the vpx tab',
-    /addError\('vpx', 'Bundled DMD needs both checksums'/.test(mainSource));
-  check('the dot validator knows the same rule',
-    enhancedSource.includes('specialDMDBundled') && enhancedSource.includes('bundledPair'));
-  check('the dot validator files it against vpxChecksum',
-    /add\('vpxChecksum'/.test(enhancedSource));
+  const buildRules = ruleSection('buildIssues', 'fieldIssues');
+  const fieldRules = ruleSection('fieldIssues', 'featureIssues');
+  check('the build rules check vpxChecksum length when bundled',
+    buildRules.includes('normalizeChecksumValue(values.vpxChecksum).length < 2'),
+    'the blocking rules must refuse a single checksum in the bundled shape');
+  check('the build rules file that error against the vpx tab',
+    /addError\('vpx', 'Bundled DMD needs both checksums'/.test(buildRules));
+  check('the field rules know the same rule',
+    fieldRules.includes('specialDMDBundled') && fieldRules.includes('bundledPair'));
+  check('the field rules file it against vpxChecksum',
+    /add\('vpxChecksum'/.test(fieldRules));
 }
 
 // 7 ── the drop handler is wired, as a drift net only

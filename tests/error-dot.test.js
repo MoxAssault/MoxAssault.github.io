@@ -184,7 +184,6 @@ const findDot = w => w.children.find(c => c.className.split(' ').includes('featu
 
   const sources = [
     'js.src/uiEnhancements.js',
-    'js.src/featureValidationController.js',
     'js.src/additionalRomsController.js',
     'js.src/v091Corrections.js'
   ];

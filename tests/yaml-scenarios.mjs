@@ -1,11 +1,13 @@
 // The builder, driven end to end the way a user drives it - the shared runner
 // behind yaml-runthrough.test.mjs and the yaml-rules-*.test.mjs files.
 //
-// Why this exists: the app has four validators that do not talk to each other
-// (vault note "VPXS Layered Validation"). Merging them into one is planned, and
-// the merge is only safe with proof that every rule still fires the same way
-// afterwards. The scenarios are that proof: each one searches for a table,
-// picks assets, fills fields and then records exactly what the user would see.
+// Why this exists: the app had four validators that did not talk to each other
+// (vault note "VPXS Layered Validation"). They were merged into one rulebook,
+// js.src/validationRules.js, on 2026-10-05 and 10-06, and the merge was only
+// safe with proof that every rule still fired the same way afterwards. The
+// scenarios are that proof, and they stay it while Phase 2 changes wording and
+// duplicates on purpose: each one searches for a table, picks assets, fills
+// fields and then records exactly what the user would see.
 //
 // Nothing is stubbed. The real index.html runs in headless Chrome
 // (tests/browser.mjs) with every one of its scripts. The only thing swapped is
@@ -38,56 +40,6 @@ import { openApp } from './browser.mjs';
 
 const PRINT = process.env.SNAPSHOT === 'print';
 const DB = JSON.parse(readFileSync(repoPath('fixtures', 'vpsdb-five.json'), 'utf8'));
-
-// getFieldErrors is private to uiEnhancements.js, so it is sliced out of the
-// shipped source (with the three helpers above it) and rebuilt in the page.
-const UI_ENHANCEMENTS = readFileSync(repoPath('js.src', 'uiEnhancements.js'), 'utf8').replace(/\r\n/g, '\n');
-const FIELD_ERRORS_START = UI_ENHANCEMENTS.indexOf('  function hasText(value) {');
-const FIELD_ERRORS_END = UI_ENHANCEMENTS.indexOf('  function clearFieldErrors(container) {');
-if (FIELD_ERRORS_START < 0 || FIELD_ERRORS_END < FIELD_ERRORS_START) throw new Error('could not find getFieldErrors in uiEnhancements.js');
-const FIELD_ERRORS_SOURCE = UI_ENHANCEMENTS.slice(FIELD_ERRORS_START, FIELD_ERRORS_END);
-if (!FIELD_ERRORS_SOURCE.includes('function getFieldErrors(')) throw new Error('could not slice getFieldErrors out of uiEnhancements.js');
-
-// Phase 1 of the validator merge: js.src/validationRules.js must reproduce each
-// old validator exactly. Returns '' when every system matches, otherwise the
-// differences. Retired once the old validators are deleted.
-async function compareRulebook(app) {
-  return app.run(source => {
-    const getFieldErrors = new Function(source + '\nreturn getFieldErrors;')();
-    const { WIZARD_STEPS } = window.VPS_YML_FIELDS;
-    const ctx = window.VPS_MAIN.validationContext();
-    const rulebook = window.VPS_VALIDATION.collectAllErrors(ctx);
-    const from = system => rulebook.filter(issue => issue.system === system);
-    const line = (...parts) => parts.join(' | ');
-
-    const verdict = window.VPS_MAIN.validateBuild();
-    const field = [];
-    WIZARD_STEPS.forEach(step => {
-      getFieldErrors(step, ctx.values, { isEnabled: ctx.isStepEnabled }).forEach((messages, fieldName) => {
-        messages.forEach(message => field.push(line(step.id, fieldName, message)));
-      });
-    });
-    const tagged = list => list.map(issue => line(issue.stepId, issue.fieldName, issue.title, issue.message));
-
-    const pairs = {
-      'build errors': [
-        verdict.errors.map(issue => line(issue.stepId, issue.title, issue.message)),
-        from('build').filter(issue => issue.type === 'error').map(issue => line(issue.stepId, issue.title, issue.message))
-      ],
-      'build warnings': [
-        verdict.warnings.map(issue => line(issue.stepId, issue.title, issue.message)),
-        from('build').filter(issue => issue.type === 'warning').map(issue => line(issue.stepId, issue.title, issue.message))
-      ],
-      field: [field, from('field').map(issue => line(issue.stepId, issue.fieldName, issue.message))],
-      feature: [tagged(window.VPS_FEATURE_VALIDATION.errors()), tagged(from('feature'))],
-      v090: [tagged(window.VPS_V090_VALIDATION.errors()), tagged(from('v090'))]
-    };
-    return Object.entries(pairs)
-      .filter(([, [old, now]]) => old.join('\n') !== now.join('\n'))
-      .map(([name, [old, now]]) => name + '\n  old:\n    ' + old.join('\n    ') + '\n  rulebook:\n    ' + now.join('\n    '))
-      .join('\n');
-  }, FIELD_ERRORS_SOURCE);
-}
 
 // Runs one step inside the page. Each step is [verb, ...args]:
 //   ['search', query]               type in the search box and submit
@@ -280,7 +232,6 @@ export async function startScenarios() {
       if (step[0] === 'draft') await draftStep(app, step);
       else await pageStep(app, step);
     }
-    const rulebookDiff = await compareRulebook(app);
     const actual = await snapshot(app);
 
     // A refused Download opens the Validate dialog instead, so only wait for a
@@ -302,11 +253,8 @@ export async function startScenarios() {
       console.log('\n=== ' + name);
       console.log(JSON.stringify(expected.yaml ? actual : rest, null, 2));
       if (pageErrors.length) console.log('page errors:', pageErrors);
-      if (rulebookDiff) console.log('rulebook differs:\n' + rulebookDiff);
       return;
     }
-
-    check(name + ': rulebook matches the old validators', rulebookDiff === '', rulebookDiff);
 
     if (expected.rule) {
       const titles = actual.dialog.map(line => line.slice(line.indexOf(': ') + 2, line.indexOf(' | ')));

@@ -233,65 +233,12 @@
     updateColorHints();
   }
 
-  function readValue(fieldName) {
-    if (latestValues && Object.prototype.hasOwnProperty.call(latestValues, fieldName)) {
-      return latestValues[fieldName];
-    }
-    const control = document.getElementById(`field-${fieldName}`);
-    if (!control) return '';
-    if (control.matches('input[type="checkbox"]')) return control.checked;
-    return control.value ?? control.textContent ?? '';
-  }
-
-  function hasText(value) {
-    return Array.isArray(value)
-      ? value.some(item => String(item || '').trim())
-      : String(value ?? '').trim().length > 0;
-  }
-
-  function stepEnabled(stepId) {
-    const step = WIZARD_STEPS.find(candidate => candidate.id === stepId);
-    return Boolean(step && latestAccordion?.callbacks?.isEnabled?.(step));
-  }
-
-  function customValidationErrors() {
-    const errors = [];
-    const add = (stepId, fieldName, title, message) => errors.push({ stepId, fieldName, title, message });
-    const pair = (stepId, urlField, versionField, label, { urlOptional = false } = {}) => {
-      if (!stepEnabled(stepId)) return;
-      const hasUrl = hasText(readValue(urlField));
-      const hasVersion = hasText(readValue(versionField));
-      if (hasUrl && !hasVersion) add(stepId, versionField, `${label} version override is required`, `Add ${label} Version Override when using ${label} URL Override.`);
-      if (hasVersion && !hasUrl && !urlOptional) add(stepId, urlField, `${label} URL override is required`, `Add ${label} URL Override when using ${label} Version Override.`);
-    };
-
-    // A bundled ROM ships inside the table's own download, so there is no URL
-    // to give, but it can still need a Version Override naming the ROM the
-    // table loads (Jason's call, 2026-10-02). A URL still needs a version.
-    pair('rom', 'romUrlOverride', 'romVersionOverride', 'ROM', { urlOptional: readValue('romBundled') === true });
-    pair('coloredRom', 'coloredROMUrlOverride', 'coloredROMVersionOverride', 'Color ROM');
-    pair('vpuPatch', 'diffUrlOverride', 'diffVersionOverride', 'Patch');
-
-    if (stepEnabled('b2s') && hasText(readValue('backglassUrlOverride'))) {
-      if (!hasText(readValue('backglassAuthorsOverride'))) {
-        add('b2s', 'backglassAuthorsOverride', 'Backglass authors override is required', 'Add at least one Backglass Authors Override when using Backglass URL Override.');
-      }
-      if (!hasText(readValue('backglassImageOverride'))) {
-        add('b2s', 'backglassImageOverride', 'Backglass image override is required', 'Add Backglass Image Override when using Backglass URL Override.');
-      }
-    }
-
-    if (stepEnabled('vpuPatch') && !hasText(readValue('diffChecksum'))) {
-      add('vpuPatch', 'diffChecksum', 'VPU Patch Checksum is required', 'Add a valid MD5 value for VPU Patch Checksum.');
-    }
-    return errors;
-  }
-
-  // This file's field dots, and the tooltip conversion for the older dots, are
-  // drawn by uiEnhancements.js from validationRules.js since 2026-10-06.
+  // This file's rules live in validationRules.js (system 'v090') since
+  // 2026-10-06, and its field dots are drawn by uiEnhancements.js.
 
   function firstErrorStep() {
-    const custom = customValidationErrors();
+    const custom = window.VPS_VALIDATION.collectAllErrors(window.VPS_MAIN.validationContext())
+      .filter(issue => issue.system === 'v090');
     for (const step of WIZARD_STEPS) {
       if (!latestAccordion?.callbacks?.isEnabled?.(step)) continue;
       const internal = latestAccordion.callbacks.getStatus?.(step)?.className === 'error';
@@ -505,8 +452,6 @@
       observer.observe(document.body, { childList: true, subtree: true });
     }
   }
-
-  window.VPS_V090_VALIDATION = Object.freeze({ errors: customValidationErrors });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();

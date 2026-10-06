@@ -6,19 +6,18 @@
   // Four validators grew up separately and never read each other (vault note
   // "VPXS Layered Validation"): validateBuild in main.js, getFieldErrors in
   // uiEnhancements.js, the feature validator in featureValidationController.js
-  // and the v090 rules in v090Enhancements.js. They are being merged in two
-  // phases. Phase 1 changes nothing the user sees: this file reproduces each
-  // validator's output exactly, every issue tagged with the `system` it came
-  // from, and the screens move onto it one at a time. Phase 2 then resolves the
-  // duplicates and wording differences between systems, one decision at a time.
-  //
-  // So the four sections below are deliberately faithful copies, quirks and
-  // all. tests/yaml-scenarios.mjs compares them to the originals in every
-  // scenario until the originals are deleted.
+  // and the v090 rules in v090Enhancements.js. Phase 1 of their merge (finished
+  // 2026-10-06) copied each one here exactly, quirks and all, moved every
+  // screen onto this file, and deleted the originals. The four sections below
+  // are those copies, and each issue still carries the `system` it came from,
+  // because the screens present each system the way its validator used to.
+  // Phase 2 resolves the duplicates and wording differences between systems,
+  // one decision at a time; the pinned scenarios in tests/yaml-*.test.mjs
+  // show exactly what every rule produces until then.
   //
   // An issue is { system, type, stepId, fieldName, title, message }:
-  //   build    - validateBuild: the Validate dialog, tab counts, blocks Copy/Download
-  //   field    - getFieldErrors: field dots on the open tab; no title
+  //   build    - the Validate dialog, tab counts, blocks Copy/Download
+  //   field    - field dots on the open tab; no title
   //   feature  - Alt Sound, the tutorial, Additional ROMs: dialog, counts, dots, blocks
   //   v090     - URL/version pairs, Backglass overrides, VPU Patch checksum: the same
   //

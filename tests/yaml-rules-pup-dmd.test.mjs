@@ -176,7 +176,7 @@ await scenario('clean bundled DMD', [['import', [
 });
 
 // The tab stays shut until a type is picked, so a missing type is reported
-// from the asset row alone (see validateBuild).
+// from the asset row alone (see buildIssues in validationRules.js).
 await scenario('DMD ticked without a type', [...PINK_FLOYD, ['override', 'specialDMD', true]], {
   rule: 'DMD Type is required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],

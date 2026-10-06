@@ -13,11 +13,8 @@
     safeFilename,
     downloadText,
     copyText,
-    isItemBroken,
     getCategoryItems,
     getAssetState,
-    normalizeArray,
-    isMd5Hash,
     normalizeChecksumValue
   } = window.VPS_UTILS;
   const SEARCH = window.VPS_SEARCH;
@@ -720,226 +717,8 @@
     return { label: count ? `${count} value${count === 1 ? '' : 's'}` : 'Ready', className: 'ready' };
   }
 
-  function validateBuild() {
-    const errors = [];
-    const warnings = [];
-    const addError = (stepId, title, message) => errors.push(issue('error', stepId, title, message));
-    const addWarning = (stepId, title, message) => warnings.push(issue('warning', stepId, title, message));
-    const hasText = value => typeof value === 'string' ? value.trim() !== '' : value !== undefined && value !== null;
-
-    if (!state.record) addError('main', 'No table selected', 'Search for and load a VPS table first.');
-    if (!state.values.tableVPSId) addError('main', 'Missing table VPS ID', 'The selected table does not have a usable VPS ID.');
-    if (!state.selections.tableFiles || !state.values.vpxVPSId) {
-      addError('vpx', 'VPX file required', 'Select a VPX file before copying or downloading the configuration.');
-    }
-
-    const fpsRaw = state.values.fps;
-    if (fpsRaw === '' || fpsRaw === undefined || fpsRaw === null) {
-      addError('main', 'FPS is required', 'Enter the table frame rate as an integer.');
-    } else if (!/^\d+$/.test(String(fpsRaw)) || !Number.isInteger(Number(fpsRaw))) {
-      addError('main', 'FPS must be an integer', 'Use numbers only for FPS.');
-    }
-
-    const testers = normalizeArray(state.values.testers);
-    if (!testers.length) {
-      addError('main', 'Testers are required', 'Enter at least one tester; separate multiple names with commas.');
-    }
-
-    Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
-      const selectedId = state.selections[category];
-      const items = getCategoryItems(state.record, category, config, { selections: state.selections });
-      const item = items.find(candidate => String(candidate.id || '') === String(selectedId || ''));
-
-      if (config.bundleField && selectedId && state.values[config.bundleField] === true) {
-        addWarning(config.stepId, `${config.label} selected and bundled`, 'Choose either a separate VPS entry or bundled status unless both are intentionally required.');
-      }
-      if (selectedId && !item) {
-        addError(config.stepId, `${config.label} ID is unavailable`, 'Choose an available VPS entry before copying or downloading.');
-      } else if (item && isItemBroken(item)) {
-        addError(config.stepId, `${config.label} entry is broken`, 'Choose another database entry before copying or downloading.');
-      }
-    });
-
-    const validateChecksum = (key, stepId, label, options = {}) => {
-      const rawValue = options.value !== undefined ? options.value : state.values[key];
-      const hashes = normalizeChecksumValue(rawValue);
-      if (options.required && !hashes.length) {
-        addError(stepId, `${label} is required`, `Add a valid MD5 value for ${label}.`);
-        return;
-      }
-      if (!hashes.length) return;
-      if (Array.isArray(rawValue) && hashes.length < 2) {
-        addError(stepId, `${label} list is invalid`, 'Use a plain string for one checksum or a list containing at least two checksums.');
-      }
-      hashes.forEach(hash => {
-        if (!isMd5Hash(hash)) {
-          addError(stepId, `${label} is not a valid MD5`, 'Each checksum must contain exactly 32 hexadecimal characters.');
-        }
-      });
-    };
-
-    validateChecksum('vpxChecksum', 'vpx', 'VPX Checksum', { required: true });
-
-    const backglassOffered = Boolean(
-      state.selections.b2sFiles || hasText(state.values.backglassUrlOverride) || state.values.backglassBundled === true
-    );
-    validateChecksum('backglassChecksum', 'b2s', 'Backglass Checksum', { required: backglassOffered });
-    if (hasText(state.values.backglassUrlOverride) && !hasText(state.values.backglassNotes)) {
-      addError('b2s', 'Backglass Notes are required', 'Add Backglass Notes when using Backglass URL Override.');
-    }
-    // Bundled means the Backglass ships inside the table's own download, so
-    // no external URL/Authors/Image Override is needed — only Notes saying
-    // where to find it. Override (no VPS entry at all) still requires the
-    // full Advanced Config set via the generic overrideRequiredFields loop.
-    if (state.values.backglassBundled === true && !hasText(state.values.backglassNotes)) {
-      addError('b2s', 'Bundled Backglass needs notes', 'Describe the bundled Backglass and where it is located.');
-    }
-
-    const romOffered = Boolean(
-      state.selections.romFiles || hasText(state.values.romUrlOverride) || state.values.romBundled === true
-    );
-    validateChecksum('romChecksum', 'rom', 'ROM Checksum', { required: romOffered });
-    if (hasText(state.values.romUrlOverride) && state.values.romVPSId) {
-      addError('rom', 'ROM ID conflicts with URL override', 'Use either ROM ID or ROM URL Override, not both.');
-    }
-    if (hasText(state.values.romUrlOverride) && !hasText(state.values.romVersionOverride)) {
-      addError('rom', 'ROM version override is required', 'Add ROM Version Override when using ROM URL Override.');
-    }
-    if (hasText(state.values.romUrlOverride) && !hasText(state.values.romNotes)) {
-      addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.');
-    }
-    // Bundled means the ROM ships inside the table's own download — no
-    // external URL/Version Override needed, only Notes. Override (no VPS
-    // entry) still requires the full set via overrideRequiredFields below.
-    if (state.values.romBundled === true && !hasText(state.values.romNotes)) {
-      addError('rom', 'Bundled ROM needs notes', 'Describe the bundled ROM and where it is located.');
-    }
-
-    const colorOffered = Boolean(
-      state.selections.altColorFiles || hasText(state.values.coloredROMUrlOverride) || state.values.coloredROMBundled === true
-    );
-    const colorRawValue = state.values.coloredROMChecksum;
-    const colorPrimary = String(Array.isArray(colorRawValue) ? (colorRawValue[0] ?? '') : (colorRawValue ?? '')).trim();
-    const colorSecondary = String(state.values.coloredROMChecksumSecondary || '').trim();
-    // Outside PAL/VNI mode, coloredROMChecksum may hold additional checksums
-    // added via the checksum-additional modal — pass it through as-is
-    // (string or array) instead of collapsing to just the primary value.
-    const colorValue = state.values.coloredROMPin2DMD === true
-      ? [colorPrimary, colorSecondary].filter(Boolean)
-      : colorRawValue;
-    validateChecksum('coloredROMChecksum', 'coloredRom', 'Color ROM Checksum', {
-      required: colorOffered,
-      value: colorValue
-    });
-    if (state.values.coloredROMPin2DMD === true && (!colorPrimary || !colorSecondary)) {
-      addError('coloredRom', 'PAL/VNI requires two checksums', 'Add the .pal checksum and the .vni checksum.');
-    }
-    if (hasText(state.values.coloredROMUrlOverride) && !hasText(state.values.coloredROMNotes)) {
-      addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.');
-    }
-    // Bundled means the Color ROM ships inside the table's own download —
-    // no external URL/Version Override needed, only Notes. Override (no
-    // VPS entry) still requires the full set via overrideRequiredFields.
-    if (state.values.coloredROMBundled === true && !hasText(state.values.coloredROMNotes)) {
-      addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.');
-    }
-
-    const pupOffered = Boolean(
-      state.selections.pupPackFiles || hasText(state.values.pupFileUrl) || state.values.pupBundled === true || state.values.pupOverride === true
-    );
-    validateChecksum('pupChecksum', 'pup', 'PUP Pack Checksum', { required: pupOffered });
-    if (state.values.pupBundled === true && !hasText(state.values.pupNotes)) {
-      addError('pup', 'Bundled PUP Pack needs notes', 'Describe the bundled PUP Pack and where it is located.');
-    }
-    if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup'))) {
-      [
-        ['pupVersion', 'PUP Pack Version'],
-        ['pupArchiveRoot', 'PUP Pack Archive Root'],
-        ['pupArchiveFormat', 'PUP Pack Archive Format']
-      ].forEach(([key, label]) => {
-        if (!hasText(state.values[key])) {
-          addError('pup', `${label} is required`, `Add ${label} before copying or downloading.`);
-        }
-      });
-    }
-
-    // The DMD's two shapes. Gated on the asset row rather than on
-    // isStepEnabled: the tab needs a Type before it opens, so keying off the
-    // tab would make a missing Type the one error that can never be reported.
-    const dmdBundled = state.values.specialDMDBundled === true;
-    const dmdOverride = state.values.specialDMDOverride === true;
-    if (dmdBundled || dmdOverride) {
-      [
-        ['specialDMDType', 'DMD Type'],
-        ['specialDMDArchiveRoot', 'DMD Archive Root'],
-        ['specialDMDArchiveFormat', 'DMD Archive Format']
-      ].forEach(([key, label]) => {
-        if (!hasText(state.values[key])) {
-          addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`);
-        }
-      });
-      // The bundled shape's whole point: one archive, so vpxChecksum has to
-      // carry the archive's MD5 as well as the .vpx's.
-      if (dmdBundled && normalizeChecksumValue(state.values.vpxChecksum).length < 2) {
-        addError('vpx', 'Bundled DMD needs both checksums',
-          'Drop the bundled archive on VPX Checksum: the list must carry the archive MD5 alongside the .vpx MD5.');
-      }
-      // Standalone only. A bundled DMD ships inside the VPX archive, so its
-      // checksum lives in vpxChecksum and it has no download of its own.
-      if (!dmdBundled) {
-        validateChecksum('specialDMDChecksum', 'dmd', 'DMD Checksum', { required: true });
-        [
-          ['specialDMDUrlOverride', 'DMD URL Override'],
-          ['specialDMDVersion', 'DMD Version']
-        ].forEach(([key, label]) => {
-          if (!hasText(state.values[key])) {
-            addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`);
-          }
-        });
-      }
-    }
-
-    validateChecksum('diffChecksum', 'vpuPatch', 'VPU Patch Checksum');
-    if (hasText(state.values.diffUrlOverride) && !hasText(state.values.diffNotes)) {
-      addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.');
-    }
-    // Bundled means the VPU Patch ships inside the table's own download —
-    // no external URL/Authors/Version Override needed, only Notes. Override
-    // (no VPS entry) still requires the full set via overrideRequiredFields.
-    if (state.values.diffBundled === true && !hasText(state.values.diffNotes)) {
-      addError('vpuPatch', 'Bundled VPU Patch needs notes', 'Describe the bundled VPU Patch and where it is located.');
-    }
-
-    // Override unlocks a tab without a VPS ID; in exchange every field that
-    // would otherwise have come from the VPS DB (each step's declared
-    // overrideRequiredFields — its Advanced Config overrides, plus PUP
-    // Notes) must be filled in by hand.
-    WIZARD_STEPS.forEach(step => {
-      if (!step.overrideField || state.values[step.overrideField] !== true) return;
-      (step.overrideRequiredFields || []).forEach(key => {
-        if (hasText(state.values[key])) return;
-        const label = step.fields.find(field => field.yml_field === key)?.name || key;
-        addError(step.id, `${label} is required`, `Add ${label} — Override requires every Advanced Config field since there is no VPS entry to pull it from.`);
-      });
-    });
-
-    const yamlLines = state.yaml.split('\n');
-    const longLine = yamlLines.find((line, index) => {
-      if (line.length <= 120) return false;
-      const previous = yamlLines[index - 1] || '';
-      return previous.trim() !== '# yamllint disable-line rule:line-length';
-    });
-    if (longLine) {
-      addError('main', 'YAML line exceeds 120 characters', 'Shorten the value or use a supported URL field so the generated file passes yamllint.');
-    }
-
-    state.validation = { errors, warnings };
-    return state.validation;
-  }
-
-  // validateBuild's issues, from the merged rulebook (validationRules.js).
-  // validateBuild itself no longer feeds any screen; it stays only so the
-  // tests can compare it to the rulebook, until the old validators are deleted.
+  // The build issues (the Validate dialog's own lines, the tab counts and the
+  // blocking), from the merged rulebook (validationRules.js).
   function refreshValidation() {
     const build = window.VPS_VALIDATION.collectAllErrors(validationContext())
       .filter(entry => entry.system === 'build');
@@ -950,13 +729,9 @@
     return state.validation;
   }
 
-  // The inputs every validator reads, and validateBuild's own verdict, for
-  // the tests that compare the rulebook to the old validators.
-  window.VPS_MAIN = Object.freeze({ validationContext, validateBuild });
-
-  function issue(type, stepId, title, message) {
-    return { type, stepId, title, message };
-  }
+  // The inputs every rule reads, for the scripts that draw from the rulebook
+  // outside this file (the field dots, the jump to the first error).
+  window.VPS_MAIN = Object.freeze({ validationContext });
 
   function updateValidationSummary() {
     refreshValidation();
@@ -1015,7 +790,7 @@
     // The v090 and then the feature issues follow, each skipped when its title
     // is already listed. Until 2026-10-05 the two validators appended these
     // themselves a moment after the dialog opened, and this keeps exactly what
-    // they produced: v090 checks titles against validateBuild's alone, so two
+    // they produced: v090 checks titles against the build issues' alone, so two
     // v090 issues sharing a title both show, while the feature validator also
     // skips titles it has just added.
     const extended = extendedIssues();
