@@ -55,8 +55,7 @@ await scenario('nothing loaded', [], {
     'error: Missing table VPS ID | The selected table does not have a usable VPS ID.',
     'error: VPX file required | Select a VPX file before copying or downloading the configuration.',
     'error: FPS is required | Enter the table frame rate as an integer.',
-    'error: Testers are required | Enter at least one tester; separate multiple names with commas.',
-    'error: VPX Checksum is required | Add a valid MD5 value for VPX Checksum.'
+    'error: Testers are required | Enter at least one tester; separate multiple names with commas.'
   ],
   tabs: ['main: 4 errors', 'vpx: disabled', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
@@ -74,8 +73,7 @@ await scenario('no VPX selected', [['search', 'Lgi1JLk0Vf']], {
   dialog: [
     'error: VPX file required | Select a VPX file before copying or downloading the configuration.',
     'error: FPS is required | Enter the table frame rate as an integer.',
-    'error: Testers are required | Enter at least one tester; separate multiple names with commas.',
-    'error: VPX Checksum is required | Add a valid MD5 value for VPX Checksum.'
+    'error: Testers are required | Enter at least one tester; separate multiple names with commas.'
   ],
   tabs: ['main: 2 errors', 'vpx: disabled', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [

@@ -15,7 +15,8 @@
   // one decision at a time; the pinned scenarios in tests/yaml-*.test.mjs
   // show exactly what every rule produces until then.
   //
-  // An issue is { system, type, stepId, fieldName, title, message }:
+  // An issue is { system, type, stepId, fieldName, title, message }, plus
+  // gate: true on the two rules that report a disabled tab's missing choice:
   //   build    - the Validate dialog, tab counts, blocks Copy/Download
   //   field    - field dots on the open tab; no title
   //   feature  - Alt Sound, the tutorial, Additional ROMs: dialog, counts, dots, blocks
@@ -34,12 +35,15 @@
     const push = (type, stepId, title, message) => output.push({ system: 'build', type, stepId, fieldName: '', title, message });
     const addError = (stepId, title, message) => push('error', stepId, title, message);
     const addWarning = (stepId, title, message) => push('warning', stepId, title, message);
+    // The missing choice that keeps a tab closed: reported even while that
+    // tab is disabled (see collectAllErrors).
+    const addGate = (stepId, title, message) => { addError(stepId, title, message); output[output.length - 1].gate = true; };
     const hasText = hasValue;
 
     if (!record) addError('main', 'No table selected', 'Search for and load a VPS table first.');
     if (!values.tableVPSId) addError('main', 'Missing table VPS ID', 'The selected table does not have a usable VPS ID.');
     if (!selections.tableFiles || !values.vpxVPSId) {
-      addError('vpx', 'VPX file required', 'Select a VPX file before copying or downloading the configuration.');
+      addGate('vpx', 'VPX file required', 'Select a VPX file before copying or downloading the configuration.');
     }
 
     const fpsRaw = values.fps;
@@ -161,8 +165,10 @@
     const dmdBundled = values.specialDMDBundled === true;
     const dmdOverride = values.specialDMDOverride === true;
     if (dmdBundled || dmdOverride) {
+      if (!hasText(values.specialDMDType)) {
+        addGate('dmd', 'DMD Type is required', 'Add DMD Type before copying or downloading.');
+      }
       [
-        ['specialDMDType', 'DMD Type'],
         ['specialDMDArchiveRoot', 'DMD Archive Root'],
         ['specialDMDArchiveFormat', 'DMD Archive Format']
       ].forEach(([key, label]) => {
@@ -457,16 +463,26 @@
     return output;
   }
 
+  // A tab the user cannot open raises nothing of its own; only its gate, the
+  // missing choice that would open it, is reported (Phase 2 decision 1, Jason,
+  // 2026-10-06). Its other rules were consequences of that one choice, sat on
+  // a tab nobody could click, and made the dialog disagree with the tab
+  // counts. A disabled tab's values are pruned on load, and the gate is an
+  // error, so nothing that is filtered here can reach a download.
   function collectAllErrors(ctx) {
     const utils = window.VPS_UTILS;
     const fields = window.VPS_YML_FIELDS;
     const full = { record: null, selections: {}, values: {}, yaml: '', isStepEnabled: () => false, ...ctx };
+    const open = stepId => {
+      const step = fields.WIZARD_STEPS.find(candidate => candidate.id === stepId);
+      return !step || Boolean(full.isStepEnabled(step));
+    };
     return [
       ...buildIssues(full, utils, fields),
       ...fieldIssues(full, fields),
       ...featureIssues(full, utils),
       ...v090Issues(full)
-    ];
+    ].filter(issue => issue.gate || open(issue.stepId));
   }
 
   window.VPS_VALIDATION = Object.freeze({ collectAllErrors });

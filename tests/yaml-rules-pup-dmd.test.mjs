@@ -181,14 +181,7 @@ await scenario('DMD ticked without a type', [...PINK_FLOYD, ['override', 'specia
   rule: 'DMD Type is required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Type is required | Add DMD Type before copying or downloading.',
-    'error: DMD Archive Root is required | Add DMD Archive Root before copying or downloading.',
-    'error: DMD Archive Format is required | Add DMD Archive Format before copying or downloading.',
-    'error: DMD Checksum is required | Add a valid MD5 value for DMD Checksum.',
-    'error: DMD URL Override is required | Add DMD URL Override before copying or downloading.',
-    'error: DMD Version is required | Add DMD Version before copying or downloading.',
-    'error: DMD URL Override is required | Add DMD URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: DMD Version is required | Add DMD Version — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: DMD Type is required | Add DMD Type before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [],
