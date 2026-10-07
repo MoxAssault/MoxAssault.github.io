@@ -31,7 +31,9 @@
 //                              folder; await app.nextDownload() returns
 //                              { filename, text } for the next one.
 //
-//   await app.reload();        reloads the page and waits for its load event.
+//   await app.reload();        loads the page again, keeping its storage, and
+//                              waits for that navigation's own load event.
+//   await app.reset();         the same with the page's localStorage emptied.
 //   openApp({ windowSize: [1400, 900] }) sizes the window, for tests that
 //                              measure layout (Chrome's default is 800x600,
 //                              which is the app's one-column phone layout).
@@ -286,21 +288,33 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
       .catch(error => abandoning ? new Promise(() => {}) : Promise.reject(error));
   };
 
-  // Resolves on the first event that matches, then stops listening.
-  const nextEvent = match => new Promise(resolve => {
+  // Navigates and waits for the load event of THIS navigation, matched by the
+  // loaderId Page.navigate returns. Waiting for the next load event of any
+  // kind (the method until 2026-10-06) cannot tell which page fired it.
+  // Load events are collected from before the command is sent, because one
+  // can arrive before the command's own reply.
+  let sessionId;
+  const navigate = async url => {
+    const loadedIds = new Set();
+    let wanted = null;
+    let done;
+    const loaded = new Promise(resolve => { done = resolve; });
     const listener = message => {
-      if (!match(message)) return;
-      events.splice(events.indexOf(listener), 1);
-      resolve(message);
+      if (message.method !== 'Page.lifecycleEvent' || message.sessionId !== sessionId) return;
+      if (message.params.name !== 'load') return;
+      loadedIds.add(message.params.loaderId);
+      if (loadedIds.has(wanted)) done();
     };
     events.push(listener);
-  });
-
-  let sessionId;
-  const loadPage = async action => {
-    const loaded = nextEvent(message => message.method === 'Page.loadEventFired' && message.sessionId === sessionId);
-    await action();
-    await withTimeout(loaded, CALL_TIMEOUT_MS, 'page load');
+    try {
+      const result = await send('Page.navigate', { url }, sessionId);
+      if (result.errorText) throw new Error('navigation to ' + url + ' failed: ' + result.errorText);
+      wanted = result.loaderId;
+      if (loadedIds.has(wanted)) done();
+      await withTimeout(loaded, CALL_TIMEOUT_MS, 'page load');
+    } finally {
+      events.splice(events.indexOf(listener), 1);
+    }
   };
 
   // Downloads are reported on the browser connection, not the page session.
@@ -328,6 +342,7 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
     ({ sessionId } = await send('Target.attachToTarget', { targetId, flatten: true }));
     await send('Runtime.enable', {}, sessionId);
     await send('Page.enable', {}, sessionId);
+    await send('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
     if (db) {
       await send('Page.addScriptToEvaluateOnNewDocument', {
         source: 'window.__VPS_DB_OVERRIDE__ = ' + JSON.stringify(db) + ';'
@@ -338,7 +353,7 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
         behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true
       });
     }
-    await loadPage(() => send('Page.navigate', { url: base + page }, sessionId));
+    await navigate(base + page);
   } catch (error) {
     try { ws.close(); } catch (_) { /* ignore */ }
     await cleanup();
@@ -360,8 +375,21 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
     return result.result.value;
   }
 
+  // Loads the page again, keeping its storage. The server sends no-store, so
+  // a navigation fetches everything fresh, as Page.reload's ignoreCache did.
   async function reload() {
-    await loadPage(() => send('Page.reload', { ignoreCache: true }, sessionId));
+    await navigate(base + page);
+  }
+
+  // Loads the page again with its storage emptied. The old page is navigated
+  // away first, so none of its timers (the app's 350 ms draft autosave among
+  // them) can write to storage after it has been cleared.
+  async function reset() {
+    await navigate('about:blank');
+    await send('Storage.clearDataForOrigin', {
+      origin: new URL(base).origin, storageTypes: 'local_storage'
+    }, sessionId);
+    await navigate(base + page);
   }
 
   // The next finished download, read back from disk. A download that Chrome
@@ -381,5 +409,5 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
     await cleanup();
   }
 
-  return { run, reload, nextDownload, close, warnings, errors, base };
+  return { run, reload, reset, nextDownload, close, warnings, errors, base };
 }

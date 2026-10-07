@@ -224,26 +224,44 @@ export async function startScenarios() {
   const app = await openApp({ db: DB, downloads: true, windowSize: [1400, 900] });
 
   async function scenario(name, steps, expected) {
-    // A fresh page per scenario, and no draft to restore into it.
-    await app.run(() => localStorage.clear());
-    await app.reload();
-    const errorsBefore = app.errors.length;
-    for (const step of steps) {
-      if (step[0] === 'draft') await draftStep(app, step);
-      else await pageStep(app, step);
-    }
-    const actual = await snapshot(app);
-
-    // A refused Download opens the Validate dialog instead, so only wait for a
-    // file when it stayed shut; waiting on every refusal cost 2 s a scenario.
-    const refused = await app.run(async () => {
-      document.getElementById('downloadBtn').click();
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))));
-      return document.getElementById('validationDialog').open;
+    // A fresh page per scenario, and no draft to restore into it - proved, not
+    // assumed. On CI on 2026-10-06 one scenario ran against the previous one's
+    // page and failed as six confusing snapshot diffs; a reset that does not
+    // take now fails as itself.
+    await app.reset();
+    const stale = await app.run(() => {
+      const storage = Object.keys(localStorage);
+      const loaded = !document.getElementById('workspace').hidden;
+      return storage.length || loaded ? JSON.stringify({ storage, loaded }) : '';
     });
-    const download = refused
-      ? { error: 'refused' }
-      : await app.nextDownload(5000).catch(error => ({ error: error.message }));
+    if (stale) throw new Error(name + ': the reset did not give a fresh page: ' + stale);
+
+    const errorsBefore = app.errors.length;
+    let actual;
+    let download;
+    // Names the scenario in any failure; a bare "Runtime.evaluate timed out"
+    // does not say where it happened.
+    try {
+      for (const step of steps) {
+        if (step[0] === 'draft') await draftStep(app, step);
+        else await pageStep(app, step);
+      }
+      actual = await snapshot(app);
+
+      // A refused Download opens the Validate dialog instead, so only wait for a
+      // file when it stayed shut; waiting on every refusal cost 2 s a scenario.
+      const refused = await app.run(async () => {
+        document.getElementById('downloadBtn').click();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))));
+        return document.getElementById('validationDialog').open;
+      });
+      download = refused
+        ? { error: 'refused' }
+        : await app.nextDownload(5000).catch(error => ({ error: error.message }));
+    } catch (error) {
+      error.message = 'scenario "' + name + '": ' + error.message;
+      throw error;
+    }
     actual.download = download.error ? 'blocked' : download.filename;
     if (!download.error) actual.downloadMatchesPreview = download.text === actual.yaml;
     const pageErrors = app.errors.slice(errorsBefore);
