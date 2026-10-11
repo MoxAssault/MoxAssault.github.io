@@ -788,19 +788,23 @@
     }
 
     // The v090 and then the feature issues follow, each skipped when its title
-    // is already listed. Until 2026-10-05 the two validators appended these
-    // themselves a moment after the dialog opened, and this keeps exactly what
-    // they produced: v090 checks titles against the build issues' alone, so two
-    // v090 issues sharing a title both show, while the feature validator also
-    // skips titles it has just added.
+    // and message are both already listed. Until 2026-10-05 the two validators
+    // appended these themselves a moment after the dialog opened: v090 checks
+    // against the build issues' lines alone, so two identical v090 lines both
+    // show, while the feature validator also skips lines it has just added.
+    // Until 2026-10-11 the skip compared titles alone, so an Additional ROM
+    // entry with two problems listed only the first while its tab counted two.
     const extended = extendedIssues();
-    const appendExtended = (entries, className, rememberOwnTitles) => {
+    const lineKey = (title, message) => `${title}\n${message}`;
+    const appendExtended = (entries, className, rememberOwnLines) => {
       if (!entries.length) return;
       list.querySelector('.validation-item.success')?.remove();
-      const listed = new Set([...list.querySelectorAll('.validation-item strong')].map(node => node.textContent));
+      const listed = new Set([...list.querySelectorAll('.validation-item')]
+        .map(item => lineKey(item.querySelector('strong')?.textContent, item.querySelector('span')?.textContent)));
       entries.forEach(entry => {
-        if (listed.has(entry.title)) return;
-        if (rememberOwnTitles) listed.add(entry.title);
+        const key = lineKey(entry.title, entry.message);
+        if (listed.has(key)) return;
+        if (rememberOwnLines) listed.add(key);
         list.appendChild(validationItem(entry, `validation-item error ${className}`));
       });
     };

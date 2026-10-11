@@ -305,8 +305,9 @@ await scenario('Color ROM override with nothing filled', [...LOTR, ['override', 
 // .additional-rom-controls on the page, and the VPX tab's Additional Passwords
 // control shares that class. A "vpx additionalRoms" dot here means it is back.
 //
-// The dialog shows one line per entry: the feature validator skips a title it
-// has already added, so an entry with two problems lists only the first.
+// The dialog shows one line per problem: an entry with two problems lists both
+// under the same title. Until 2026-10-11 the dialog skipped a title it had
+// already added, so it listed only the first while the tab counted two.
 
 function talesFromTheCrypt(entries) {
   const block = entries.map(entry => Object.entries(entry)
@@ -438,14 +439,16 @@ await scenario('Additional ROM listed twice', imported([{ vpsId: 'WshhKlRf', che
 });
 
 // Pinned from the pre-merge validators on 2026-10-05 (validator merge, Phase 1
-// piece 2). The first is the one-line-per-entry rule above with two problems on
-// one entry; the second has a v090 and a feature issue in the dialog at once,
-// which no other scenario does, so it pins their order.
+// piece 2). The first is the one-line-per-problem rule above with two problems
+// on one entry (re-pinned 2026-10-11, Phase 2 decision 3: it showed one line);
+// the second has a v090 and a feature issue in the dialog at once, which no
+// other scenario does, so it pins their order.
 await scenario('Additional ROM with two problems', imported([{ checksum: 'NOT-A-HASH' }]), {
   rule: 'Additional ROM 1 needs attention',
   keys: ['additionalRoms', 'checksum', 'fps', 'romChecksum', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Additional ROM 1 needs attention | Select a ROM VPS ID.'
+    'error: Additional ROM 1 needs attention | Select a ROM VPS ID.',
+    'error: Additional ROM 1 needs attention | Checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
