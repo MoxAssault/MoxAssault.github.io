@@ -114,9 +114,8 @@ await scenario('ROM URL without a version', [...PINK_FLOYD,
   dialog: [
     'error: ROM version override is required | Add ROM Version Override when using ROM URL Override.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romVersionOverride: ROM Version Override is required when using a URL override.',
     'rom field-romVersionOverride: Add ROM Version Override when using ROM URL Override.'
   ],
   download: 'blocked'
@@ -127,12 +126,11 @@ await scenario('ROM URL without notes', [...PINK_FLOYD,
   rule: 'ROM Notes are required',
   keys: ['fps', 'romChecksum', 'romUrlOverride', 'romVersionOverride', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Notes are required | Add ROM Notes when using ROM URL Override.',
-    'error: ROM Notes is required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: ROM Notes are required | Add ROM Notes when using ROM URL Override.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romNotes: ROM Notes are required when using ROM URL Override.\nROM Notes is required when Override is enabled.'
+    'rom field-romNotes: ROM Notes are required when using ROM URL Override.'
   ],
   download: 'blocked'
 });

@@ -239,12 +239,11 @@ await scenario('DMD URL empty', dmdWithout('specialDMDUrlOverride'), {
   rule: 'DMD URL Override is required',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDArchiveRoot', 'specialDMDChecksum', 'specialDMDType', 'specialDMDVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD URL Override is required | Add DMD URL Override before copying or downloading.',
-    'error: DMD URL Override is required | Add DMD URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: DMD URL Override is required | Add DMD URL Override before copying or downloading.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 2 errors'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDUrlOverride: DMD URL Override is required.\nDMD URL Override is required when Override is enabled.'
+    'dmd field-specialDMDUrlOverride: DMD URL Override is required.'
   ],
   download: 'blocked'
 });
@@ -252,12 +251,11 @@ await scenario('DMD version empty', dmdWithout('specialDMDVersion'), {
   rule: 'DMD Version is required',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDArchiveRoot', 'specialDMDChecksum', 'specialDMDType', 'specialDMDUrlOverride', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Version is required | Add DMD Version before copying or downloading.',
-    'error: DMD Version is required | Add DMD Version — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: DMD Version is required | Add DMD Version before copying or downloading.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 2 errors'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDVersion: DMD Version is required.\nDMD Version is required when Override is enabled.'
+    'dmd field-specialDMDVersion: DMD Version is required.'
   ],
   download: 'blocked'
 });

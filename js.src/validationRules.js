@@ -16,6 +16,7 @@
   // show exactly what every rule produces until then.
   //
   // An issue is { system, type, stepId, fieldName, title, message }, plus
+  // generic: true (with its fieldName) on Override's every-field rule, and
   // gate: true on the two rules that report a disabled tab's missing choice:
   //   build    - the Validate dialog, tab counts, blocks Copy/Download
   //   field    - field dots on the open tab; no title
@@ -40,8 +41,9 @@
     const addGate = (stepId, title, message) => { addError(stepId, title, message); output[output.length - 1].gate = true; };
     const hasText = hasValue;
 
+    // With no table, the missing ID is the same fact (Phase 2 decision 2).
     if (!record) addError('main', 'No table selected', 'Search for and load a VPS table first.');
-    if (!values.tableVPSId) addError('main', 'Missing table VPS ID', 'The selected table does not have a usable VPS ID.');
+    else if (!values.tableVPSId) addError('main', 'Missing table VPS ID', 'The selected table does not have a usable VPS ID.');
     if (!selections.tableFiles || !values.vpxVPSId) {
       addGate('vpx', 'VPX file required', 'Select a VPX file before copying or downloading the configuration.');
     }
@@ -110,9 +112,7 @@
     if (hasText(values.romUrlOverride) && values.romVPSId) {
       addError('rom', 'ROM ID conflicts with URL override', 'Use either ROM ID or ROM URL Override, not both.');
     }
-    if (hasText(values.romUrlOverride) && !hasText(values.romVersionOverride)) {
-      addError('rom', 'ROM version override is required', 'Add ROM Version Override when using ROM URL Override.');
-    }
+    // A ROM URL without a version is v090's ROM pair rule alone (decision 2).
     if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
       addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.');
     }
@@ -207,6 +207,7 @@
         if (hasText(values[key])) return;
         const label = step.fields.find(field => field.yml_field === key)?.name || key;
         addError(step.id, `${label} is required`, `Add ${label} — Override requires every Advanced Config field since there is no VPS entry to pull it from.`);
+        Object.assign(output[output.length - 1], { fieldName: key, generic: true });
       });
     });
 
@@ -239,6 +240,7 @@
     WIZARD_STEPS.forEach(step => {
       if (isStepEnabled(step) === false) return;
       const errors = new Map();
+      const generic = new Set();
       const add = (fieldName, message) => {
         if (!fieldName || !message) return;
         const messages = errors.get(fieldName) || [];
@@ -286,9 +288,6 @@
           if (hasText(values.romUrlOverride) && hasText(values.romVPSId)) {
             add('romVPSId', 'ROM VPS ID conflicts with ROM URL Override.');
             add('romUrlOverride', 'Use either ROM VPS ID or ROM URL Override, not both.');
-          }
-          if (hasText(values.romUrlOverride) && !hasText(values.romVersionOverride)) {
-            add('romVersionOverride', 'ROM Version Override is required when using a URL override.');
           }
           if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
             add('romNotes', 'ROM Notes are required when using ROM URL Override.');
@@ -349,13 +348,18 @@
         (step.overrideRequiredFields || []).forEach(key => {
           if (!hasText(values[key])) {
             const label = step.fields.find(field => field.yml_field === key)?.name || key;
-            add(key, `${label} is required when Override is enabled.`);
+            const message = `${label} is required when Override is enabled.`;
+            add(key, message);
+            generic.add(`${key}\n${message}`);
           }
         });
       }
 
       errors.forEach((messages, fieldName) => {
-        messages.forEach(message => output.push({ system: 'field', type: 'error', stepId: step.id, fieldName, title: '', message }));
+        messages.forEach(message => output.push({
+          system: 'field', type: 'error', stepId: step.id, fieldName, title: '', message,
+          ...(generic.has(`${fieldName}\n${message}`) && { generic: true })
+        }));
       });
     });
 
@@ -477,12 +481,22 @@
       const step = fields.WIZARD_STEPS.find(candidate => candidate.id === stepId);
       return !step || Boolean(full.isStepEnabled(step));
     };
-    return [
+    const issues = [
       ...buildIssues(full, utils, fields),
       ...fieldIssues(full, fields),
       ...featureIssues(full, utils),
       ...v090Issues(full)
     ].filter(issue => issue.gate || open(issue.stepId));
+    // One problem, one issue (Phase 2 decision 2, Jason, 2026-10-10). Override's
+    // "every Advanced Config field is required" is dropped, in both its dialog
+    // and its dot form, from a field that a more specific rule already reports:
+    // the specific one says why. Every specific field rule on those fields has
+    // its dialog twin (or is a feature or v090 rule, which carries both), so
+    // nothing loses its dialog line, its count or its blocking.
+    const covered = new Set(issues
+      .filter(issue => issue.fieldName && !issue.generic)
+      .map(issue => `${issue.stepId}:${issue.fieldName}`));
+    return issues.filter(issue => !issue.generic || !covered.has(`${issue.stepId}:${issue.fieldName}`));
   }
 
   window.VPS_VALIDATION = Object.freeze({ collectAllErrors });

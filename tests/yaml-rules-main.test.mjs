@@ -52,12 +52,11 @@ await scenario('nothing loaded', [], {
   keys: [],
   dialog: [
     'error: No table selected | Search for and load a VPS table first.',
-    'error: Missing table VPS ID | The selected table does not have a usable VPS ID.',
     'error: VPX file required | Select a VPX file before copying or downloading the configuration.',
     'error: FPS is required | Enter the table frame rate as an integer.',
     'error: Testers are required | Enter at least one tester; separate multiple names with commas.'
   ],
-  tabs: ['main: 4 errors', 'vpx: disabled', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  tabs: ['main: 3 errors', 'vpx: disabled', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'main field-tableVPSId: Table VPS ID is required.',
     'main field-fps: FPS is required.',

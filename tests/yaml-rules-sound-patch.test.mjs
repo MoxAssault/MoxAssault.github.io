@@ -112,11 +112,10 @@ await scenario('Alt Sound URL without a version', soundOverrideWithout('altSound
   rule: 'Alt Sound Version Override is required',
   keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundAuthorsOverride', 'altSoundChecksum', 'altSoundNotes', 'altSoundUrlOverride', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Version Override is required | Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Alt Sound Version Override is required | Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 2 errors', 'vpuPatch: disabled', 'dmd: disabled'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundVersionOverride: Alt Sound Version Override is required when Override is enabled.',
     'altSound field-altSoundVersionOverride: Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
   ],
   download: 'blocked'
@@ -137,12 +136,10 @@ await scenario('Alt Sound URL without notes', soundOverrideWithout('altSoundNote
   rule: 'Alt Sound Notes are required',
   keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundAuthorsOverride', 'altSoundChecksum', 'altSoundUrlOverride', 'altSoundVersionOverride', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Notes is required | Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
     'error: Alt Sound Notes are required | Add Alt Sound Notes when using Alt Sound URL Override.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 2 errors', 'vpuPatch: disabled', 'dmd: disabled'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Alt Sound Notes is required when Override is enabled.',
     'altSound field-altSoundNotes: Add Alt Sound Notes when using Alt Sound URL Override.'
   ],
   download: 'blocked'
