@@ -384,51 +384,23 @@
 .additional-rom-controls.feature-has-field-error {
   position: relative;
 }
-/* .field uses a real .feature-error-dot element now, so that its tooltip can
-   be hover-scoped to the dot the way every other error dot is. Only the
-   additional-ROM control still draws its dot as a pseudo-element. */
-.additional-rom-controls.feature-has-field-error::after {
-  position: absolute;
+/* Every feature error is a real .feature-error-dot element, so its tooltip is
+   hover-scoped to the dot. The Additional ROM one sits on the indicator's top
+   right corner, not on the header row; the indicator's own tooltip steps aside
+   while the dot's is showing. */
+.additional-rom-indicator > .feature-error-dot,
+.additional-rom-add > .feature-error-dot {
   z-index: 510;
-  top: -4px;
-  right: -4px;
-  box-sizing: border-box;
-  width: 9px;
-  height: 9px;
-  border: 2px solid var(--panel-soft);
-  border-radius: 50%;
-  background: var(--state-red);
-  box-shadow: 0 0 0 3px var(--state-red-soft);
-  content: '';
-  cursor: help;
-}
-.additional-rom-controls.feature-has-field-error::after {
-  top: 1px;
-  right: 1px;
   border-color: var(--panel-raised);
 }
-.additional-rom-controls.feature-has-field-error::before {
-  position: absolute;
-  z-index: 520;
-  right: -2px;
-  bottom: calc(100% + 8px);
-  display: none;
-  width: max-content;
-  max-width: min(280px, calc(100vw - 32px));
-  padding: 6px 8px;
-  border: 1px solid color-mix(in srgb, var(--state-red) 55%, var(--panel-line));
-  border-radius: 7px;
-  background: var(--panel-raised);
-  box-shadow: var(--shadow-lift);
-  color: var(--text);
-  content: attr(data-feature-error-message);
-  font: 600 10.5px/1.35 "Inter", sans-serif;
-  text-transform: none;
-  white-space: normal;
+.additional-rom-indicator > .feature-error-dot[data-tooltip]::before,
+.additional-rom-add > .feature-error-dot[data-tooltip]::before {
+  z-index: 560;
+  letter-spacing: 0;
 }
-.additional-rom-controls.feature-has-field-error:hover::before,
-.additional-rom-controls.feature-has-field-error:focus-within::before {
-  display: block;
+.additional-rom-indicator:has(> .feature-error-dot:hover)::after,
+.additional-rom-add:has(> .feature-error-dot:hover)::after {
+  display: none;
 }
 .config-tab.feature-has-error {
   color: var(--danger);

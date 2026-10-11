@@ -119,16 +119,21 @@
   // additionalRomsController remove `.field-error-dot` wholesale, and this one
   // is updated in place instead. The CSS gives both classes the same rules.
   //
-  // .additional-rom-controls keeps the pseudo-element version — it is a
-  // different widget with its own dot logic and its own cleanup.
+  // .additional-rom-controls is the whole Advanced Config header row, so its
+  // dot sits on the Additional ROM indicator inside it (the + button when there
+  // is no indicator). Until 2026-10-11 it was a pseudo-element on the row: it
+  // sat on the row's corner and popped its tooltip from anywhere on the row.
   function presentErrorDot(wrapper, messages) {
-    if (wrapper.matches('.additional-rom-controls')) return;
-    let dot = wrapper.querySelector(':scope > .feature-error-dot');
+    const host = wrapper.matches('.additional-rom-controls')
+      ? wrapper.querySelector('.additional-rom-indicator') || wrapper.querySelector('.additional-rom-add')
+      : wrapper;
+    if (!host) return;
+    let dot = host.querySelector(':scope > .feature-error-dot');
     if (!dot) {
       dot = document.createElement('span');
       dot.className = 'feature-error-dot';
       dot.setAttribute('role', 'img');
-      wrapper.appendChild(dot);
+      host.appendChild(dot);
     }
     // Updated in place, and swept in decorateCurrentFields only once the error
     // clears, so a field with a standing error causes no DOM mutation between passes.
@@ -219,7 +224,7 @@
     });
 
     document.querySelectorAll('.feature-error-dot').forEach(dot => {
-      if (!dot.parentElement?.classList.contains('feature-has-field-error')) dot.remove();
+      if (!dot.closest('.feature-has-field-error')) dot.remove();
     });
   }
 

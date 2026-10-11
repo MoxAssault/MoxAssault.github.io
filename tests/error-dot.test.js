@@ -48,6 +48,10 @@ class El {
     const want = selector.replace(':scope > ', '').replace('.', '');
     return this.children.find(c => c._classes.has(want)) || null;
   }
+  closest(selector) {
+    for (let node = this; node; node = node.parentElement) if (node.matches(selector)) return node;
+    return null;
+  }
 }
 
 const documentStub = {
@@ -127,12 +131,32 @@ const findDot = w => w.children.find(c => c.className.split(' ').includes('featu
   check('messages joined', findDot(w)?.dataset.tooltip === 'one. two.');
 }
 
-// 5 ── the additional-ROM control keeps its pseudo-element dot
+// 5 ── the Additional ROM dot sits on the indicator, not on the header row
+//      (until 2026-10-11 it was a pseudo-element on the whole row)
 {
-  const w = new El('div');
-  w.className = 'additional-rom-controls feature-has-field-error';
-  api.presentErrorDot(w, ['nope']);
-  check('additional-rom-controls gets no element dot', findDot(w) === null);
+  const row = new El('summary');
+  row.className = 'additional-rom-controls feature-has-field-error';
+  const indicator = row.appendChild(new El('button'));
+  indicator.className = 'additional-rom-indicator';
+  const add = row.appendChild(new El('button'));
+  add.className = 'additional-rom-add';
+  api.presentErrorDot(row, ['one.', 'two.']);
+  check('the header row gets no dot of its own', findDot(row) === null);
+  check('the indicator gets the dot', findDot(indicator)?.dataset.tooltip === 'one. two.');
+  check('the + button gets no dot while the indicator is there', findDot(add) === null);
+
+  const bare = new El('summary');
+  bare.className = 'additional-rom-controls feature-has-field-error';
+  const onlyAdd = bare.appendChild(new El('button'));
+  onlyAdd.className = 'additional-rom-add';
+  api.presentErrorDot(bare, ['nope']);
+  check('with no indicator the + button gets it', findDot(onlyAdd)?.dataset.tooltip === 'nope');
+
+  api.sweep();
+  check('the sweep keeps it while the row is in error', findDot(indicator) !== null);
+  row.classList.remove('feature-has-field-error');
+  api.sweep();
+  check('the sweep removes it once the row clears', findDot(indicator) === null);
 }
 
 // 6 ── the sweep clears dots whose error is gone, and only those
@@ -163,8 +187,15 @@ const findDot = w => w.children.find(c => c.className.split(' ').includes('featu
     'hovering anywhere in the field still pops the tooltip');
   check('the field-wide pseudo tooltip is gone', !fex.includes('.field.feature-has-field-error::before'));
   check('the field-wide pseudo dot is gone', !fex.includes('.field.feature-has-field-error::after'));
-  check('additional-rom-controls keeps its pseudo dot',
-    fex.includes('.additional-rom-controls.feature-has-field-error::after'));
+  check('the header-row pseudo dot is gone',
+    !fex.includes('.additional-rom-controls.feature-has-field-error::after'));
+  check('the header-row hover trigger is gone',
+    !fex.includes('.additional-rom-controls.feature-has-field-error:hover::before'),
+    'hovering anywhere on the Advanced Config row still pops the tooltip');
+  check('the dot is styled on the indicator',
+    /\.additional-rom-indicator > \.feature-error-dot,\s*\.additional-rom-add > \.feature-error-dot \{/.test(fex));
+  check('the indicator tooltip steps aside for the dot',
+    fex.includes('.additional-rom-indicator:has(> .feature-error-dot:hover)::after'));
 }
 
 // ── the multi-error count pill is GONE, on purpose ─────────────────────────

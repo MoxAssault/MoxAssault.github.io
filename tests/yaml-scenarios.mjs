@@ -206,10 +206,10 @@ async function snapshot(app) {
     for (const tab of document.querySelectorAll('.config-tab:not([disabled])')) {
       tab.click();
       await settle();
-      document.querySelectorAll('.config-tab-panel .field-error-dot, .config-tab-panel .feature-error-dot, .config-tab-panel .additional-rom-controls.feature-has-field-error').forEach(dot => {
+      document.querySelectorAll('.config-tab-panel .field-error-dot, .config-tab-panel .feature-error-dot').forEach(dot => {
         const control = dot.closest('.field')?.querySelector('[id^="field-"]');
-        const message = dot.dataset.tooltip || dot.dataset.featureErrorMessage || dot.getAttribute('title') || dot.getAttribute('aria-label') || '';
-        const name = dot.matches('.additional-rom-controls') ? 'additionalRoms' : (control?.id || '?');
+        const message = dot.dataset.tooltip || dot.getAttribute('title') || dot.getAttribute('aria-label') || '';
+        const name = dot.closest('.additional-rom-controls') ? 'additionalRoms' : (control?.id || '?');
         dots.push(tab.dataset.step + ' ' + name + ': ' + message);
       });
     }
