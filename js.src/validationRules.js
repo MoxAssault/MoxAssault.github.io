@@ -401,10 +401,11 @@
     if (altSoundVersion && !altSoundUrl) {
       add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add Alt Sound URL Override whenever Alt Sound Version Override is used.');
     }
+    // One missing field, one issue: bundled and a URL together still ask for
+    // the notes once (Phase 2 decision 3, 2026-10-11).
     if (altSoundBundled && !String(values?.altSoundNotes || '').trim()) {
       add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
-    }
-    if (altSoundUrl && !String(values?.altSoundNotes || '').trim()) {
+    } else if (altSoundUrl && !String(values?.altSoundNotes || '').trim()) {
       add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when using Alt Sound URL Override.');
     }
     if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {

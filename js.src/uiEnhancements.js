@@ -96,12 +96,14 @@
   function clearFeaturePresentation() {
     document.querySelectorAll('.feature-has-field-error').forEach(wrapper => {
       wrapper.classList.remove('feature-has-field-error');
-      wrapper.removeAttribute('data-feature-error-message');
-      wrapper.removeAttribute('data-feature-error-count');
-      const control = wrapper.matches('.additional-rom-controls')
-        ? wrapper.querySelector('.additional-rom-add')
-        : wrapper.querySelector('input, textarea, select, button, .readonly-id');
-      restoreControlLabel(control);
+      if (wrapper.matches('.additional-rom-controls')) {
+        wrapper.querySelectorAll('[aria-describedby="additional-rom-error-dot"]').forEach(control => {
+          control.removeAttribute('aria-describedby');
+          control.removeAttribute('aria-invalid');
+        });
+      } else {
+        restoreControlLabel(wrapper.querySelector('input, textarea, select, button, .readonly-id'));
+      }
       if (!wrapper.querySelector('.field-error-dot')) {
         wrapper.classList.remove('has-field-error');
       }
@@ -127,7 +129,7 @@
     const host = wrapper.matches('.additional-rom-controls')
       ? wrapper.querySelector('.additional-rom-indicator') || wrapper.querySelector('.additional-rom-add')
       : wrapper;
-    if (!host) return;
+    if (!host) return null;
     let dot = host.querySelector(':scope > .feature-error-dot');
     if (!dot) {
       dot = document.createElement('span');
@@ -140,18 +142,27 @@
     const tooltip = messages.join(' ');
     if (dot.dataset.tooltip !== tooltip) dot.dataset.tooltip = tooltip;
     if (dot.getAttribute('aria-label') !== tooltip) dot.setAttribute('aria-label', tooltip);
+    return dot;
   }
 
   function presentFeatureField(wrapper, messages) {
     if (!wrapper || !messages.length) return;
     wrapper.classList.add('has-field-error', 'feature-has-field-error');
-    wrapper.dataset.featureErrorCount = String(messages.length);
-    wrapper.dataset.featureErrorMessage = messages.join(' ');
-    presentErrorDot(wrapper, messages);
+    const dot = presentErrorDot(wrapper, messages);
 
-    const control = wrapper.matches('.additional-rom-controls')
-      ? wrapper.querySelector('.additional-rom-add')
-      : wrapper.querySelector('input, textarea, select, button, .readonly-id');
+    // The Additional ROM dot sits inside a button, whose children a screen
+    // reader does not announce, and the indicator rewrites its own label on
+    // every render. So the button points at the dot for its description
+    // instead of having the message folded into its label.
+    if (wrapper.matches('.additional-rom-controls')) {
+      if (!dot) return;
+      dot.id = 'additional-rom-error-dot';
+      dot.parentElement.setAttribute('aria-describedby', dot.id);
+      dot.parentElement.setAttribute('aria-invalid', 'true');
+      return;
+    }
+
+    const control = wrapper.querySelector('input, textarea, select, button, .readonly-id');
     if (!control) return;
     if (control.dataset.featureOriginalAriaLabel === undefined) {
       control.dataset.featureOriginalAriaLabel = control.getAttribute('aria-label') || '';

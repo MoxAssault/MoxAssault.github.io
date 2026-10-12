@@ -37,6 +37,17 @@ class El {
   }
   setAttribute(n, v) { this.attributes[n] = String(v); }
   getAttribute(n) { return this.attributes[n] ?? null; }
+  removeAttribute(n) { delete this.attributes[n]; }
+  querySelectorAll(selector) {
+    const attr = selector.match(/^\[([\w-]+)="([^"]*)"\]$/);
+    const found = [];
+    const walk = node => node.children.forEach(child => {
+      if (attr ? child.attributes[attr[1]] === attr[2] : child.matches(selector)) found.push(child);
+      walk(child);
+    });
+    walk(this);
+    return found;
+  }
   appendChild(node) { node.parentElement = this; this.children.push(node); this.mutations += 1; return node; }
   remove() {
     if (!this.parentElement) return;
@@ -75,6 +86,13 @@ const sweepBlock = source.slice(sweepStart, source.indexOf('\n    });', sweepSta
 
 const api = new Function('document',
   presentBlock + '\n function sweep() {\n' + sweepBlock + '\n }\n return { presentErrorDot, sweep };')(documentStub);
+
+// restoreControlLabel through presentFeatureField, for the screen-reader half.
+const fieldStart = source.indexOf('  function restoreControlLabel(control) {');
+const fieldEnd = source.indexOf('  // Messages per field');
+if (fieldStart < 0 || fieldEnd < 0) throw new Error('presentFeatureField block not found');
+const fieldApi = new Function('document',
+  source.slice(fieldStart, fieldEnd) + '\n return { presentFeatureField, clearFeaturePresentation };')(documentStub);
 
 
 const field = (...classes) => { const n = new El('div'); n.className = ['field', ...classes].join(' '); return n; };
@@ -157,6 +175,27 @@ const findDot = w => w.children.find(c => c.className.split(' ').includes('featu
   row.classList.remove('feature-has-field-error');
   api.sweep();
   check('the sweep removes it once the row clears', findDot(indicator) === null);
+}
+
+// 5b ── a screen reader hears the Additional ROM error from the indicator
+//       (the dot is inside a button, whose children are not announced)
+{
+  const row = new El('details').appendChild(new El('summary'));   // the sweep only sees attached nodes
+  row.className = 'additional-rom-controls';
+  const indicator = row.appendChild(new El('button'));
+  indicator.className = 'additional-rom-indicator';
+  indicator.setAttribute('aria-label', 'Additional ROM: x. Activate to edit.');
+  fieldApi.presentFeatureField(row, ['Select a ROM VPS ID.']);
+  const dot = findDot(indicator);
+  check('the indicator is described by its dot',
+    !!dot?.id && indicator.getAttribute('aria-describedby') === dot.id);
+  check('the indicator is marked invalid', indicator.getAttribute('aria-invalid') === 'true');
+  check('the indicator keeps its own label', indicator.getAttribute('aria-label') === 'Additional ROM: x. Activate to edit.');
+  fieldApi.clearFeaturePresentation();
+  check('clearing drops the description', indicator.getAttribute('aria-describedby') === null);
+  check('clearing drops the invalid mark', indicator.getAttribute('aria-invalid') === null);
+  check('the row carries no dead error attributes',
+    row.dataset.featureErrorMessage === undefined && row.dataset.featureErrorCount === undefined);
 }
 
 // 6 ── the sweep clears dots whose error is gone, and only those

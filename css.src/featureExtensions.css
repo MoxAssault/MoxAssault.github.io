@@ -380,8 +380,7 @@
 }
 
 /* Feature validation uses attribute-only markers so it does not retrigger legacy DOM observers. */
-.field.feature-has-field-error,
-.additional-rom-controls.feature-has-field-error {
+.field.feature-has-field-error {
   position: relative;
 }
 /* Every feature error is a real .feature-error-dot element, so its tooltip is

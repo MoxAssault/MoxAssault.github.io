@@ -158,6 +158,24 @@ await scenario('Alt Sound bundled without notes', [...LOTR,
   ],
   download: 'blocked'
 });
+// Bundled with a URL left over in the draft: both notes rules apply, and the
+// missing notes are reported once, in the bundled wording (Phase 2 decision 3,
+// 2026-10-11; it showed two lines and counted 2).
+await scenario('Alt Sound bundled with a URL, without notes', [...LOTR,
+  ['bundle', 'altSoundFiles', true], ['fill', 'altSoundChecksum', MD5_SOUND], ['fill', 'altSoundArchiveFormat', 'rar'], ['fill', 'altSoundArchiveRoot', 'lotr'],
+  ['draft', 'values.altSoundUrlOverride', URL], ['draft', 'values.altSoundVersionOverride', '1.0']
+], {
+  rule: 'Alt Sound Notes are required',
+  keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundBundled', 'altSoundChecksum', 'altSoundUrlOverride', 'altSoundVersionOverride', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: Alt Sound Notes are required | Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'altSound field-altSoundNotes: Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+  ],
+  download: 'blocked'
+});
 await scenario('Alt Sound bundled without an archive root', [...LOTR,
   ['bundle', 'altSoundFiles', true], ['fill', 'altSoundChecksum', MD5_SOUND], ['fill', 'altSoundArchiveFormat', 'rar'], ['fill', 'altSoundNotes', 'In the table download']
 ], {
