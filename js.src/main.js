@@ -330,6 +330,18 @@
       delete values.coloredROMChecksumSecondary;
     }
 
+    // Every writer keeps one checksum as a plain string and only two or more
+    // as a list. A draft saved by an older build, or edited by hand, can still
+    // hold a list of one, so it is brought into line here (Phase 2 decision 4,
+    // Jason, 2026-10-12). The Color ROM checksum was split above.
+    ['vpxChecksum', 'backglassChecksum', 'romChecksum', 'pupChecksum', 'altSoundChecksum', 'diffChecksum', 'specialDMDChecksum'].forEach(key => {
+      if (!Array.isArray(values[key])) return;
+      const checksums = values[key].map(value => String(value ?? '').trim()).filter(Boolean);
+      if (checksums.length > 1) return;
+      if (checksums.length) values[key] = checksums[0];
+      else delete values[key];
+    });
+
     return values;
   }
 

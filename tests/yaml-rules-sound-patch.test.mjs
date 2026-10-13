@@ -241,18 +241,32 @@ await scenario('VPU Patch checksum not an MD5', [...PATCH, ['fill', 'diffChecksu
   ],
   download: 'blocked'
 });
-// Defensive: a list of one is never written by the app or kept by the importer.
-// Also the one route to the fallback dot on this tab, which lands on the
-// VPU Patch ID and is removed there (NO_DOT_FIELDS in uiEnhancements.js).
+// A list of one is never written by the app or kept by the importer, and a
+// draft that holds one has it turned into a plain string as it loads
+// (migrateBuildValues in main.js, Phase 2 decision 4, 2026-10-12). Until then
+// the tab said "1 error" with no dot: the fallback dot landed on the VPU Patch
+// ID, where it is removed (NO_DOT_FIELDS in uiEnhancements.js).
 await scenario('VPU Patch checksum list of one (from a draft)', [...PATCH, ['draft', 'values.diffChecksum', [MD5_PATCH]]], {
-  rule: 'VPU Patch Checksum list is invalid',
+  yaml: [
+    '---',
+    'diffChecksum: "32EFAB94D0B710EE89C401B8DD3D6850"',
+    'diffVPSId: "TJMo9ycfSP"',
+    'fps: 60',
+    'tableVPSId: "fXaQ33KC"',
+    'testers:',
+    '  - "Tester"',
+    'vpxChecksum: "E6DF3800F7C9286FA195E84034DA683A"',
+    'vpxVPSId: "uVgZUZdK"',
+    ''
+  ],
   keys: ['diffChecksum', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: VPU Patch Checksum list is invalid | Use a plain string for one checksum or a list containing at least two checksums.'
+    'success: Everything looks good. | The build is ready to copy or download.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: ready', 'dmd: disabled'],
   dots: [],
-  download: 'blocked'
+  download: 'fXaQ33KC_table-config.yml',
+  downloadMatchesPreview: true
 });
 await scenario('Patch URL without notes', [...PATCH, ['fill', 'diffUrlOverride', URL], ['fill', 'diffVersionOverride', '1.0']], {
   rule: 'Patch Notes are required',

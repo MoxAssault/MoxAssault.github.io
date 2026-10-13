@@ -247,9 +247,17 @@
         if (!messages.includes(message)) messages.push(message);
         errors.set(fieldName, messages);
       };
+      // A list of one gets the dot for the build rule "<label> list is
+      // invalid", so it marks its own field instead of falling back to the
+      // tab's ID field (Phase 2 decision 4, Jason, 2026-10-12). A backstop:
+      // migrateBuildValues in main.js turns a list of one into a plain string
+      // on load, so no current path reaches it, and no scenario does.
       const validateChecksum = (fieldName, label, { required = false } = {}) => {
         const raw = values[fieldName];
         const value = String(Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? '')).trim();
+        if (Array.isArray(raw) && raw.filter(item => String(item ?? '').trim()).length === 1) {
+          add(fieldName, 'Use a plain string for one checksum or a list containing at least two checksums.');
+        }
         if (required && !value) add(fieldName, `${label} is required.`);
         else if (value && !isMd5(value)) add(fieldName, `${label} must be a 32-character MD5 value.`);
       };
