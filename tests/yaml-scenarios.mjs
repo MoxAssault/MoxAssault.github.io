@@ -49,6 +49,8 @@ const DB = JSON.parse(readFileSync(repoPath('fixtures', 'vpsdb-five.json'), 'utf
 //   ['override', category, on]      set an asset row's Override box
 //   ['fill', ymlField, value]       open the field's tab, then type / pick / tick
 //   ['import', ymlText]             open a YML through the import box
+//   ['additional', ymlField, list]  open the field's Additional Checksums
+//                                   dialog, make its rows exactly `list`, Save
 // Two more run from Node, because they reload the page:
 //   ['draft', path, value]          edit the autosaved draft, then reload so
 //                                   the app restores it. For defensive rules
@@ -126,6 +128,27 @@ async function pageStep(app, step) {
         const event = control.tagName === 'SELECT' ? 'change' : 'input';
         control.dispatchEvent(new Event(event, { bubbles: true }));
       }
+    } else if (verb === 'additional') {
+      const step = WIZARD_STEPS.find(candidate => candidate.fields.some(field => field.yml_field === a));
+      if (!step) throw new Error(where + ': no tab owns ' + a);
+      openTab(step.id);
+      await settle();
+      const button = document.getElementById('field-' + a)?.closest('.field')?.querySelector('.checksum-additional-btn');
+      if (!button || button.hidden) throw new Error(where + ': no Additional Checksums button');
+      button.click();
+      const node = document.getElementById('checksumAdditionalDialog');
+      if (!node?.open) throw new Error(where + ': the dialog did not open');
+      const inputs = () => [...node.querySelectorAll('.checksum-additional-row input')];
+      // Typing into the last row adds a fresh empty one, as it does for a user.
+      const count = Math.max(b.length, inputs().length);
+      for (let index = 0; index < count; index += 1) {
+        const input = inputs()[index];
+        if (!input) throw new Error(where + ': no row ' + (index + 1));
+        input.value = b[index] ?? '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      document.getElementById('checksumAdditionalSave').click();
+      if (node.open) throw new Error(where + ': Save was refused');
     } else if (verb === 'import') {
       const input = document.getElementById('ymlImportInput');
       const transfer = new DataTransfer();

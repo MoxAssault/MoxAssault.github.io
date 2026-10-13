@@ -8,10 +8,10 @@
 // The runner is yaml-scenarios.mjs.
 //   SNAPSHOT=print node tests/yaml-rules-main.test.mjs
 
-import { report } from './harness.mjs';
+import { check, report } from './harness.mjs';
 import { startScenarios } from './yaml-scenarios.mjs';
 
-const { app, scenario } = await startScenarios();
+const { app, scenario, PRINT } = await startScenarios();
 
 const MD5_VPX = 'E6DF3800F7C9286FA195E84034DA683A';
 const MD5_B2S = 'B3500DC847FF54988DB01C2FFDD0AAA0';
@@ -209,6 +209,48 @@ await scenario('VPX checksum list with a blank first entry (from a draft)', [...
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+  ],
+  download: 'blocked'
+});
+
+// Saving the Additional Checksums dialog leaves a blank primary blank. It used
+// to promote the archive MD5 into the VPX slot and clear the error (Jason,
+// 2026-10-13).
+await scenario('VPX checksum list with a blank first entry, saved unchanged in Additional Checksums', [...BASE, ['draft', 'values.vpxChecksum', ['', MD5_VPX]], ['additional', 'vpxChecksum', [MD5_VPX]]], {
+  rule: 'VPX Checksum list is invalid',
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: VPX Checksum list is invalid | Use a plain string for one checksum or a list containing at least two checksums.'
+  ],
+  tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+  ],
+  download: 'blocked'
+});
+// What the VPX tab shows on the page that scenario left open: an empty box,
+// since there is no primary, and the one extra counted on the dialog button.
+// The box used to show the archive MD5 while its dot said "required".
+if (!PRINT) {
+  const shown = await app.run(async () => {
+    document.getElementById('validationDialog').close();
+    document.getElementById('config-tab-vpx').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))));
+    const input = document.getElementById('field-vpxChecksum');
+    const button = input?.closest('.field')?.querySelector('.checksum-additional-btn');
+    return JSON.stringify({ box: input?.value ?? null, extras: button?.dataset.count ?? null });
+  });
+  check('VPX tab: blank primary shows an empty box and one extra', shown === JSON.stringify({ box: '', extras: '1' }), shown);
+}
+await scenario('VPX checksum list with a blank first entry, extra removed in Additional Checksums', [...BASE, ['draft', 'values.vpxChecksum', ['', MD5_VPX]], ['additional', 'vpxChecksum', []]], {
+  rule: 'VPX Checksum is required',
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxVPSId'],
+  dialog: [
+    'error: VPX Checksum is required | Add a valid MD5 value for VPX Checksum.'
+  ],
+  tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'vpx field-vpxChecksum: VPX Checksum is required.'
   ],
   download: 'blocked'
 });
