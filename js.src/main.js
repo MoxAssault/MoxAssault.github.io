@@ -338,6 +338,10 @@
       if (!Array.isArray(values[key])) return;
       const checksums = values[key].map(value => String(value ?? '').trim()).filter(Boolean);
       if (checksums.length > 1) return;
+      // Only a primary is promoted. A lone entry behind a blank first one is
+      // a secondary (a bundled DMD's archive MD5 with the .vpx MD5 missing),
+      // so the list is kept and the missing primary is still reported.
+      if (checksums.length && !String(values[key][0] ?? '').trim()) return;
       if (checksums.length) values[key] = checksums[0];
       else delete values[key];
     });

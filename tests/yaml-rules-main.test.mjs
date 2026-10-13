@@ -175,7 +175,8 @@ await scenario('VPX checksum not an MD5', [...TABLE, ...MAIN, ['fill', 'vpxCheck
 // A list of one is never written by the app or kept by the importer, and a
 // draft that holds one has it turned into a plain string as it loads
 // (migrateBuildValues in main.js, Phase 2 decision 4, 2026-10-12). Until then
-// it raised "VPX Checksum list is invalid"; that rule is now only a backstop.
+// it raised "VPX Checksum list is invalid"; the next scenario is the one case
+// the load leaves for that rule.
 await scenario('VPX checksum list of one (from a draft)', [...BASE, ['draft', 'values.vpxChecksum', [MD5_VPX]]], {
   yaml: [
     '---',
@@ -195,6 +196,21 @@ await scenario('VPX checksum list of one (from a draft)', [...BASE, ['draft', 'v
   dots: [],
   download: 'Lgi1JLk0Vf_table-config.yml',
   downloadMatchesPreview: true
+});
+// A lone entry behind a blank first one is a secondary, not the primary, so
+// the load keeps the list and the missing primary is still reported (the
+// pr-checker follow-up to decision 4, 2026-10-12).
+await scenario('VPX checksum list with a blank first entry (from a draft)', [...BASE, ['draft', 'values.vpxChecksum', ['', MD5_VPX]]], {
+  rule: 'VPX Checksum list is invalid',
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: VPX Checksum list is invalid | Use a plain string for one checksum or a list containing at least two checksums.'
+  ],
+  tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+  ],
+  download: 'blocked'
 });
 
 // --- Backglass -------------------------------------------------------------

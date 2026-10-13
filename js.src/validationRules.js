@@ -249,9 +249,10 @@
       };
       // A list of one gets the dot for the build rule "<label> list is
       // invalid", so it marks its own field instead of falling back to the
-      // tab's ID field (Phase 2 decision 4, Jason, 2026-10-12). A backstop:
-      // migrateBuildValues in main.js turns a list of one into a plain string
-      // on load, so no current path reaches it, and no scenario does.
+      // tab's ID field (Phase 2 decision 4, Jason, 2026-10-12). Mostly a
+      // backstop: migrateBuildValues in main.js turns a list of one into a
+      // plain string on load, except a lone entry behind a blank first one,
+      // which keeps its shape and is reached here.
       const validateChecksum = (fieldName, label, { required = false } = {}) => {
         const raw = values[fieldName];
         const value = String(Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? '')).trim();
