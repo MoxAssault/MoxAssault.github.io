@@ -459,7 +459,7 @@ await scenario('backglass entry broken (from a draft)', [...B2S, ['draft', 'reco
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassVPSId: This section contains an unresolved validation error.'
+    'b2s field-backglassVPSId: B2S entry is broken.'
   ],
   download: 'blocked'
 });

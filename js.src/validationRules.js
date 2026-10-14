@@ -227,9 +227,10 @@
   // getFieldErrors ran once per open tab and returned field -> messages. Here
   // it runs for every enabled tab, in step order; within a tab, entries keep
   // the order getFieldErrors' Map gave them, one per distinct message.
-  function fieldIssues(ctx, fields) {
-    const { WIZARD_STEPS } = fields;
-    const { values, isStepEnabled } = ctx;
+  function fieldIssues(ctx, fields, utils) {
+    const { CATEGORY_CONFIG, WIZARD_STEPS } = fields;
+    const { isItemBroken, getCategoryItems } = utils;
+    const { record, selections, values, isStepEnabled } = ctx;
     const output = [];
     const isMd5 = value => /^[a-f0-9]{32}$/i.test(String(value || '').trim());
     const normalizeNames = value => Array.isArray(value)
@@ -262,6 +263,18 @@
         if (required && !value) add(fieldName, `${label} is required.`);
         else if (value && !isMd5(value)) add(fieldName, `${label} must be a 32-character MD5 value.`);
       };
+
+      // The dot twin of the build rule "<label> entry is broken", on the tab's
+      // ID. Without it the ID took only the generic fallback dot, and only
+      // when nothing else on the tab had a dot, so a broken entry with a bad
+      // checksum showed "2 errors" and one dot (Jason, 2026-10-14).
+      Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+        if (config.stepId !== step.id || !config.idField) return;
+        const selectedId = selections[category];
+        const item = getCategoryItems(record, category, config, { selections })
+          .find(candidate => String(candidate.id || '') === String(selectedId || ''));
+        if (item && isItemBroken(item)) add(config.idField, `${config.label} entry is broken.`);
+      });
 
       switch (step.id) {
         case 'main': {
@@ -493,7 +506,7 @@
     };
     const issues = [
       ...buildIssues(full, utils, fields),
-      ...fieldIssues(full, fields),
+      ...fieldIssues(full, fields, utils),
       ...featureIssues(full, utils),
       ...v090Issues(full)
     ].filter(issue => issue.gate || open(issue.stepId));

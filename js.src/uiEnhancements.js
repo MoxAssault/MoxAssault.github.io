@@ -46,10 +46,6 @@
   //             and written into the control's aria-label too
   // Drawn in that order, which is the order the old frames left them in.
 
-  // v091Corrections.js removed every dot here; in practice that was the
-  // fallback dot, which picks a tab's read-only ID field first.
-  const NO_DOT_FIELDS = new Set(['diffVPSId']);
-
   function clearFieldErrors(container) {
     container?.querySelectorAll('.field.has-field-error').forEach(field => {
       field.classList.remove('has-field-error');
@@ -64,7 +60,6 @@
   }
 
   function addFieldErrorDot(container, fieldName, messages, { v090 = false } = {}) {
-    if (NO_DOT_FIELDS.has(fieldName)) return false;
     const wrapper = findFieldWrapper(container, fieldName);
     if (!wrapper || !messages?.length) return false;
 
@@ -206,6 +201,8 @@
 
       // A tab in error with no dot of its own points at its first field, so
       // the user is not left looking for the problem.
+      // The VPU Patch ID was barred from any dot until 2026-10-14
+      // (NO_DOT_FIELDS); a broken entry now has its own dot there.
       const tab = container.querySelector(`.config-tab[data-step="${utils.cssEscape(step.id)}"]`);
       const hasExtendedFieldError = issues.some(issue => (
         (issue.system === 'feature' || issue.system === 'v090') && issue.stepId === step.id

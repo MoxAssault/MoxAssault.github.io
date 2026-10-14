@@ -80,8 +80,6 @@
     if (tooltip && tooltip.textContent !== text) tooltip.textContent = text;
   }
 
-  // The VPU Patch ID's dot removal lives in uiEnhancements.js (NO_DOT_FIELDS)
-  // since 2026-10-06, where every error dot is now drawn.
   function applyCorrections(container = document) {
     applyColorChecksumPlaceholder(container);
     applyEnableTooltipCorrection();

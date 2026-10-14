@@ -4,10 +4,10 @@
 // files are built and yaml-scenarios.mjs for the runner.
 //   SNAPSHOT=print node tests/yaml-rules-sound-patch.test.mjs
 
-import { report } from './harness.mjs';
+import { check, report } from './harness.mjs';
 import { startScenarios } from './yaml-scenarios.mjs';
 
-const { app, scenario } = await startScenarios();
+const { app, scenario, PRINT } = await startScenarios();
 
 const MD5_VPX = 'E6DF3800F7C9286FA195E84034DA683A';
 const MD5_SOUND = '9CC6161300C1E0AC76D73EC6B847EE7C';
@@ -331,6 +331,56 @@ await scenario('VPU Patch override with nothing filled', [...TFTC, ['override', 
     'vpuPatch field-diffAuthorsOverride: Patch Authors Override is required when Override is enabled.',
     'vpuPatch field-diffUrlOverride: Patch URL Override is required when Override is enabled.',
     'vpuPatch field-diffVersionOverride: Patch Version Override is required when Override is enabled.'
+  ],
+  download: 'blocked'
+});
+
+// Defensive, like the backglass one in yaml-rules-main: only a saved draft can
+// carry a broken entry. Until 2026-10-14 the VPU Patch ID was barred from
+// carrying a dot (NO_DOT_FIELDS in uiEnhancements.js, and a rule in
+// css.src/v091.css), so this tab said "1 error" with no dot anywhere.
+await scenario('VPU Patch entry broken (from a draft)', [...PATCH, ['draft', 'record.tableFiles.0.broken', true]], {
+  rule: 'VPU Patch entry is broken',
+  keys: ['diffChecksum', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: VPU Patch entry is broken | Choose another database entry before copying or downloading.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
+  dots: [
+    'vpuPatch field-diffVPSId: VPU Patch entry is broken.'
+  ],
+  download: 'blocked'
+});
+// The dot sits on the ID box's top-right corner, 4px out each way, like the
+// ROM ID's (yaml-rules-rom).
+if (!PRINT) {
+  const corner = await app.run(async () => {
+    document.getElementById('validationDialog').close();
+    document.getElementById('config-tab-vpuPatch').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))));
+    const dot = document.querySelector('#config-panel-vpuPatch .field-error-dot');
+    if (!dot) return 'no dot';
+    const box = dot.closest('.field').querySelector('input, textarea, select, .readonly-id').getBoundingClientRect();
+    const spot = dot.getBoundingClientRect();
+    return Math.round(spot.right - box.right) + ',' + Math.round(box.top - spot.top);
+  });
+  check('dots: VPU Patch ID dot sits 4px out from its box corner', corner === '4,4', corner);
+}
+
+// Jason's live check: with another dot on the tab, the broken entry used to
+// lose its dot (the generic fallback only fires on a tab with no dot), so the
+// tab said "2 errors" with one dot, on the checksum.
+await scenario('VPU Patch entry broken, with a bad checksum (from a draft)', [...PATCH, ['fill', 'diffChecksum', 'not-an-md5'], ['draft', 'record.tableFiles.0.broken', true]], {
+  rule: 'VPU Patch entry is broken',
+  keys: ['diffChecksum', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: VPU Patch entry is broken | Choose another database entry before copying or downloading.',
+    'error: VPU Patch Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 2 errors', 'dmd: disabled'],
+  dots: [
+    'vpuPatch field-diffVPSId: VPU Patch entry is broken.',
+    'vpuPatch field-diffChecksum: VPU Patch Checksum must be a 32-character MD5 value.'
   ],
   download: 'blocked'
 });
