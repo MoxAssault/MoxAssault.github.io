@@ -247,8 +247,7 @@ const applyBundledShape = new Function('data', block + '\n return data;');
 
 // 9 ── leaving the bundled shape releases the entry it borrowed on the VPX tab
 // Drives the REAL liveMirrors and clearShapeDisabledFields, sliced out of the
-// shipped js.src/main.js at run time, against the REAL normalizeChecksumValue
-// out of js.src/utilities.js. Nothing here is a copy of the logic.
+// shipped js.src/main.js at run time. Nothing here is a copy of the logic.
 //
 // The bug this pins: bundled, the DMD checksum is a VIEW of vpxChecksum's
 // second entry, so the archive MD5 physically lives on the VPX tab. Switching
@@ -259,8 +258,6 @@ const applyBundledShape = new Function('data', block + '\n return data;');
 // code cannot tell "just left the bundled shape" from "was never in it", and
 // the second case would eat a hand-entered additional checksum.
 {
-  const UTILS = repoPath('js.src', 'utilities.js');
-
   const mainSource = fs.readFileSync(MAIN, 'utf8');
   const START = "  // Which of a step's mirrored fields are live right now.";
   const start = mainSource.indexOf(START);
@@ -274,15 +271,8 @@ const applyBundledShape = new Function('data', block + '\n return data;');
     && block.includes('function clearShapeDisabledFields'),
     'markers moved — update the slice in this test');
 
-  const utilSource = fs.readFileSync(UTILS, 'utf8');
-  const nStart = utilSource.indexOf('  function normalizeChecksumValue(value) {');
-  const nEnd = utilSource.indexOf('\n  }', nStart) + '\n  }'.length;
-  check('normalizeChecksumValue was located in utilities.js', nStart !== -1);
-  const normalizeChecksumValue = new Function(
-    utilSource.slice(nStart, nEnd) + '\n; return normalizeChecksumValue;')();
-
-  const build = state => new Function('state', 'normalizeChecksumValue',
-    block + '\n; return { liveMirrors, clearShapeDisabledFields };')(state, normalizeChecksumValue);
+  const build = state => new Function('state',
+    block + '\n; return { liveMirrors, clearShapeDisabledFields };')(state);
 
   // The two real handlers in main.js do exactly this, in exactly this order.
   // Reproduced here rather than sliced because they also renderWorkspace().
