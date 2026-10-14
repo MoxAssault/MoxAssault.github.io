@@ -255,6 +255,66 @@ await scenario('VPX checksum list with a blank first entry, extra removed in Add
   download: 'blocked'
 });
 
+// The Additional Checksums dialog over a filled primary: an extra is kept
+// behind it, and removing the extra again collapses the field to a plain
+// string.
+await scenario('VPX checksum with an extra added in Additional Checksums', [...BASE, ['additional', 'vpxChecksum', [MD5_B2S]]], {
+  yaml: [
+    '---',
+    'fps: 60',
+    'tableVPSId: "Lgi1JLk0Vf"',
+    'testers:',
+    '  - "Tester"',
+    'vpxChecksum:',
+    '  - "E6DF3800F7C9286FA195E84034DA683A"',
+    '  - "B3500DC847FF54988DB01C2FFDD0AAA0"',
+    'vpxVPSId: "qV3Z3oQ8md"',
+    ''
+  ],
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'success: Everything looks good. | The build is ready to copy or download.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [],
+  download: 'Lgi1JLk0Vf_table-config.yml',
+  downloadMatchesPreview: true
+});
+await scenario('VPX checksum extra added, then removed in Additional Checksums', [...BASE, ['additional', 'vpxChecksum', [MD5_B2S]], ['additional', 'vpxChecksum', []]], {
+  yaml: [
+    '---',
+    'fps: 60',
+    'tableVPSId: "Lgi1JLk0Vf"',
+    'testers:',
+    '  - "Tester"',
+    'vpxChecksum: "E6DF3800F7C9286FA195E84034DA683A"',
+    'vpxVPSId: "qV3Z3oQ8md"',
+    ''
+  ],
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'success: Everything looks good. | The build is ready to copy or download.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [],
+  download: 'Lgi1JLk0Vf_table-config.yml',
+  downloadMatchesPreview: true
+});
+// Typing the primary box empty leaves index 0 blank. It used to promote the
+// extra into the primary slot (Jason, 2026-10-13).
+await scenario('VPX checksum with an extra, primary typed empty', [...BASE, ['additional', 'vpxChecksum', [MD5_B2S]], ['fill', 'vpxChecksum', '']], {
+  rule: 'VPX Checksum list is invalid',
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: VPX Checksum list is invalid | Use a plain string for one checksum or a list containing at least two checksums.'
+  ],
+  tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+  ],
+  download: 'blocked'
+});
+
 // --- Backglass -------------------------------------------------------------
 
 await scenario('backglass checksum empty', [...BASE, ['asset', 'b2sFiles', 'WlwK5P4-tj']], {
@@ -278,6 +338,20 @@ await scenario('backglass checksum not an MD5', [...BASE, ['asset', 'b2sFiles', 
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'b2s field-backglassChecksum: Backglass Checksum must be a 32-character MD5 value.'
+  ],
+  download: 'blocked'
+});
+// The same no-promotion rule on another tab: an extra added under an empty
+// Backglass Checksum stays an extra.
+await scenario('backglass checksum extra added with the primary empty', [...BASE, ['asset', 'b2sFiles', 'WlwK5P4-tj'], ['additional', 'backglassChecksum', [MD5_B2S]]], {
+  rule: 'Backglass Checksum list is invalid',
+  keys: ['backglassChecksum', 'backglassVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: Backglass Checksum list is invalid | Use a plain string for one checksum or a list containing at least two checksums.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'b2s field-backglassChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nBackglass Checksum is required.'
   ],
   download: 'blocked'
 });

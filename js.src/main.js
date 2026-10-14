@@ -14,8 +14,7 @@
     downloadText,
     copyText,
     getCategoryItems,
-    getAssetState,
-    normalizeChecksumValue
+    getAssetState
   } = window.VPS_UTILS;
   const SEARCH = window.VPS_SEARCH;
   const UI = window.VPS_UI;
@@ -505,13 +504,20 @@
     // Deliberately ahead of the shapeGated guard below: a mirror is a claim on
     // ANOTHER field's value, and it has to be released whether or not this step
     // also happens to gate its own fields on the shape.
+    //
+    // The index is counted on the list as stored, blank primary included:
+    // ['', archiveMD5] is a bundled DMD whose .vpx MD5 is still missing.
     mirrorsBefore.forEach(mirror => {
       if (state.values[mirror.when] === true) return;
-      const hashes = normalizeChecksumValue(state.values[mirror.field]);
-      if (hashes.length <= mirror.index) return;
-      hashes.splice(mirror.index, 1);
-      if (!hashes.length) delete state.values[mirror.field];
-      else state.values[mirror.field] = hashes.length === 1 ? hashes[0] : hashes;
+      const raw = state.values[mirror.field];
+      if (!Array.isArray(raw) || raw.length <= mirror.index) return;
+      const list = raw.map(item => String(item ?? '').trim());
+      list.splice(mirror.index, 1);
+      const primary = list[0] || '';
+      const additional = list.slice(1).filter(Boolean);
+      if (additional.length) state.values[mirror.field] = [primary, ...additional];
+      else if (primary) state.values[mirror.field] = primary;
+      else delete state.values[mirror.field];
     });
     // A step whose fields change with the shape is describing a DIFFERENT
     // archive in each one - bundled, it is the VPX's archive; standalone, it is

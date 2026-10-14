@@ -274,6 +274,36 @@ await scenario('DMD bundled with one VPX checksum', [...PINK_FLOYD,
   ],
   download: 'blocked'
 });
+// Leaving the bundled shape releases the archive MD5 from vpxChecksum's
+// second slot even when the .vpx MD5 in the first is still blank. The release
+// used to count past the blank and leave the stale archive MD5 behind.
+await scenario('DMD switched from bundled to Override with a blank VPX checksum', [...PINK_FLOYD,
+  ['bundle', 'specialDMD', true], ['dmdType', 'FlexDMD'],
+  ['fill', 'specialDMDArchiveRoot', 'FlexDMD'], ['fill', 'specialDMDArchiveFormat', 'zip'],
+  ['draft', 'values.vpxChecksum', ['', MD5_ARCHIVE]],
+  ['override', 'specialDMD', true]
+], {
+  rule: 'VPX Checksum is required',
+  keys: ['fps', 'specialDMDType', 'tableVPSId', 'testers', 'vpxVPSId'],
+  dialog: [
+    'error: VPX Checksum is required | Add a valid MD5 value for VPX Checksum.',
+    'error: DMD Archive Root is required | Add DMD Archive Root before copying or downloading.',
+    'error: DMD Archive Format is required | Add DMD Archive Format before copying or downloading.',
+    'error: DMD Checksum is required | Add a valid MD5 value for DMD Checksum.',
+    'error: DMD URL Override is required | Add DMD URL Override before copying or downloading.',
+    'error: DMD Version is required | Add DMD Version before copying or downloading.'
+  ],
+  tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 5 errors'],
+  dots: [
+    'vpx field-vpxChecksum: VPX Checksum is required.',
+    'dmd field-specialDMDChecksum: DMD Checksum is required.',
+    'dmd field-specialDMDVersion: DMD Version is required.',
+    'dmd field-specialDMDUrlOverride: DMD URL Override is required.',
+    'dmd field-specialDMDArchiveRoot: DMD Archive Root is required.',
+    'dmd field-specialDMDArchiveFormat: DMD Archive Format is required.'
+  ],
+  download: 'blocked'
+});
 
 await app.close();
 report('yaml-rules-pup-dmd');

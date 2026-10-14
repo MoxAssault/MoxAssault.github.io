@@ -275,13 +275,14 @@
   // see js.src/checksumAdditionalController.js). Anything that edits the
   // primary value directly (typing, or a file-drop MD5 calculation) must
   // replace only index 0 and keep the rest, or those additional entries are
-  // silently dropped.
+  // silently dropped. Clearing the primary leaves index 0 blank rather than
+  // promoting an additional entry into it; on the VPX tab that entry can be an
+  // archive MD5 (Jason, 2026-10-13).
   function replacePrimaryChecksum(current, next) {
     const value = String(next || '').trim();
-    if (!Array.isArray(current) || current.length < 2) return value;
+    if (!Array.isArray(current)) return value;
     const rest = current.slice(1).map(item => String(item || '').trim()).filter(Boolean);
-    const combined = value ? [value, ...rest] : rest;
-    return combined.length > 1 ? combined : (combined[0] || '');
+    return rest.length ? [value, ...rest] : value;
   }
 
   function highlightYaml(yaml) {
