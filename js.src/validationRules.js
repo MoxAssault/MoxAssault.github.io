@@ -126,8 +126,11 @@
     const colorRawValue = values.coloredROMChecksum;
     const colorPrimary = String(Array.isArray(colorRawValue) ? (colorRawValue[0] ?? '') : (colorRawValue ?? '')).trim();
     const colorSecondary = String(values.coloredROMChecksumSecondary || '').trim();
+    // A PAL/VNI pair with one half missing is the PAL/VNI rule's problem
+    // alone, so the half that is there is checked as a plain value: as a list
+    // of one it also failed "<label> list is invalid" (decision 2).
     const colorValue = values.coloredROMPin2DMD === true
-      ? [colorPrimary, colorSecondary].filter(Boolean)
+      ? (colorPrimary && colorSecondary ? [colorPrimary, colorSecondary] : (colorPrimary || colorSecondary))
       : colorRawValue;
     validateChecksum('coloredROMChecksum', 'coloredRom', 'Color ROM Checksum', {
       required: colorOffered,

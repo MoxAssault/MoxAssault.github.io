@@ -205,12 +205,23 @@ await scenario('PAL/VNI with one checksum', [...COLOR, ['fill', 'coloredROMPin2D
   rule: 'PAL/VNI requires two checksums',
   keys: ['coloredROMChecksum', 'coloredROMPin2DMD', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Checksum list is invalid | Use a plain string for one checksum or a list containing at least two checksums.',
     'error: PAL/VNI requires two checksums | Add the .pal checksum and the .vni checksum.'
   ],
-  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 2 errors', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'coloredRom field-coloredROMChecksumSecondary: Color ROM VNI Checksum is required.'
+  ],
+  download: 'blocked'
+});
+await scenario('PAL/VNI with only the VNI checksum', [...COLOR, ['fill', 'coloredROMPin2DMD', true], ['fill', 'coloredROMChecksumSecondary', MD5_VNI]], {
+  rule: 'PAL/VNI requires two checksums',
+  keys: ['coloredROMChecksum', 'coloredROMPin2DMD', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: PAL/VNI requires two checksums | Add the .pal checksum and the .vni checksum.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'coloredRom field-coloredROMChecksum: Color ROM Checksum is required.'
   ],
   download: 'blocked'
 });
