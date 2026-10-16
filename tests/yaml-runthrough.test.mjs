@@ -153,7 +153,7 @@ await scenario('Lord of the Rings, Alt Sound checksum missing', [
     ''
   ],
   dialog: [
-    'error: Alt Sound Checksum is required | Add a valid MD5 value for Alt Sound Checksum.'
+    'error: Alt Sound Checksum required | Add a valid MD5 value for Alt Sound Checksum.'
   ],
   tabs: [
     'main: ready',
@@ -167,7 +167,7 @@ await scenario('Lord of the Rings, Alt Sound checksum missing', [
     'dmd: disabled'
   ],
   dots: [
-    'altSound field-altSoundChecksum: Alt Sound Checksum is required. Add a valid MD5 value for Alt Sound Checksum.'
+    'altSound field-altSoundChecksum: Alt Sound Checksum required. Add a valid MD5 value for Alt Sound Checksum.'
   ],
   download: 'blocked'
 });

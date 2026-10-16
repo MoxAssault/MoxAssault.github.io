@@ -232,7 +232,7 @@ const applyBundledShape = new Function('data', dropBlock + '\n return data;');
   check('the DMD Type gate files against specialDMDType',
     buildRules.includes("'Add DMD Type before copying or downloading.', 'specialDMDType')"));
   check('the DMD required-field loops file each error against its key',
-    (buildRules.match(/addError\('dmd', `\$\{label\} is required`, `Add \$\{label\} before copying or downloading\.`, key\)/g) || []).length === 2);
+    (buildRules.match(/addError\('dmd', `\$\{label\} required`, `Add \$\{label\} before copying or downloading\.`, key\)/g) || []).length === 2);
 }
 
 // ── one directory list per tab ─────────────────────────────────────────────

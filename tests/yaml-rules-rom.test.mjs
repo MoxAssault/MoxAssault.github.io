@@ -50,26 +50,26 @@ await scenario('clean build with a Color ROM', COLOR, {
 // --- ROM -------------------------------------------------------------------
 
 await scenario('ROM checksum empty', [...PINK_FLOYD, ['asset', 'romFiles', 'jgo91P3SSp']], {
-  rule: 'ROM Checksum is required',
+  rule: 'ROM Checksum required',
   keys: ['fps', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Checksum is required | Add a valid MD5 value for ROM Checksum.'
+    'error: ROM Checksum required | Add a valid MD5 value for ROM Checksum.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romChecksum: ROM Checksum is required. Add a valid MD5 value for ROM Checksum.'
+    'rom field-romChecksum: ROM Checksum required. Add a valid MD5 value for ROM Checksum.'
   ],
   download: 'blocked'
 });
 await scenario('ROM checksum not an MD5', [...PINK_FLOYD, ['asset', 'romFiles', 'jgo91P3SSp'], ['fill', 'romChecksum', 'NOT-A-HASH']], {
-  rule: 'ROM Checksum is not a valid MD5',
+  rule: 'ROM Checksum MD5 invalid',
   keys: ['fps', 'romChecksum', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: ROM Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romChecksum: ROM Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'rom field-romChecksum: ROM Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -111,40 +111,40 @@ if (!PRINT) {
 await scenario('ROM URL without a version', [...PINK_FLOYD,
   ['bundle', 'romFiles', true], ['fill', 'romChecksum', MD5_ROM], ['fill', 'romNotes', 'In the table download'], ['fill', 'romUrlOverride', ROM_URL]
 ], {
-  rule: 'ROM version override is required',
+  rule: 'ROM version override required',
   keys: ['fps', 'romBundled', 'romChecksum', 'romNotes', 'romUrlOverride', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM version override is required | Add ROM Version Override when using ROM URL Override.'
+    'error: ROM version override required | Add ROM Version Override when using ROM URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romVersionOverride: ROM version override is required. Add ROM Version Override when using ROM URL Override.'
+    'rom field-romVersionOverride: ROM version override required. Add ROM Version Override when using ROM URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('ROM URL without notes', [...PINK_FLOYD,
   ['override', 'romFiles', true], ['fill', 'romChecksum', MD5_ROM], ['fill', 'romUrlOverride', ROM_URL], ['fill', 'romVersionOverride', 'esha_la3']
 ], {
-  rule: 'ROM Notes are required',
+  rule: 'ROM Notes required',
   keys: ['fps', 'romChecksum', 'romUrlOverride', 'romVersionOverride', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Notes are required | Add ROM Notes when using ROM URL Override.'
+    'error: ROM Notes required | Add ROM Notes when using ROM URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romNotes: ROM Notes are required. Add ROM Notes when using ROM URL Override.'
+    'rom field-romNotes: ROM Notes required. Add ROM Notes when using ROM URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('ROM version without a URL', [...ROM, ['fill', 'romVersionOverride', 'esha_la3']], {
-  rule: 'ROM URL override is required',
+  rule: 'ROM URL override required',
   keys: ['fps', 'romChecksum', 'romVersionOverride', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM URL override is required | Add ROM URL Override when using ROM Version Override.'
+    'error: ROM URL override required | Add ROM URL Override when using ROM Version Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romUrlOverride: ROM URL override is required. Add ROM URL Override when using ROM Version Override.'
+    'rom field-romUrlOverride: ROM URL override required. Add ROM URL Override when using ROM Version Override.'
   ],
   download: 'blocked'
 });
@@ -161,37 +161,37 @@ await scenario('ROM bundled without notes', [...PINK_FLOYD, ['bundle', 'romFiles
   download: 'blocked'
 });
 await scenario('ROM override with nothing filled', [...PINK_FLOYD, ['override', 'romFiles', true], ['fill', 'romChecksum', MD5_ROM]], {
-  rule: 'ROM Notes is required',
+  rule: 'ROM Notes required',
   keys: ['fps', 'romChecksum', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Notes is required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM URL Override is required | Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM Version Override is required | Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: ROM Notes required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: ROM URL Override required | Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: ROM Version Override required | Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 3 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romNotes: ROM Notes is required. Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romUrlOverride: ROM URL Override is required. Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romVersionOverride: ROM Version Override is required. Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'rom field-romNotes: ROM Notes required. Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'rom field-romUrlOverride: ROM URL Override required. Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'rom field-romVersionOverride: ROM Version Override required. Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
 // See 'backglass override with the checksum empty too' (decision 5).
 await scenario('ROM override with the checksum empty too', [...PINK_FLOYD, ['override', 'romFiles', true]], {
-  rule: 'ROM Checksum is required',
+  rule: 'ROM Checksum required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Checksum is required | Add a valid MD5 value for ROM Checksum.',
-    'error: ROM Notes is required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM URL Override is required | Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM Version Override is required | Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: ROM Checksum required | Add a valid MD5 value for ROM Checksum.',
+    'error: ROM Notes required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: ROM URL Override required | Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: ROM Version Override required | Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 4 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romChecksum: ROM Checksum is required. Add a valid MD5 value for ROM Checksum.',
-    'rom field-romNotes: ROM Notes is required. Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romUrlOverride: ROM URL Override is required. Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romVersionOverride: ROM Version Override is required. Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'rom field-romChecksum: ROM Checksum required. Add a valid MD5 value for ROM Checksum.',
+    'rom field-romNotes: ROM Notes required. Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'rom field-romUrlOverride: ROM URL Override required. Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'rom field-romVersionOverride: ROM Version Override required. Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -199,26 +199,26 @@ await scenario('ROM override with the checksum empty too', [...PINK_FLOYD, ['ove
 // --- Color ROM -------------------------------------------------------------
 
 await scenario('Color ROM checksum empty', [...LOTR, ['asset', 'altColorFiles', 'afptXEiuqn']], {
-  rule: 'Color ROM Checksum is required',
+  rule: 'Color ROM Checksum required',
   keys: ['coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Checksum is required | Add a valid MD5 value for Color ROM Checksum.'
+    'error: Color ROM Checksum required | Add a valid MD5 value for Color ROM Checksum.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMChecksum: Color ROM Checksum is required. Add a valid MD5 value for Color ROM Checksum.'
+    'coloredRom field-coloredROMChecksum: Color ROM Checksum required. Add a valid MD5 value for Color ROM Checksum.'
   ],
   download: 'blocked'
 });
 await scenario('Color ROM checksum not an MD5', [...LOTR, ['asset', 'altColorFiles', 'afptXEiuqn'], ['fill', 'coloredROMChecksum', 'NOT-A-HASH']], {
-  rule: 'Color ROM Checksum is not a valid MD5',
+  rule: 'Color ROM Checksum MD5 invalid',
   keys: ['coloredROMChecksum', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: Color ROM Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMChecksum: Color ROM Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'coloredRom field-coloredROMChecksum: Color ROM Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -249,14 +249,14 @@ await scenario('PAL/VNI with only the VNI checksum', [...COLOR, ['fill', 'colore
 // The pair is checked as one list, but a bad hash is marked on the slot it
 // came from (decision 5: each error draws its own dot).
 await scenario('PAL/VNI with a bad VNI checksum', [...COLOR, ['fill', 'coloredROMPin2DMD', true], ['fill', 'coloredROMChecksum', MD5_PAL], ['fill', 'coloredROMChecksumSecondary', 'not-an-md5']], {
-  rule: 'Color ROM Checksum is not a valid MD5',
+  rule: 'Color ROM Checksum MD5 invalid',
   keys: ['coloredROMChecksum', 'coloredROMPin2DMD', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: Color ROM Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMChecksumSecondary: Color ROM Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'coloredRom field-coloredROMChecksumSecondary: Color ROM Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -273,40 +273,40 @@ await scenario('clean PAL/VNI pair', [...COLOR, ['fill', 'coloredROMPin2DMD', tr
 await scenario('Color ROM URL without notes', [...COLOR,
   ['fill', 'coloredROMUrlOverride', ROM_URL], ['fill', 'coloredROMVersionOverride', '2.6']
 ], {
-  rule: 'Color ROM Notes are required',
+  rule: 'Color ROM Notes required',
   keys: ['coloredROMChecksum', 'coloredROMUrlOverride', 'coloredROMVersionOverride', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Notes are required | Add Color ROM Notes when using Color ROM URL Override.'
+    'error: Color ROM Notes required | Add Color ROM Notes when using Color ROM URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMNotes: Color ROM Notes are required. Add Color ROM Notes when using Color ROM URL Override.'
+    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes when using Color ROM URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('Color ROM URL without a version', [...COLOR,
   ['fill', 'coloredROMUrlOverride', ROM_URL], ['fill', 'coloredROMNotes', 'From the URL']
 ], {
-  rule: 'Color ROM version override is required',
+  rule: 'Color ROM version override required',
   keys: ['coloredROMChecksum', 'coloredROMNotes', 'coloredROMUrlOverride', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM version override is required | Add Color ROM Version Override when using Color ROM URL Override.'
+    'error: Color ROM version override required | Add Color ROM Version Override when using Color ROM URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMVersionOverride: Color ROM version override is required. Add Color ROM Version Override when using Color ROM URL Override.'
+    'coloredRom field-coloredROMVersionOverride: Color ROM version override required. Add Color ROM Version Override when using Color ROM URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('Color ROM version without a URL', [...COLOR, ['fill', 'coloredROMVersionOverride', '2.6']], {
-  rule: 'Color ROM URL override is required',
+  rule: 'Color ROM URL override required',
   keys: ['coloredROMChecksum', 'coloredROMVersionOverride', 'coloredROMVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM URL override is required | Add Color ROM URL Override when using Color ROM Version Override.'
+    'error: Color ROM URL override required | Add Color ROM URL Override when using Color ROM Version Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 1 error', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMUrlOverride: Color ROM URL override is required. Add Color ROM URL Override when using Color ROM Version Override.'
+    'coloredRom field-coloredROMUrlOverride: Color ROM URL override required. Add Color ROM URL Override when using Color ROM Version Override.'
   ],
   download: 'blocked'
 });
@@ -323,37 +323,37 @@ await scenario('Color ROM bundled without notes', [...LOTR, ['bundle', 'altColor
   download: 'blocked'
 });
 await scenario('Color ROM override with nothing filled', [...LOTR, ['override', 'altColorFiles', true], ['fill', 'coloredROMChecksum', MD5_PAL]], {
-  rule: 'Color ROM Notes is required',
+  rule: 'Color ROM Notes required',
   keys: ['coloredROMChecksum', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Notes is required | Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM URL Override is required | Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM Version Override is required | Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Color ROM Notes required | Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Color ROM URL Override required | Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Color ROM Version Override required | Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 3 errors', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMNotes: Color ROM Notes is required. Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override is required. Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override is required. Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override required. Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override required. Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
 // See 'backglass override with the checksum empty too' (decision 5).
 await scenario('Color ROM override with the checksum empty too', [...LOTR, ['override', 'altColorFiles', true]], {
-  rule: 'Color ROM Checksum is required',
+  rule: 'Color ROM Checksum required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Checksum is required | Add a valid MD5 value for Color ROM Checksum.',
-    'error: Color ROM Notes is required | Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM URL Override is required | Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM Version Override is required | Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Color ROM Checksum required | Add a valid MD5 value for Color ROM Checksum.',
+    'error: Color ROM Notes required | Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Color ROM URL Override required | Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Color ROM Version Override required | Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 4 errors', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMChecksum: Color ROM Checksum is required. Add a valid MD5 value for Color ROM Checksum.',
-    'coloredRom field-coloredROMNotes: Color ROM Notes is required. Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override is required. Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override is required. Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'coloredRom field-coloredROMChecksum: Color ROM Checksum required. Add a valid MD5 value for Color ROM Checksum.',
+    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override required. Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override required. Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -523,16 +523,16 @@ await scenario('Additional ROM with two problems', imported([{ checksum: 'NOT-A-
 });
 const withRomVersion = entries => [['import', talesFromTheCrypt(entries).replace('vpxChecksum:', 'romVersionOverride: "tftc_303"\nvpxChecksum:')]];
 await scenario('v090 and feature issues together', withRomVersion([{ checksum: MD5_ADD }]), {
-  rule: 'ROM URL override is required',
+  rule: 'ROM URL override required',
   keys: ['additionalRoms', 'checksum', 'fps', 'romChecksum', 'romVersionOverride', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM URL override is required | Add ROM URL Override when using ROM Version Override.',
+    'error: ROM URL override required | Add ROM URL Override when using ROM Version Override.',
     'error: Additional ROM 1 needs attention | Select a ROM VPS ID.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'rom additionalRoms: Additional ROM 1 needs attention. Select a ROM VPS ID.',
-    'rom field-romUrlOverride: ROM URL override is required. Add ROM URL Override when using ROM Version Override.'
+    'rom field-romUrlOverride: ROM URL override required. Add ROM URL Override when using ROM Version Override.'
   ],
   download: 'blocked'
 });

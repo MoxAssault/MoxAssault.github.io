@@ -48,62 +48,62 @@ await scenario('clean PUP Pack', PUP, {
 // --- PUP Pack --------------------------------------------------------------
 
 await scenario('PUP checksum empty', [...LOTR, ['asset', 'pupPackFiles', 'nM-kQQy3SN'], ...PUP_FIELDS], {
-  rule: 'PUP Pack Checksum is required',
+  rule: 'PUP Pack Checksum required',
   keys: ['fps', 'pupArchiveFormat', 'pupArchiveRoot', 'pupVersion', 'pupVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Checksum is required | Add a valid MD5 value for PUP Pack Checksum.'
+    'error: PUP Pack Checksum required | Add a valid MD5 value for PUP Pack Checksum.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 1 error', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupChecksum: PUP Pack Checksum is required. Add a valid MD5 value for PUP Pack Checksum.'
+    'pup field-pupChecksum: PUP Pack Checksum required. Add a valid MD5 value for PUP Pack Checksum.'
   ],
   download: 'blocked'
 });
 await scenario('PUP checksum not an MD5', [...PUP, ['fill', 'pupChecksum', 'NOT-A-HASH']], {
-  rule: 'PUP Pack Checksum is not a valid MD5',
+  rule: 'PUP Pack Checksum MD5 invalid',
   keys: ['fps', 'pupArchiveFormat', 'pupArchiveRoot', 'pupChecksum', 'pupVersion', 'pupVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: PUP Pack Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 1 error', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupChecksum: PUP Pack Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'pup field-pupChecksum: PUP Pack Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
 await scenario('PUP version empty', [...PUP, ['fill', 'pupVersion', '']], {
-  rule: 'PUP Pack Version is required',
+  rule: 'PUP Pack Version required',
   keys: ['fps', 'pupArchiveFormat', 'pupArchiveRoot', 'pupChecksum', 'pupVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Version is required | Add PUP Pack Version before copying or downloading.'
+    'error: PUP Pack Version required | Add PUP Pack Version before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 1 error', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupVersion: PUP Pack Version is required. Add PUP Pack Version before copying or downloading.'
+    'pup field-pupVersion: PUP Pack Version required. Add PUP Pack Version before copying or downloading.'
   ],
   download: 'blocked'
 });
 await scenario('PUP archive root empty', [...PUP, ['fill', 'pupArchiveRoot', '']], {
-  rule: 'PUP Pack Archive Root is required',
+  rule: 'PUP Pack Archive Root required',
   keys: ['fps', 'pupArchiveFormat', 'pupChecksum', 'pupVersion', 'pupVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Archive Root is required | Add PUP Pack Archive Root before copying or downloading.'
+    'error: PUP Pack Archive Root required | Add PUP Pack Archive Root before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 1 error', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupArchiveRoot: PUP Pack Archive Root is required. Add PUP Pack Archive Root before copying or downloading.'
+    'pup field-pupArchiveRoot: PUP Pack Archive Root required. Add PUP Pack Archive Root before copying or downloading.'
   ],
   download: 'blocked'
 });
 await scenario('PUP archive format empty', [...PUP, ['fill', 'pupArchiveFormat', '']], {
-  rule: 'PUP Pack Archive Format is required',
+  rule: 'PUP Pack Archive Format required',
   keys: ['fps', 'pupArchiveRoot', 'pupChecksum', 'pupVersion', 'pupVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Archive Format is required | Add PUP Pack Archive Format before copying or downloading.'
+    'error: PUP Pack Archive Format required | Add PUP Pack Archive Format before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 1 error', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupArchiveFormat: PUP Pack Archive Format is required. Add PUP Pack Archive Format before copying or downloading.'
+    'pup field-pupArchiveFormat: PUP Pack Archive Format required. Add PUP Pack Archive Format before copying or downloading.'
   ],
   download: 'blocked'
 });
@@ -120,16 +120,16 @@ await scenario('PUP bundled without notes', [...LOTR, ['bundle', 'pupPackFiles',
   download: 'blocked'
 });
 await scenario('PUP override with nothing filled', [...LOTR, ['override', 'pupPackFiles', true], ['fill', 'pupChecksum', MD5_PUP], ...PUP_FIELDS], {
-  rule: 'PUP Pack Notes is required',
+  rule: 'PUP Pack Notes required',
   keys: ['fps', 'pupArchiveFormat', 'pupArchiveRoot', 'pupChecksum', 'pupVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Notes is required | Add PUP Pack Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: PUP Pack URL is required | Add PUP Pack URL — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: PUP Pack Notes required | Add PUP Pack Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: PUP Pack URL required | Add PUP Pack URL — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 2 errors', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupNotes: PUP Pack Notes is required. Add PUP Pack Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'pup field-pupFileUrl: PUP Pack URL is required. Add PUP Pack URL — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'pup field-pupNotes: PUP Pack Notes required. Add PUP Pack Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'pup field-pupFileUrl: PUP Pack URL required. Add PUP Pack URL — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -178,84 +178,84 @@ await scenario('clean bundled DMD', [['import', [
 // The tab stays shut until a type is picked, so a missing type is reported
 // from the asset row alone (see buildIssues in validationRules.js).
 await scenario('DMD ticked without a type', [...PINK_FLOYD, ['override', 'specialDMD', true]], {
-  rule: 'DMD Type is required',
+  rule: 'DMD Type required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Type is required | Add DMD Type before copying or downloading.'
+    'error: DMD Type required | Add DMD Type before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [],
   download: 'blocked'
 });
 await scenario('DMD archive root empty', dmdWithout('specialDMDArchiveRoot'), {
-  rule: 'DMD Archive Root is required',
+  rule: 'DMD Archive Root required',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDChecksum', 'specialDMDType', 'specialDMDUrlOverride', 'specialDMDVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Archive Root is required | Add DMD Archive Root before copying or downloading.'
+    'error: DMD Archive Root required | Add DMD Archive Root before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDArchiveRoot: DMD Archive Root is required. Add DMD Archive Root before copying or downloading.'
+    'dmd field-specialDMDArchiveRoot: DMD Archive Root required. Add DMD Archive Root before copying or downloading.'
   ],
   download: 'blocked'
 });
 await scenario('DMD archive format empty', dmdWithout('specialDMDArchiveFormat'), {
-  rule: 'DMD Archive Format is required',
+  rule: 'DMD Archive Format required',
   keys: ['fps', 'specialDMDArchiveRoot', 'specialDMDChecksum', 'specialDMDType', 'specialDMDUrlOverride', 'specialDMDVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Archive Format is required | Add DMD Archive Format before copying or downloading.'
+    'error: DMD Archive Format required | Add DMD Archive Format before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDArchiveFormat: DMD Archive Format is required. Add DMD Archive Format before copying or downloading.'
+    'dmd field-specialDMDArchiveFormat: DMD Archive Format required. Add DMD Archive Format before copying or downloading.'
   ],
   download: 'blocked'
 });
 await scenario('DMD checksum empty', dmdWithout('specialDMDChecksum'), {
-  rule: 'DMD Checksum is required',
+  rule: 'DMD Checksum required',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDArchiveRoot', 'specialDMDType', 'specialDMDUrlOverride', 'specialDMDVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Checksum is required | Add a valid MD5 value for DMD Checksum.'
+    'error: DMD Checksum required | Add a valid MD5 value for DMD Checksum.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDChecksum: DMD Checksum is required. Add a valid MD5 value for DMD Checksum.'
+    'dmd field-specialDMDChecksum: DMD Checksum required. Add a valid MD5 value for DMD Checksum.'
   ],
   download: 'blocked'
 });
 await scenario('DMD checksum not an MD5', [...dmdWithout('specialDMDChecksum'), ['fill', 'specialDMDChecksum', 'NOT-A-HASH']], {
-  rule: 'DMD Checksum is not a valid MD5',
+  rule: 'DMD Checksum MD5 invalid',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDArchiveRoot', 'specialDMDChecksum', 'specialDMDType', 'specialDMDUrlOverride', 'specialDMDVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: DMD Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDChecksum: DMD Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'dmd field-specialDMDChecksum: DMD Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
 await scenario('DMD URL empty', dmdWithout('specialDMDUrlOverride'), {
-  rule: 'DMD URL Override is required',
+  rule: 'DMD URL Override required',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDArchiveRoot', 'specialDMDChecksum', 'specialDMDType', 'specialDMDVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD URL Override is required | Add DMD URL Override before copying or downloading.'
+    'error: DMD URL Override required | Add DMD URL Override before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDUrlOverride: DMD URL Override is required. Add DMD URL Override before copying or downloading.'
+    'dmd field-specialDMDUrlOverride: DMD URL Override required. Add DMD URL Override before copying or downloading.'
   ],
   download: 'blocked'
 });
 await scenario('DMD version empty', dmdWithout('specialDMDVersion'), {
-  rule: 'DMD Version is required',
+  rule: 'DMD Version required',
   keys: ['fps', 'specialDMDArchiveFormat', 'specialDMDArchiveRoot', 'specialDMDChecksum', 'specialDMDType', 'specialDMDUrlOverride', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: DMD Version is required | Add DMD Version before copying or downloading.'
+    'error: DMD Version required | Add DMD Version before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 1 error'],
   dots: [
-    'dmd field-specialDMDVersion: DMD Version is required. Add DMD Version before copying or downloading.'
+    'dmd field-specialDMDVersion: DMD Version required. Add DMD Version before copying or downloading.'
   ],
   download: 'blocked'
 });
@@ -283,24 +283,24 @@ await scenario('DMD switched from bundled to Override with a blank VPX checksum'
   ['draft', 'values.vpxChecksum', ['', MD5_ARCHIVE]],
   ['override', 'specialDMD', true]
 ], {
-  rule: 'VPX Checksum is required',
+  rule: 'VPX Checksum required',
   keys: ['fps', 'specialDMDType', 'tableVPSId', 'testers', 'vpxVPSId'],
   dialog: [
-    'error: VPX Checksum is required | Add a valid MD5 value for VPX Checksum.',
-    'error: DMD Archive Root is required | Add DMD Archive Root before copying or downloading.',
-    'error: DMD Archive Format is required | Add DMD Archive Format before copying or downloading.',
-    'error: DMD Checksum is required | Add a valid MD5 value for DMD Checksum.',
-    'error: DMD URL Override is required | Add DMD URL Override before copying or downloading.',
-    'error: DMD Version is required | Add DMD Version before copying or downloading.'
+    'error: VPX Checksum required | Add a valid MD5 value for VPX Checksum.',
+    'error: DMD Archive Root required | Add DMD Archive Root before copying or downloading.',
+    'error: DMD Archive Format required | Add DMD Archive Format before copying or downloading.',
+    'error: DMD Checksum required | Add a valid MD5 value for DMD Checksum.',
+    'error: DMD URL Override required | Add DMD URL Override before copying or downloading.',
+    'error: DMD Version required | Add DMD Version before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: 5 errors'],
   dots: [
-    'vpx field-vpxChecksum: VPX Checksum is required. Add a valid MD5 value for VPX Checksum.',
-    'dmd field-specialDMDChecksum: DMD Checksum is required. Add a valid MD5 value for DMD Checksum.',
-    'dmd field-specialDMDVersion: DMD Version is required. Add DMD Version before copying or downloading.',
-    'dmd field-specialDMDUrlOverride: DMD URL Override is required. Add DMD URL Override before copying or downloading.',
-    'dmd field-specialDMDArchiveRoot: DMD Archive Root is required. Add DMD Archive Root before copying or downloading.',
-    'dmd field-specialDMDArchiveFormat: DMD Archive Format is required. Add DMD Archive Format before copying or downloading.'
+    'vpx field-vpxChecksum: VPX Checksum required. Add a valid MD5 value for VPX Checksum.',
+    'dmd field-specialDMDChecksum: DMD Checksum required. Add a valid MD5 value for DMD Checksum.',
+    'dmd field-specialDMDVersion: DMD Version required. Add DMD Version before copying or downloading.',
+    'dmd field-specialDMDUrlOverride: DMD URL Override required. Add DMD URL Override before copying or downloading.',
+    'dmd field-specialDMDArchiveRoot: DMD Archive Root required. Add DMD Archive Root before copying or downloading.',
+    'dmd field-specialDMDArchiveFormat: DMD Archive Format required. Add DMD Archive Format before copying or downloading.'
   ],
   download: 'blocked'
 });

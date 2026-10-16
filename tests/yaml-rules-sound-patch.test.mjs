@@ -71,26 +71,26 @@ await scenario('clean VPU Patch', PATCH, {
 // --- Alt Sound -------------------------------------------------------------
 
 await scenario('Alt Sound checksum not an MD5', [...SOUND, ['fill', 'altSoundChecksum', 'NOT-A-HASH']], {
-  rule: 'Alt Sound Checksum is not a valid MD5',
+  rule: 'Alt Sound Checksum MD5 invalid',
   keys: ['altSoundArchiveFormat', 'altSoundChecksum', 'altSoundVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: Alt Sound Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundChecksum: Alt Sound Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'altSound field-altSoundChecksum: Alt Sound Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
 await scenario('Alt Sound archive format empty', [...SOUND, ['fill', 'altSoundArchiveFormat', '']], {
-  rule: 'Alt Sound Archive Format is required',
+  rule: 'Alt Sound Archive Format required',
   keys: ['altSoundChecksum', 'altSoundVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Archive Format is required | Choose ZIP, RAR, or 7Z.'
+    'error: Alt Sound Archive Format required | Choose ZIP, RAR, or 7Z.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundArchiveFormat: Alt Sound Archive Format is required. Choose ZIP, RAR, or 7Z.'
+    'altSound field-altSoundArchiveFormat: Alt Sound Archive Format required. Choose ZIP, RAR, or 7Z.'
   ],
   download: 'blocked'
 });
@@ -109,52 +109,52 @@ await scenario('Alt Sound picked from VPS and given a URL too', [...SOUND,
   download: 'blocked'
 });
 await scenario('Alt Sound URL without a version', soundOverrideWithout('altSoundVersionOverride'), {
-  rule: 'Alt Sound Version Override is required',
+  rule: 'Alt Sound Version Override required',
   keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundAuthorsOverride', 'altSoundChecksum', 'altSoundNotes', 'altSoundUrlOverride', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Version Override is required | Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
+    'error: Alt Sound Version Override required | Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundVersionOverride: Alt Sound Version Override is required. Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
+    'altSound field-altSoundVersionOverride: Alt Sound Version Override required. Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
   ],
   download: 'blocked'
 });
 await scenario('Alt Sound version without a URL', [...SOUND, ['fill', 'altSoundVersionOverride', '1.0']], {
-  rule: 'Alt Sound URL Override is required',
+  rule: 'Alt Sound URL Override required',
   keys: ['altSoundArchiveFormat', 'altSoundChecksum', 'altSoundVersionOverride', 'altSoundVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound URL Override is required | Add Alt Sound URL Override whenever Alt Sound Version Override is used.'
+    'error: Alt Sound URL Override required | Add Alt Sound URL Override whenever Alt Sound Version Override is used.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundUrlOverride: Alt Sound URL Override is required. Add Alt Sound URL Override whenever Alt Sound Version Override is used.'
+    'altSound field-altSoundUrlOverride: Alt Sound URL Override required. Add Alt Sound URL Override whenever Alt Sound Version Override is used.'
   ],
   download: 'blocked'
 });
 await scenario('Alt Sound URL without notes', soundOverrideWithout('altSoundNotes'), {
-  rule: 'Alt Sound Notes are required',
+  rule: 'Alt Sound Notes required',
   keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundAuthorsOverride', 'altSoundChecksum', 'altSoundUrlOverride', 'altSoundVersionOverride', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Notes are required | Add Alt Sound Notes when using Alt Sound URL Override.'
+    'error: Alt Sound Notes required | Add Alt Sound Notes when using Alt Sound URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Alt Sound Notes are required. Add Alt Sound Notes when using Alt Sound URL Override.'
+    'altSound field-altSoundNotes: Alt Sound Notes required. Add Alt Sound Notes when using Alt Sound URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('Alt Sound bundled without notes', [...LOTR,
   ['bundle', 'altSoundFiles', true], ['fill', 'altSoundChecksum', MD5_SOUND], ['fill', 'altSoundArchiveFormat', 'rar'], ['fill', 'altSoundArchiveRoot', 'lotr']
 ], {
-  rule: 'Alt Sound Notes are required',
+  rule: 'Alt Sound Notes required',
   keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundBundled', 'altSoundChecksum', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Notes are required | Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+    'error: Alt Sound Notes required | Add Alt Sound Notes when the Alt Sound ships inside the table download.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Alt Sound Notes are required. Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+    'altSound field-altSoundNotes: Alt Sound Notes required. Add Alt Sound Notes when the Alt Sound ships inside the table download.'
   ],
   download: 'blocked'
 });
@@ -165,52 +165,52 @@ await scenario('Alt Sound bundled with a URL, without notes', [...LOTR,
   ['bundle', 'altSoundFiles', true], ['fill', 'altSoundChecksum', MD5_SOUND], ['fill', 'altSoundArchiveFormat', 'rar'], ['fill', 'altSoundArchiveRoot', 'lotr'],
   ['draft', 'values.altSoundUrlOverride', URL], ['draft', 'values.altSoundVersionOverride', '1.0']
 ], {
-  rule: 'Alt Sound Notes are required',
+  rule: 'Alt Sound Notes required',
   keys: ['altSoundArchiveFormat', 'altSoundArchiveRoot', 'altSoundBundled', 'altSoundChecksum', 'altSoundUrlOverride', 'altSoundVersionOverride', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Notes are required | Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+    'error: Alt Sound Notes required | Add Alt Sound Notes when the Alt Sound ships inside the table download.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Alt Sound Notes are required. Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+    'altSound field-altSoundNotes: Alt Sound Notes required. Add Alt Sound Notes when the Alt Sound ships inside the table download.'
   ],
   download: 'blocked'
 });
 await scenario('Alt Sound bundled without an archive root', [...LOTR,
   ['bundle', 'altSoundFiles', true], ['fill', 'altSoundChecksum', MD5_SOUND], ['fill', 'altSoundArchiveFormat', 'rar'], ['fill', 'altSoundNotes', 'In the table download']
 ], {
-  rule: 'Alt Sound Archive Root is required',
+  rule: 'Alt Sound Archive Root required',
   keys: ['altSoundArchiveFormat', 'altSoundBundled', 'altSoundChecksum', 'altSoundNotes', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Archive Root is required | Choose the Alt Sound root folder from the uploaded Alt Sound archive.'
+    'error: Alt Sound Archive Root required | Choose the Alt Sound root folder from the uploaded Alt Sound archive.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root is required. Choose the Alt Sound root folder from the uploaded Alt Sound archive.'
+    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root required. Choose the Alt Sound root folder from the uploaded Alt Sound archive.'
   ],
   download: 'blocked'
 });
 await scenario('Alt Sound override with nothing filled', [...LOTR, ['override', 'altSoundFiles', true]], {
-  rule: 'Alt Sound Checksum is required',
+  rule: 'Alt Sound Checksum required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Notes is required | Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Archive Root is required | Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Authors Override is required | Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound URL Override is required | Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Version Override is required | Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Checksum is required | Add a valid MD5 value for Alt Sound Checksum.',
-    'error: Alt Sound Archive Format is required | Choose ZIP, RAR, or 7Z.'
+    'error: Alt Sound Notes required | Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Alt Sound Archive Root required | Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Alt Sound Authors Override required | Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Alt Sound URL Override required | Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Alt Sound Version Override required | Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Alt Sound Checksum required | Add a valid MD5 value for Alt Sound Checksum.',
+    'error: Alt Sound Archive Format required | Choose ZIP, RAR, or 7Z.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 7 errors', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundChecksum: Alt Sound Checksum is required. Add a valid MD5 value for Alt Sound Checksum.',
-    'altSound field-altSoundNotes: Alt Sound Notes is required. Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root is required. Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundArchiveFormat: Alt Sound Archive Format is required. Choose ZIP, RAR, or 7Z.',
-    'altSound field-altSoundAuthorsOverride: Alt Sound Authors Override is required. Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundUrlOverride: Alt Sound URL Override is required. Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundVersionOverride: Alt Sound Version Override is required. Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'altSound field-altSoundChecksum: Alt Sound Checksum required. Add a valid MD5 value for Alt Sound Checksum.',
+    'altSound field-altSoundNotes: Alt Sound Notes required. Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root required. Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundArchiveFormat: Alt Sound Archive Format required. Choose ZIP, RAR, or 7Z.',
+    'altSound field-altSoundAuthorsOverride: Alt Sound Authors Override required. Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundUrlOverride: Alt Sound URL Override required. Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundVersionOverride: Alt Sound Version Override required. Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -218,26 +218,26 @@ await scenario('Alt Sound override with nothing filled', [...LOTR, ['override', 
 // --- VPU Patch -------------------------------------------------------------
 
 await scenario('VPU Patch checksum empty', [...TFTC, ['asset', 'vpuPatchFiles', 'TJMo9ycfSP']], {
-  rule: 'VPU Patch Checksum is required',
+  rule: 'VPU Patch Checksum required',
   keys: ['diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: VPU Patch Checksum is required | Add a valid MD5 value for VPU Patch Checksum.'
+    'error: VPU Patch Checksum required | Add a valid MD5 value for VPU Patch Checksum.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffChecksum: VPU Patch Checksum is required. Add a valid MD5 value for VPU Patch Checksum.'
+    'vpuPatch field-diffChecksum: VPU Patch Checksum required. Add a valid MD5 value for VPU Patch Checksum.'
   ],
   download: 'blocked'
 });
 await scenario('VPU Patch checksum not an MD5', [...PATCH, ['fill', 'diffChecksum', 'NOT-A-HASH']], {
-  rule: 'VPU Patch Checksum is not a valid MD5',
+  rule: 'VPU Patch Checksum MD5 invalid',
   keys: ['diffChecksum', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: VPU Patch Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: VPU Patch Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffChecksum: VPU Patch Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'vpuPatch field-diffChecksum: VPU Patch Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -269,38 +269,38 @@ await scenario('VPU Patch checksum list of one (from a draft)', [...PATCH, ['dra
   downloadMatchesPreview: true
 });
 await scenario('Patch URL without notes', [...PATCH, ['fill', 'diffUrlOverride', URL], ['fill', 'diffVersionOverride', '1.0']], {
-  rule: 'Patch Notes are required',
+  rule: 'Patch Notes required',
   keys: ['diffChecksum', 'diffUrlOverride', 'diffVersionOverride', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Patch Notes are required | Add Patch Notes when using Patch URL Override.'
+    'error: Patch Notes required | Add Patch Notes when using Patch URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffNotes: Patch Notes are required. Add Patch Notes when using Patch URL Override.'
+    'vpuPatch field-diffNotes: Patch Notes required. Add Patch Notes when using Patch URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('Patch URL without a version', [...PATCH, ['fill', 'diffUrlOverride', URL], ['fill', 'diffNotes', 'From the URL']], {
-  rule: 'Patch version override is required',
+  rule: 'Patch version override required',
   keys: ['diffChecksum', 'diffNotes', 'diffUrlOverride', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Patch version override is required | Add Patch Version Override when using Patch URL Override.'
+    'error: Patch version override required | Add Patch Version Override when using Patch URL Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffVersionOverride: Patch version override is required. Add Patch Version Override when using Patch URL Override.'
+    'vpuPatch field-diffVersionOverride: Patch version override required. Add Patch Version Override when using Patch URL Override.'
   ],
   download: 'blocked'
 });
 await scenario('Patch version without a URL', [...PATCH, ['fill', 'diffVersionOverride', '1.0']], {
-  rule: 'Patch URL override is required',
+  rule: 'Patch URL override required',
   keys: ['diffChecksum', 'diffVersionOverride', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Patch URL override is required | Add Patch URL Override when using Patch Version Override.'
+    'error: Patch URL override required | Add Patch URL Override when using Patch Version Override.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffUrlOverride: Patch URL override is required. Add Patch URL Override when using Patch Version Override.'
+    'vpuPatch field-diffUrlOverride: Patch URL override required. Add Patch URL Override when using Patch Version Override.'
   ],
   download: 'blocked'
 });
@@ -317,20 +317,20 @@ await scenario('VPU Patch bundled without notes', [...TFTC, ['bundle', 'vpuPatch
   download: 'blocked'
 });
 await scenario('VPU Patch override with nothing filled', [...TFTC, ['override', 'vpuPatchFiles', true], ['fill', 'diffChecksum', MD5_PATCH]], {
-  rule: 'Patch Notes is required',
+  rule: 'Patch Notes required',
   keys: ['diffChecksum', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Patch Notes is required | Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Patch Authors Override is required | Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Patch URL Override is required | Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Patch Version Override is required | Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Patch Notes required | Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Patch Authors Override required | Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Patch URL Override required | Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Patch Version Override required | Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 4 errors', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffNotes: Patch Notes is required. Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'vpuPatch field-diffAuthorsOverride: Patch Authors Override is required. Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'vpuPatch field-diffUrlOverride: Patch URL Override is required. Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'vpuPatch field-diffVersionOverride: Patch Version Override is required. Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'vpuPatch field-diffNotes: Patch Notes required. Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'vpuPatch field-diffAuthorsOverride: Patch Authors Override required. Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'vpuPatch field-diffUrlOverride: Patch URL Override required. Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'vpuPatch field-diffVersionOverride: Patch Version Override required. Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -340,14 +340,14 @@ await scenario('VPU Patch override with nothing filled', [...TFTC, ['override', 
 // carrying a dot (NO_DOT_FIELDS in uiEnhancements.js, and a rule in
 // css.src/v091.css), so this tab said "1 error" with no dot anywhere.
 await scenario('VPU Patch entry broken (from a draft)', [...PATCH, ['draft', 'record.tableFiles.0.broken', true]], {
-  rule: 'VPU Patch entry is broken',
+  rule: 'VPU Patch entry broken',
   keys: ['diffChecksum', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: VPU Patch entry is broken | Choose another database entry before copying or downloading.'
+    'error: VPU Patch entry broken | Choose another database entry before copying or downloading.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffVPSId: VPU Patch entry is broken. Choose another database entry before copying or downloading.'
+    'vpuPatch field-diffVPSId: VPU Patch entry broken. Choose another database entry before copying or downloading.'
   ],
   download: 'blocked'
 });
@@ -371,16 +371,16 @@ if (!PRINT) {
 // lose its dot (the generic fallback only fires on a tab with no dot), so the
 // tab said "2 errors" with one dot, on the checksum.
 await scenario('VPU Patch entry broken, with a bad checksum (from a draft)', [...PATCH, ['fill', 'diffChecksum', 'not-an-md5'], ['draft', 'record.tableFiles.0.broken', true]], {
-  rule: 'VPU Patch entry is broken',
+  rule: 'VPU Patch entry broken',
   keys: ['diffChecksum', 'diffVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: VPU Patch entry is broken | Choose another database entry before copying or downloading.',
-    'error: VPU Patch Checksum is not a valid MD5 | Each checksum must contain exactly 32 hexadecimal characters.'
+    'error: VPU Patch entry broken | Choose another database entry before copying or downloading.',
+    'error: VPU Patch Checksum MD5 invalid | Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 2 errors', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffVPSId: VPU Patch entry is broken. Choose another database entry before copying or downloading.',
-    'vpuPatch field-diffChecksum: VPU Patch Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
+    'vpuPatch field-diffVPSId: VPU Patch entry broken. Choose another database entry before copying or downloading.',
+    'vpuPatch field-diffChecksum: VPU Patch Checksum MD5 invalid. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });

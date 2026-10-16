@@ -60,13 +60,13 @@
 
     const fpsRaw = values.fps;
     if (fpsRaw === '' || fpsRaw === undefined || fpsRaw === null) {
-      addError('main', 'FPS is required', 'Enter the table frame rate as an integer.', 'fps');
+      addError('main', 'FPS required', 'Enter the table frame rate as an integer.', 'fps');
     } else if (!/^\d+$/.test(String(fpsRaw)) || !Number.isInteger(Number(fpsRaw))) {
       addError('main', 'FPS must be an integer', 'Use numbers only for FPS.', 'fps');
     }
 
     if (!normalizeArray(values.testers).length) {
-      addError('main', 'Testers are required', 'Enter at least one tester; separate multiple names with commas.', 'testers');
+      addError('main', 'Testers required', 'Enter at least one tester; separate multiple names with commas.', 'testers');
     }
 
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
@@ -78,9 +78,9 @@
         addWarning(config.stepId, `${config.label} selected and bundled`, 'Choose either a separate VPS entry or bundled status unless both are intentionally required.');
       }
       if (selectedId && !item) {
-        addError(config.stepId, `${config.label} ID is unavailable`, 'Choose an available VPS entry before copying or downloading.', config.idField);
+        addError(config.stepId, `${config.label} ID unavailable`, 'Choose an available VPS entry before copying or downloading.', config.idField);
       } else if (item && isItemBroken(item)) {
-        addError(config.stepId, `${config.label} entry is broken`, 'Choose another database entry before copying or downloading.', config.idField);
+        addError(config.stepId, `${config.label} entry broken`, 'Choose another database entry before copying or downloading.', config.idField);
       }
     });
 
@@ -90,16 +90,16 @@
       const rawValue = options.value !== undefined ? options.value : values[key];
       const hashes = normalizeChecksumValue(rawValue);
       if (options.required && !hashes.length) {
-        addError(stepId, `${label} is required`, `Add a valid MD5 value for ${label}.`, key);
+        addError(stepId, `${label} required`, `Add a valid MD5 value for ${label}.`, key);
         return;
       }
       if (!hashes.length) return;
       if (Array.isArray(rawValue) && hashes.length < 2) {
-        addError(stepId, `${label} list is invalid`, 'Use a plain string for one checksum or a list containing at least two checksums.', key);
+        addError(stepId, `${label} list invalid`, 'Use a plain string for one checksum or a list containing at least two checksums.', key);
       }
       hashes.forEach((hash, index) => {
         if (!isMd5Hash(hash)) {
-          addError(stepId, `${label} is not a valid MD5`, 'Each checksum must contain exactly 32 hexadecimal characters.',
+          addError(stepId, `${label} MD5 invalid`, 'Each checksum must contain exactly 32 hexadecimal characters.',
             options.hashFields?.[index] || key);
         }
       });
@@ -115,7 +115,7 @@
     );
     validateChecksum('backglassChecksum', 'b2s', 'Backglass Checksum', { required: backglassOffered });
     if (hasText(values.backglassUrlOverride) && !hasText(values.backglassNotes)) {
-      addError('b2s', 'Backglass Notes are required', 'Add Backglass Notes when using Backglass URL Override.', 'backglassNotes');
+      addError('b2s', 'Backglass Notes required', 'Add Backglass Notes when using Backglass URL Override.', 'backglassNotes');
     }
     if (values.backglassBundled === true && !hasText(values.backglassNotes)) {
       addError('b2s', 'Bundled Backglass needs notes', 'Describe the bundled Backglass and where it is located.', 'backglassNotes');
@@ -132,7 +132,7 @@
     }
     // A ROM URL without a version is v090's ROM pair rule alone (decision 2).
     if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
-      addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.', 'romNotes');
+      addError('rom', 'ROM Notes required', 'Add ROM Notes when using ROM URL Override.', 'romNotes');
     }
     if (values.romBundled === true && !hasText(values.romNotes)) {
       addError('rom', 'Bundled ROM needs notes', 'Describe the bundled ROM and where it is located.', 'romNotes');
@@ -147,7 +147,7 @@
     const colorSecondary = String(values.coloredROMChecksumSecondary || '').trim();
     // A PAL/VNI pair with one half missing is the PAL/VNI rule's problem
     // alone, so the half that is there is checked as a plain value: as a list
-    // of one it also failed "<label> list is invalid" (decision 2).
+    // of one it also failed "<label> list invalid" (decision 2).
     const pin2dmd = values.coloredROMPin2DMD === true;
     const colorValue = pin2dmd
       ? (colorPrimary && colorSecondary ? [colorPrimary, colorSecondary] : (colorPrimary || colorSecondary))
@@ -167,7 +167,7 @@
         colorSecondary ? 'coloredROMChecksum' : 'coloredROMChecksumSecondary');
     }
     if (hasText(values.coloredROMUrlOverride) && !hasText(values.coloredROMNotes)) {
-      addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.', 'coloredROMNotes');
+      addError('coloredRom', 'Color ROM Notes required', 'Add Color ROM Notes when using Color ROM URL Override.', 'coloredROMNotes');
     }
     if (values.coloredROMBundled === true && !hasText(values.coloredROMNotes)) {
       addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.', 'coloredROMNotes');
@@ -187,7 +187,7 @@
         ['pupArchiveFormat', 'PUP Pack Archive Format']
       ].forEach(([key, label]) => {
         if (!hasText(values[key])) {
-          addError('pup', `${label} is required`, `Add ${label} before copying or downloading.`, key);
+          addError('pup', `${label} required`, `Add ${label} before copying or downloading.`, key);
         }
       });
     }
@@ -196,14 +196,14 @@
     const dmdOverride = values.specialDMDOverride === true;
     if (dmdBundled || dmdOverride) {
       if (!hasText(values.specialDMDType)) {
-        addGate('dmd', 'DMD Type is required', 'Add DMD Type before copying or downloading.', 'specialDMDType');
+        addGate('dmd', 'DMD Type required', 'Add DMD Type before copying or downloading.', 'specialDMDType');
       }
       [
         ['specialDMDArchiveRoot', 'DMD Archive Root'],
         ['specialDMDArchiveFormat', 'DMD Archive Format']
       ].forEach(([key, label]) => {
         if (!hasText(values[key])) {
-          addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`, key);
+          addError('dmd', `${label} required`, `Add ${label} before copying or downloading.`, key);
         }
       });
       if (dmdBundled && normalizeChecksumValue(values.vpxChecksum).length < 2) {
@@ -217,7 +217,7 @@
           ['specialDMDVersion', 'DMD Version']
         ].forEach(([key, label]) => {
           if (!hasText(values[key])) {
-            addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`, key);
+            addError('dmd', `${label} required`, `Add ${label} before copying or downloading.`, key);
           }
         });
       }
@@ -225,7 +225,7 @@
 
     validateChecksum('diffChecksum', 'vpuPatch', 'VPU Patch Checksum');
     if (hasText(values.diffUrlOverride) && !hasText(values.diffNotes)) {
-      addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.', 'diffNotes');
+      addError('vpuPatch', 'Patch Notes required', 'Add Patch Notes when using Patch URL Override.', 'diffNotes');
     }
     if (values.diffBundled === true && !hasText(values.diffNotes)) {
       addError('vpuPatch', 'Bundled VPU Patch needs notes', 'Describe the bundled VPU Patch and where it is located.', 'diffNotes');
@@ -236,7 +236,7 @@
       (step.overrideRequiredFields || []).forEach(key => {
         if (hasText(values[key])) return;
         const label = step.fields.find(field => field.yml_field === key)?.name || key;
-        addError(step.id, `${label} is required`, `Add ${label} — Override requires every Advanced Config field since there is no VPS entry to pull it from.`);
+        addError(step.id, `${label} required`, `Add ${label} — Override requires every Advanced Config field since there is no VPS entry to pull it from.`);
         Object.assign(output[output.length - 1], { fieldName: key, generic: true });
       });
     });
@@ -271,12 +271,12 @@
     if (altSoundEnabled) {
       const checksums = normalizeArray(values?.altSoundChecksum);
       if (!checksums.length) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is required', 'Add a valid MD5 value for Alt Sound Checksum.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum required', 'Add a valid MD5 value for Alt Sound Checksum.');
       } else if (checksums.some(checksum => !isMd5Hash(checksum))) {
-        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum is not a valid MD5', 'Each checksum must contain exactly 32 hexadecimal characters.');
+        add('altSound', 'altSoundChecksum', 'Alt Sound Checksum MD5 invalid', 'Each checksum must contain exactly 32 hexadecimal characters.');
       }
       if (!String(values?.altSoundArchiveFormat || '').trim()) {
-        add('altSound', 'altSoundArchiveFormat', 'Alt Sound Archive Format is required', 'Choose ZIP, RAR, or 7Z.');
+        add('altSound', 'altSoundArchiveFormat', 'Alt Sound Archive Format required', 'Choose ZIP, RAR, or 7Z.');
       }
     }
 
@@ -284,25 +284,25 @@
       add('altSound', 'altSoundUrlOverride', 'Choose one Alt Sound source', 'Use either Alt Sound VPS ID or Alt Sound URL Override, not both.');
     }
     if (altSoundUrl && !altSoundVersion) {
-      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override is required', 'Add Alt Sound Version Override whenever Alt Sound URL Override is used.');
+      add('altSound', 'altSoundVersionOverride', 'Alt Sound Version Override required', 'Add Alt Sound Version Override whenever Alt Sound URL Override is used.');
     }
     if (altSoundVersion && !altSoundUrl) {
-      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override is required', 'Add Alt Sound URL Override whenever Alt Sound Version Override is used.');
+      add('altSound', 'altSoundUrlOverride', 'Alt Sound URL Override required', 'Add Alt Sound URL Override whenever Alt Sound Version Override is used.');
     }
     // One missing field, one issue: bundled and a URL together still ask for
     // the notes once (Phase 2 decision 3, 2026-10-11).
     if (altSoundBundled && !String(values?.altSoundNotes || '').trim()) {
-      add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
+      add('altSound', 'altSoundNotes', 'Alt Sound Notes required', 'Add Alt Sound Notes when the Alt Sound ships inside the table download.');
     } else if (altSoundUrl && !String(values?.altSoundNotes || '').trim()) {
-      add('altSound', 'altSoundNotes', 'Alt Sound Notes are required', 'Add Alt Sound Notes when using Alt Sound URL Override.');
+      add('altSound', 'altSoundNotes', 'Alt Sound Notes required', 'Add Alt Sound Notes when using Alt Sound URL Override.');
     }
     if (altSoundBundled && !String(values?.altSoundArchiveRoot || '').trim()) {
-      add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root is required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
+      add('altSound', 'altSoundArchiveRoot', 'Alt Sound Archive Root required', 'Choose the Alt Sound root folder from the uploaded Alt Sound archive.');
     }
 
     const tutorialId = String(values?.tutorialVPSId || '').trim();
     if (tutorialId && !record?.tutorialFiles?.some(item => String(item?.id || '') === tutorialId)) {
-      add('main', 'tutorialVPSId', 'Tutorial VPS ID is unavailable', 'Choose an available tutorial for this table.');
+      add('main', 'tutorialVPSId', 'Tutorial VPS ID unavailable', 'Choose an available tutorial for this table.');
     }
 
     window.VPS_ADDITIONAL_ROMS?.entries?.().forEach((entry, index) => {
@@ -330,8 +330,8 @@
       if (!stepEnabled(stepId)) return;
       const hasUrl = hasText(readValue(urlField));
       const hasVersion = hasText(readValue(versionField));
-      if (hasUrl && !hasVersion) add(stepId, versionField, `${label} version override is required`, `Add ${label} Version Override when using ${label} URL Override.`);
-      if (hasVersion && !hasUrl && !urlOptional) add(stepId, urlField, `${label} URL override is required`, `Add ${label} URL Override when using ${label} Version Override.`);
+      if (hasUrl && !hasVersion) add(stepId, versionField, `${label} version override required`, `Add ${label} Version Override when using ${label} URL Override.`);
+      if (hasVersion && !hasUrl && !urlOptional) add(stepId, urlField, `${label} URL override required`, `Add ${label} URL Override when using ${label} Version Override.`);
     };
 
     // A bundled ROM ships inside the table's own download, so there is no URL
@@ -343,15 +343,15 @@
 
     if (stepEnabled('b2s') && hasText(readValue('backglassUrlOverride'))) {
       if (!hasText(readValue('backglassAuthorsOverride'))) {
-        add('b2s', 'backglassAuthorsOverride', 'Backglass authors override is required', 'Add at least one Backglass Authors Override when using Backglass URL Override.');
+        add('b2s', 'backglassAuthorsOverride', 'Backglass authors override required', 'Add at least one Backglass Authors Override when using Backglass URL Override.');
       }
       if (!hasText(readValue('backglassImageOverride'))) {
-        add('b2s', 'backglassImageOverride', 'Backglass image override is required', 'Add Backglass Image Override when using Backglass URL Override.');
+        add('b2s', 'backglassImageOverride', 'Backglass image override required', 'Add Backglass Image Override when using Backglass URL Override.');
       }
     }
 
     if (stepEnabled('vpuPatch') && !hasText(readValue('diffChecksum'))) {
-      add('vpuPatch', 'diffChecksum', 'VPU Patch Checksum is required', 'Add a valid MD5 value for VPU Patch Checksum.');
+      add('vpuPatch', 'diffChecksum', 'VPU Patch Checksum required', 'Add a valid MD5 value for VPU Patch Checksum.');
     }
     return output;
   }
