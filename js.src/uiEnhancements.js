@@ -45,9 +45,42 @@
   //   v090    - .field-error-dot.v090-error-dot, one per issue
   //   feature - .feature-error-dot, one per field, messages joined by a space
   //             and written into the control's aria-label too
-  // Drawn in that order, which is the order the old frames left them in.
+  // Drawn in that order, which is the order the old frames left them in. All
+  // three show the same tooltip, one line per problem with its headline in
+  // bold (decision 5, piece 2); data-tooltip keeps the joined plain text.
 
   const dotText = issue => [issue.title, issue.message].filter(Boolean).join('. ');
+  // A dot's entries are its issues' { title, message }; a plain string is a
+  // line with no headline.
+  const entryText = entry => (typeof entry === 'string' ? entry : dotText(entry));
+
+  // The tooltip a dot shows: one line per problem, its headline in bold
+  // (decision 5, piece 2). It is a real element because a pseudo-element's
+  // text cannot be partly bold; data-tooltip keeps the plain text, which the
+  // scenario tests read, and its pseudo tooltip steps aside for this one.
+  function setDotTip(dot, entries) {
+    const tip = document.createElement('span');
+    tip.className = 'error-dot-tip';
+    tip.setAttribute('aria-hidden', 'true');
+    entries.forEach(entry => {
+      const line = document.createElement('span');
+      line.className = 'error-dot-tip-line';
+      const { title, message } = typeof entry === 'string' ? { message: entry } : entry;
+      if (title) {
+        const headline = document.createElement('strong');
+        headline.textContent = message ? `${title}.` : title;
+        line.appendChild(headline);
+      }
+      if (message) {
+        const text = document.createElement('span');
+        text.textContent = title ? ` ${message}` : message;
+        line.appendChild(text);
+      }
+      tip.appendChild(line);
+    });
+    dot.querySelector(':scope > .error-dot-tip')?.remove();
+    dot.appendChild(tip);
+  }
 
   function clearFieldErrors(container) {
     container?.querySelectorAll('.field.has-field-error').forEach(field => {
@@ -62,18 +95,20 @@
     return control?.closest('.field') || null;
   }
 
-  function addFieldErrorDot(container, fieldName, messages, { v090 = false } = {}) {
+  function addFieldErrorDot(container, fieldName, entries, { v090 = false } = {}) {
     const wrapper = findFieldWrapper(container, fieldName);
-    if (!wrapper || !messages?.length) return false;
+    if (!wrapper || !entries?.length) return false;
 
     wrapper.classList.add('has-field-error');
 
+    const messages = entries.map(entryText);
     const dot = document.createElement('span');
     dot.className = v090 ? 'field-error-dot v090-error-dot' : 'field-error-dot';
     dot.setAttribute('role', 'img');
     dot.setAttribute('aria-label', messages.join(' '));
     dot.dataset.tooltip = messages.join('\n');
     dot.tabIndex = 0;
+    setDotTip(dot, entries);
     // Ahead of a feature dot, which is kept between passes while these are
     // redrawn, so a field carrying both always lists them in the same order.
     wrapper.insertBefore(dot, wrapper.querySelector(':scope > .feature-error-dot'));
@@ -123,7 +158,7 @@
   // dot sits on the Additional ROM indicator inside it (the + button when there
   // is no indicator). Until 2026-10-11 it was a pseudo-element on the row: it
   // sat on the row's corner and popped its tooltip from anywhere on the row.
-  function presentErrorDot(wrapper, messages) {
+  function presentErrorDot(wrapper, entries) {
     const host = wrapper.matches('.additional-rom-controls')
       ? wrapper.querySelector('.additional-rom-indicator') || wrapper.querySelector('.additional-rom-add')
       : wrapper;
@@ -136,17 +171,22 @@
       host.appendChild(dot);
     }
     // Updated in place, and swept in decorateCurrentFields only once the error
-    // clears, so a field with a standing error causes no DOM mutation between passes.
-    const tooltip = messages.join(' ');
-    if (dot.dataset.tooltip !== tooltip) dot.dataset.tooltip = tooltip;
+    // clears, so a field with a standing error causes no DOM mutation between
+    // passes; its tooltip element is rebuilt only when the text changes.
+    const tooltip = entries.map(entryText).join(' ');
+    if (dot.dataset.tooltip !== tooltip || !dot.querySelector(':scope > .error-dot-tip')) {
+      dot.dataset.tooltip = tooltip;
+      setDotTip(dot, entries);
+    }
     if (dot.getAttribute('aria-label') !== tooltip) dot.setAttribute('aria-label', tooltip);
     return dot;
   }
 
-  function presentFeatureField(wrapper, messages) {
-    if (!wrapper || !messages.length) return;
+  function presentFeatureField(wrapper, entries) {
+    if (!wrapper || !entries.length) return;
     wrapper.classList.add('has-field-error', 'feature-has-field-error');
-    const dot = presentErrorDot(wrapper, messages);
+    const messages = entries.map(entryText);
+    const dot = presentErrorDot(wrapper, entries);
 
     // The Additional ROM dot sits inside a button, whose children a screen
     // reader does not announce, and the indicator rewrites its own label on
@@ -170,15 +210,16 @@
     control.setAttribute('aria-invalid', 'true');
   }
 
-  // Dot texts per field, in the order the rulebook lists them, each once.
+  // Dot entries per field, in the order the rulebook lists them, each once.
   function groupMessages(issues, keyOf) {
     const grouped = new Map();
     issues.forEach(issue => {
       const key = keyOf(issue);
-      const text = dotText(issue);
-      const messages = grouped.get(key) || [];
-      if (!messages.includes(text)) messages.push(text);
-      grouped.set(key, messages);
+      const entries = grouped.get(key) || [];
+      if (!entries.some(entry => dotText(entry) === dotText(issue))) {
+        entries.push({ title: issue.title, message: issue.message });
+      }
+      grouped.set(key, entries);
     });
     return grouped;
   }
@@ -214,7 +255,7 @@
         if (fieldName) addFieldErrorDot(container, fieldName, messages);
       });
 
-      onStep('v090').forEach(issue => addFieldErrorDot(container, drawnOn(issue.fieldName), [dotText(issue)], { v090: true }));
+      onStep('v090').forEach(issue => addFieldErrorDot(container, drawnOn(issue.fieldName), [issue], { v090: true }));
     }
 
     const feature = issues.filter(issue => issue.system === 'feature');

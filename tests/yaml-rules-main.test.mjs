@@ -519,5 +519,39 @@ if (!PRINT) {
     dots.join('\n') === 'field-tableVPSId: Ghost field required. This field is not on the page.', dots.join('\n'));
 }
 
+// The dot's tooltip in the real page (decision 5, piece 2): a real element
+// with the headline in bold, the old plain pseudo tooltip gone, hidden until
+// the dot is hovered or focused.
+if (!PRINT) {
+  await play([...TABLE, ['fill', 'testers', 'Tester'], ['fill', 'vpxChecksum', MD5_VPX]]);
+  const tip = await app.run(async () => {
+    const settle = () => new Promise(resolve => {
+      const frames = n => n ? requestAnimationFrame(() => frames(n - 1)) : setTimeout(resolve, 0);
+      frames(3);
+    });
+    document.getElementById('config-tab-main').click();
+    await settle();
+    const dot = document.getElementById('field-fps')?.closest('.field')?.querySelector(':scope > .field-error-dot');
+    const box = dot?.querySelector(':scope > .error-dot-tip');
+    const strong = box?.querySelector('strong');
+    const result = {
+      headline: strong?.textContent || '',
+      weight: strong ? getComputedStyle(strong).fontWeight : '',
+      text: box?.textContent || '',
+      pseudo: dot ? getComputedStyle(dot, '::before').content : '',
+      hidden: box ? getComputedStyle(box).display : ''
+    };
+    dot?.focus();
+    result.focused = box ? getComputedStyle(box).display : '';
+    return result;
+  });
+  check('the FPS dot\'s headline is bold', tip.headline === 'FPS required.' && Number(tip.weight) >= 700, JSON.stringify(tip));
+  check('the FPS dot\'s tooltip reads headline then instruction',
+    tip.text === 'FPS required. Enter the table frame rate as an integer.', tip.text);
+  check('the plain pseudo tooltip steps aside', tip.pseudo === 'none', tip.pseudo);
+  check('the tooltip is hidden until the dot is hovered or focused', tip.hidden === 'none' && tip.focused === 'block',
+    JSON.stringify(tip));
+}
+
 await app.close();
 report('yaml-rules-main');

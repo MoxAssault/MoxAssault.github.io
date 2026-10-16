@@ -75,7 +75,12 @@ const documentStub = {
 
 // ── slice the real functions ───────────────────────────────────────────────
 const source = fs.readFileSync(DOTS, 'utf8');
-const start = source.indexOf('  function presentErrorDot(wrapper, messages) {');
+// dotText, entryText and setDotTip, which every dot's tooltip is built with.
+const helperStart = source.indexOf('  const dotText = ');
+const helperEnd = source.indexOf('  function clearFieldErrors(container) {');
+if (helperStart < 0 || helperEnd < 0) throw new Error('dot tooltip helpers not found');
+const helpers = source.slice(helperStart, helperEnd);
+const start = source.indexOf('  function presentErrorDot(wrapper, entries) {');
 if (start < 0) throw new Error('presentErrorDot not found');
 const end = source.indexOf('\n  }', start) + 4;
 const presentBlock = source.slice(start, end);
@@ -85,14 +90,14 @@ if (sweepStart < 0) throw new Error('sweep not found');
 const sweepBlock = source.slice(sweepStart, source.indexOf('\n    });', sweepStart) + 8);
 
 const api = new Function('document',
-  presentBlock + '\n function sweep() {\n' + sweepBlock + '\n }\n return { presentErrorDot, sweep };')(documentStub);
+  helpers + presentBlock + '\n function sweep() {\n' + sweepBlock + '\n }\n return { presentErrorDot, sweep };')(documentStub);
 
 // restoreControlLabel through presentFeatureField, for the screen-reader half.
 const fieldStart = source.indexOf('  function restoreControlLabel(control) {');
-const fieldEnd = source.indexOf('  // Dot texts per field');
+const fieldEnd = source.indexOf('  // Dot entries per field');
 if (fieldStart < 0 || fieldEnd < 0) throw new Error('presentFeatureField block not found');
 const fieldApi = new Function('document',
-  source.slice(fieldStart, fieldEnd) + '\n return { presentFeatureField, clearFeaturePresentation };')(documentStub);
+  helpers + source.slice(fieldStart, fieldEnd) + '\n return { presentFeatureField, clearFeaturePresentation };')(documentStub);
 
 
 const field = (...classes) => { const n = new El('div'); n.className = ['field', ...classes].join(' '); return n; };
@@ -208,6 +213,48 @@ const findDot = w => w.children.find(c => c.className.split(' ').includes('featu
   api.sweep();
   check('dot removed once the error clears', findDot(nowFixed) === null);
   check('dot kept while the error stands', findDot(stillBad) !== null);
+}
+
+// 7 ── the tooltip is a real element, one line per problem, headline in bold
+//      (decision 5, piece 2); data-tooltip keeps the plain text
+{
+  const tipOf = dot => dot?.children.find(c => c.className === 'error-dot-tip') || null;
+  const lineText = line => line.children.map(c => c.textContent).join('');
+  const w = field('feature-has-field-error');
+  api.presentErrorDot(w, [
+    { title: 'Alt Sound Checksum required', message: 'Add a valid MD5 value for Alt Sound Checksum.' },
+    { title: 'Alt Sound Notes required', message: 'Add Alt Sound Notes when using Alt Sound URL Override.' }
+  ]);
+  const dot = findDot(w);
+  const tip = tipOf(dot);
+  check('the dot carries a tooltip element', !!tip);
+  check('the tooltip element is hidden from screen readers', tip?.getAttribute('aria-hidden') === 'true');
+  check('one line per problem', tip?.children.length === 2 && tip.children.every(c => c.className === 'error-dot-tip-line'));
+  const [first, second] = tip?.children || [];
+  check('each headline is bold',
+    first?.children[0]?.tagName === 'STRONG' && first.children[0].textContent === 'Alt Sound Checksum required.'
+      && second?.children[0]?.tagName === 'STRONG' && second.children[0].textContent === 'Alt Sound Notes required.');
+  check('each line reads headline then instruction',
+    lineText(first) === 'Alt Sound Checksum required. Add a valid MD5 value for Alt Sound Checksum.'
+      && lineText(second) === 'Alt Sound Notes required. Add Alt Sound Notes when using Alt Sound URL Override.');
+  check('data-tooltip keeps the plain text', dot?.dataset.tooltip
+    === 'Alt Sound Checksum required. Add a valid MD5 value for Alt Sound Checksum. Alt Sound Notes required. Add Alt Sound Notes when using Alt Sound URL Override.');
+
+  const same = [{ title: 'Alt Sound Checksum required', message: 'Add a valid MD5 value for Alt Sound Checksum.' }];
+  api.presentErrorDot(w, same);
+  const rebuilt = tipOf(dot);
+  check('a changed message rebuilds the tooltip', rebuilt !== tip && rebuilt?.children.length === 1);
+  const settled = dot.mutations;
+  api.presentErrorDot(w, same);
+  api.presentErrorDot(w, same);
+  check('an unchanged message leaves the tooltip alone', tipOf(dot) === rebuilt && dot.mutations === settled,
+    'mutations=' + dot.mutations + ' settled=' + settled);
+
+  const plain = field('feature-has-field-error');
+  api.presentErrorDot(plain, ['No headline here.']);
+  const plainLine = tipOf(findDot(plain))?.children[0];
+  check('a plain message has no bold part',
+    plainLine?.children.length === 1 && plainLine.children[0].tagName === 'SPAN' && plainLine.children[0].textContent === 'No headline here.');
 }
 
 // ── the CSS half: the new class must share every legacy rule ───────────────

@@ -98,6 +98,7 @@
 }
 .field-error-dot[data-tooltip]::before,
 .feature-error-dot[data-tooltip]::before,
+.error-dot-tip,
 .control-tooltip {
   z-index: 500;
 }
