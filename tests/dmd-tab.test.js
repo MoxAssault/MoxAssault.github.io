@@ -10,9 +10,8 @@
 //     are locked out when Bundled is ticked
 //   - a value typed before the shape was switched is dropped from the YML
 //     rather than leaking, so disabling in the UI is not the only guard
-//   - the rulebook's build and field sections name the same keys. They are
-//     still separate copies of two old validators (see VPXS Layered
-//     Validation), so nothing but a test stops them drifting apart.
+//   - the rulebook's build section names every DMD key and files each
+//     error against its own field, which is where its dot is drawn.
 
 const fs = require('fs');
 const { check, report, repoPath } = require('./harness');
@@ -22,9 +21,9 @@ const UI_HELPER = repoPath('js.src', 'uiHelper.js');
 const YAML = repoPath('js.src', 'yamlFeatureSupport.js');
 const MAIN = repoPath('js.src', 'main.js');
 const RULES = repoPath('js.src', 'validationRules.js');
-// The rulebook's build and field sections, each sliced on its own so a key in
-// one cannot satisfy a check meant for the other. Until 2026-10-06 these were
-// validateBuild in main.js and getFieldErrors in uiEnhancements.js.
+// The rulebook's build section, sliced on its own. Until 2026-10-15 a field
+// section (getFieldErrors' copy) drew the dots and was guarded here for drift
+// against it; each build rule now names its field and draws its own dot.
 function ruleSection(name, next) {
   const source = fs.readFileSync(RULES, 'utf8');
   const start = source.indexOf('  function ' + name + '(');
@@ -218,22 +217,22 @@ const applyBundledShape = new Function('data', dropBlock + '\n return data;');
     Boolean(declared) && declared[0].includes('specialDMDChecksum'));
 }
 
-// ── drift guard across the rulebook's two DMD sections ─────────────────────
-// 11 ── both must know the same keys, or the dots and the blocking errors
-//       disagree and the user gets a tab that will not clear.
+// ── the rulebook's DMD rules ───────────────────────────────────────────────
+// 11 ── every DMD key is checked, and each error names its own field, or its
+//       dot lands on the tab's first field instead of the one to fix.
 {
-  const buildRules = ruleSection('buildIssues', 'fieldIssues');
-  const fieldRules = ruleSection('fieldIssues', 'featureIssues');
+  const buildRules = ruleSection('buildIssues', 'featureIssues');
 
   [...BOTH_SHAPES, 'specialDMDChecksum', 'specialDMDUrlOverride', 'specialDMDVersion'].forEach(key => {
     check(`the build rules know ${key}`, buildRules.includes(key));
-    check(`the field rules know ${key}`, fieldRules.includes(key));
   });
 
-  check('both sections gate the standalone rules on specialDMDBundled',
-    buildRules.includes('specialDMDBundled') && fieldRules.includes('specialDMDBundled'));
-  check('the field rules have a dmd case',
-    /case 'dmd'/.test(fieldRules));
+  check('the standalone rules are gated on specialDMDBundled',
+    buildRules.includes('specialDMDBundled'));
+  check('the DMD Type gate files against specialDMDType',
+    buildRules.includes("'Add DMD Type before copying or downloading.', 'specialDMDType')"));
+  check('the DMD required-field loops file each error against its key',
+    (buildRules.match(/addError\('dmd', `\$\{label\} is required`, `Add \$\{label\} before copying or downloading\.`, key\)/g) || []).length === 2);
 }
 
 // ── one directory list per tab ─────────────────────────────────────────────

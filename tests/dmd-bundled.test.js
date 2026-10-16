@@ -26,9 +26,9 @@ const YAML = repoPath('js.src', 'yamlFeatureSupport.js');
 const UI_HELPER = repoPath('js.src', 'uiHelper.js');
 const MAIN = repoPath('js.src', 'main.js');
 const RULES = repoPath('js.src', 'validationRules.js');
-// The rulebook's build and field sections, each sliced on its own so a key in
-// one cannot satisfy a check meant for the other. Until 2026-10-06 these were
-// validateBuild in main.js and getFieldErrors in uiEnhancements.js.
+// The rulebook's build section, sliced on its own. Until 2026-10-15 a field
+// section (getFieldErrors' copy) drew the dots and was guarded here for drift
+// against it; each build rule now names its field and draws its own dot.
 function ruleSection(name, next) {
   const source = fs.readFileSync(RULES, 'utf8');
   const start = source.indexOf('  function ' + name + '(');
@@ -150,17 +150,14 @@ const applyBundledShape = new Function('data', block + '\n return data;');
 
 // 6 ── both rule sections demand the pair
 {
-  const buildRules = ruleSection('buildIssues', 'fieldIssues');
-  const fieldRules = ruleSection('fieldIssues', 'featureIssues');
+  const buildRules = ruleSection('buildIssues', 'featureIssues');
   check('the build rules check vpxChecksum length when bundled',
     buildRules.includes('normalizeChecksumValue(values.vpxChecksum).length < 2'),
     'the blocking rules must refuse a single checksum in the bundled shape');
   check('the build rules file that error against the vpx tab',
     /addError\('vpx', 'Bundled DMD needs both checksums'/.test(buildRules));
-  check('the field rules know the same rule',
-    fieldRules.includes('specialDMDBundled') && fieldRules.includes('bundledPair'));
-  check('the field rules file it against vpxChecksum',
-    /add\('vpxChecksum'/.test(fieldRules));
+  check('the build rule draws its dot on vpxChecksum',
+    buildRules.includes("alongside the .vpx MD5.', 'vpxChecksum')"));
 }
 
 // 7 ── the drop handler is wired, as a drift net only

@@ -89,7 +89,7 @@ const api = new Function('document',
 
 // restoreControlLabel through presentFeatureField, for the screen-reader half.
 const fieldStart = source.indexOf('  function restoreControlLabel(control) {');
-const fieldEnd = source.indexOf('  // Messages per field');
+const fieldEnd = source.indexOf('  // Dot texts per field');
 if (fieldStart < 0 || fieldEnd < 0) throw new Error('presentFeatureField block not found');
 const fieldApi = new Function('document',
   source.slice(fieldStart, fieldEnd) + '\n return { presentFeatureField, clearFeaturePresentation };')(documentStub);

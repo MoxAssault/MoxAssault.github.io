@@ -13,15 +13,24 @@
   // because the screens present each system the way its validator used to.
   // Phase 2 resolves the duplicates and wording differences between systems,
   // one decision at a time; the pinned scenarios in tests/yaml-*.test.mjs
-  // show exactly what every rule produces until then.
+  // show exactly what every rule produces.
+  //
+  // One rule, one wording (Phase 2 decision 5, Jason, 2026-10-15): every
+  // error names the field it belongs to and draws that field's dot itself,
+  // in the dialog's own words. The dots used to come from a fifth section,
+  // getFieldErrors' copy, whose twin rules said the same things differently;
+  // it is gone.
   //
   // An issue is { system, type, stepId, fieldName, title, message }, plus
-  // generic: true (with its fieldName) on Override's every-field rule, and
-  // gate: true on the two rules that report a disabled tab's missing choice:
-  //   build    - the Validate dialog, tab counts, blocks Copy/Download
-  //   field    - field dots on the open tab; no title
-  //   feature  - Alt Sound, the tutorial, Additional ROMs: dialog, counts, dots, blocks
-  //   v090     - URL/version pairs, Backglass overrides, VPU Patch checksum: the same
+  // generic: true on Override's every-field rule, and gate: true on the two
+  // rules that report a disabled tab's missing choice. Every system now gives
+  // a dialog line, a tab count, a dot and blocking; they differ in how the
+  // screens present them:
+  //   build    - main.js's own dialog lines, listed first
+  //   feature  - Alt Sound, the tutorial, Additional ROMs
+  //   v090     - URL/version pairs, Backglass overrides, VPU Patch checksum
+  // An error with no fieldName (the long YAML line) is drawn on its tab's
+  // first read-only field.
   //
   // ctx is { record, selections, values, yaml, isStepEnabled }, read from
   // main.js's state.
@@ -33,30 +42,31 @@
     const { isItemBroken, getCategoryItems, normalizeArray, isMd5Hash, normalizeChecksumValue } = utils;
     const { record, selections, values, yaml, isStepEnabled } = ctx;
     const output = [];
-    const push = (type, stepId, title, message) => output.push({ system: 'build', type, stepId, fieldName: '', title, message });
-    const addError = (stepId, title, message) => push('error', stepId, title, message);
+    // fieldName is where the error's dot is drawn (decision 5).
+    const push = (type, stepId, title, message, fieldName = '') => output.push({ system: 'build', type, stepId, fieldName, title, message });
+    const addError = (stepId, title, message, fieldName) => push('error', stepId, title, message, fieldName);
     const addWarning = (stepId, title, message) => push('warning', stepId, title, message);
     // The missing choice that keeps a tab closed: reported even while that
     // tab is disabled (see collectAllErrors).
-    const addGate = (stepId, title, message) => { addError(stepId, title, message); output[output.length - 1].gate = true; };
+    const addGate = (stepId, title, message, fieldName) => { addError(stepId, title, message, fieldName); output[output.length - 1].gate = true; };
     const hasText = hasValue;
 
     // With no table, the missing ID is the same fact (Phase 2 decision 2).
-    if (!record) addError('main', 'No table selected', 'Search for and load a VPS table first.');
-    else if (!values.tableVPSId) addError('main', 'Missing table VPS ID', 'The selected table does not have a usable VPS ID.');
+    if (!record) addError('main', 'No table selected', 'Search for and load a VPS table first.', 'tableVPSId');
+    else if (!values.tableVPSId) addError('main', 'Missing table VPS ID', 'The selected table does not have a usable VPS ID.', 'tableVPSId');
     if (!selections.tableFiles || !values.vpxVPSId) {
-      addGate('vpx', 'VPX file required', 'Select a VPX file before copying or downloading the configuration.');
+      addGate('vpx', 'VPX file required', 'Select a VPX file before copying or downloading the configuration.', 'vpxVPSId');
     }
 
     const fpsRaw = values.fps;
     if (fpsRaw === '' || fpsRaw === undefined || fpsRaw === null) {
-      addError('main', 'FPS is required', 'Enter the table frame rate as an integer.');
+      addError('main', 'FPS is required', 'Enter the table frame rate as an integer.', 'fps');
     } else if (!/^\d+$/.test(String(fpsRaw)) || !Number.isInteger(Number(fpsRaw))) {
-      addError('main', 'FPS must be an integer', 'Use numbers only for FPS.');
+      addError('main', 'FPS must be an integer', 'Use numbers only for FPS.', 'fps');
     }
 
     if (!normalizeArray(values.testers).length) {
-      addError('main', 'Testers are required', 'Enter at least one tester; separate multiple names with commas.');
+      addError('main', 'Testers are required', 'Enter at least one tester; separate multiple names with commas.', 'testers');
     }
 
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
@@ -68,60 +78,69 @@
         addWarning(config.stepId, `${config.label} selected and bundled`, 'Choose either a separate VPS entry or bundled status unless both are intentionally required.');
       }
       if (selectedId && !item) {
-        addError(config.stepId, `${config.label} ID is unavailable`, 'Choose an available VPS entry before copying or downloading.');
+        addError(config.stepId, `${config.label} ID is unavailable`, 'Choose an available VPS entry before copying or downloading.', config.idField);
       } else if (item && isItemBroken(item)) {
-        addError(config.stepId, `${config.label} entry is broken`, 'Choose another database entry before copying or downloading.');
+        addError(config.stepId, `${config.label} entry is broken`, 'Choose another database entry before copying or downloading.', config.idField);
       }
     });
 
+    // options.hashFields names the field each hash came from, for a value
+    // assembled from two fields (PAL/VNI); otherwise every error is on key.
     const validateChecksum = (key, stepId, label, options = {}) => {
       const rawValue = options.value !== undefined ? options.value : values[key];
       const hashes = normalizeChecksumValue(rawValue);
       if (options.required && !hashes.length) {
-        addError(stepId, `${label} is required`, `Add a valid MD5 value for ${label}.`);
+        addError(stepId, `${label} is required`, `Add a valid MD5 value for ${label}.`, key);
         return;
       }
       if (!hashes.length) return;
       if (Array.isArray(rawValue) && hashes.length < 2) {
-        addError(stepId, `${label} list is invalid`, 'Use a plain string for one checksum or a list containing at least two checksums.');
+        addError(stepId, `${label} list is invalid`, 'Use a plain string for one checksum or a list containing at least two checksums.', key);
       }
-      hashes.forEach(hash => {
+      hashes.forEach((hash, index) => {
         if (!isMd5Hash(hash)) {
-          addError(stepId, `${label} is not a valid MD5`, 'Each checksum must contain exactly 32 hexadecimal characters.');
+          addError(stepId, `${label} is not a valid MD5`, 'Each checksum must contain exactly 32 hexadecimal characters.',
+            options.hashFields?.[index] || key);
         }
       });
     };
 
     validateChecksum('vpxChecksum', 'vpx', 'VPX Checksum', { required: true });
 
+    // Override counts as offered: its tab is open and the checksum dot used to
+    // ask for it there with no dialog line or count (decision 5).
     const backglassOffered = Boolean(
       selections.b2sFiles || hasText(values.backglassUrlOverride) || values.backglassBundled === true
+      || values.backglassOverride === true
     );
     validateChecksum('backglassChecksum', 'b2s', 'Backglass Checksum', { required: backglassOffered });
     if (hasText(values.backglassUrlOverride) && !hasText(values.backglassNotes)) {
-      addError('b2s', 'Backglass Notes are required', 'Add Backglass Notes when using Backglass URL Override.');
+      addError('b2s', 'Backglass Notes are required', 'Add Backglass Notes when using Backglass URL Override.', 'backglassNotes');
     }
     if (values.backglassBundled === true && !hasText(values.backglassNotes)) {
-      addError('b2s', 'Bundled Backglass needs notes', 'Describe the bundled Backglass and where it is located.');
+      addError('b2s', 'Bundled Backglass needs notes', 'Describe the bundled Backglass and where it is located.', 'backglassNotes');
     }
 
     const romOffered = Boolean(
       selections.romFiles || hasText(values.romUrlOverride) || values.romBundled === true
+      || values.romOverride === true
     );
     validateChecksum('romChecksum', 'rom', 'ROM Checksum', { required: romOffered });
+    // One problem, one dot: on the URL Override, the field you would clear.
     if (hasText(values.romUrlOverride) && values.romVPSId) {
-      addError('rom', 'ROM ID conflicts with URL override', 'Use either ROM ID or ROM URL Override, not both.');
+      addError('rom', 'ROM ID conflicts with URL override', 'Use either ROM ID or ROM URL Override, not both.', 'romUrlOverride');
     }
     // A ROM URL without a version is v090's ROM pair rule alone (decision 2).
     if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
-      addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.');
+      addError('rom', 'ROM Notes are required', 'Add ROM Notes when using ROM URL Override.', 'romNotes');
     }
     if (values.romBundled === true && !hasText(values.romNotes)) {
-      addError('rom', 'Bundled ROM needs notes', 'Describe the bundled ROM and where it is located.');
+      addError('rom', 'Bundled ROM needs notes', 'Describe the bundled ROM and where it is located.', 'romNotes');
     }
 
     const colorOffered = Boolean(
       selections.altColorFiles || hasText(values.coloredROMUrlOverride) || values.coloredROMBundled === true
+      || values.coloredROMOverride === true
     );
     const colorRawValue = values.coloredROMChecksum;
     const colorPrimary = String(Array.isArray(colorRawValue) ? (colorRawValue[0] ?? '') : (colorRawValue ?? '')).trim();
@@ -129,21 +148,29 @@
     // A PAL/VNI pair with one half missing is the PAL/VNI rule's problem
     // alone, so the half that is there is checked as a plain value: as a list
     // of one it also failed "<label> list is invalid" (decision 2).
-    const colorValue = values.coloredROMPin2DMD === true
+    const pin2dmd = values.coloredROMPin2DMD === true;
+    const colorValue = pin2dmd
       ? (colorPrimary && colorSecondary ? [colorPrimary, colorSecondary] : (colorPrimary || colorSecondary))
       : colorRawValue;
+    const colorHashFields = pin2dmd
+      ? [colorPrimary && 'coloredROMChecksum', colorSecondary && 'coloredROMChecksumSecondary'].filter(Boolean)
+      : undefined;
     validateChecksum('coloredROMChecksum', 'coloredRom', 'Color ROM Checksum', {
       required: colorOffered,
-      value: colorValue
+      value: colorValue,
+      hashFields: colorHashFields
     });
-    if (values.coloredROMPin2DMD === true && (!colorPrimary || !colorSecondary)) {
-      addError('coloredRom', 'PAL/VNI requires two checksums', 'Add the .pal checksum and the .vni checksum.');
+    // On the half that is missing; with both missing the primary already
+    // carries "required", so this one marks the .vni slot.
+    if (pin2dmd && (!colorPrimary || !colorSecondary)) {
+      addError('coloredRom', 'PAL/VNI requires two checksums', 'Add the .pal checksum and the .vni checksum.',
+        colorSecondary ? 'coloredROMChecksum' : 'coloredROMChecksumSecondary');
     }
     if (hasText(values.coloredROMUrlOverride) && !hasText(values.coloredROMNotes)) {
-      addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.');
+      addError('coloredRom', 'Color ROM Notes are required', 'Add Color ROM Notes when using Color ROM URL Override.', 'coloredROMNotes');
     }
     if (values.coloredROMBundled === true && !hasText(values.coloredROMNotes)) {
-      addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.');
+      addError('coloredRom', 'Bundled Color ROM needs notes', 'Describe the bundled Color ROM and where it is located.', 'coloredROMNotes');
     }
 
     const pupOffered = Boolean(
@@ -151,7 +178,7 @@
     );
     validateChecksum('pupChecksum', 'pup', 'PUP Pack Checksum', { required: pupOffered });
     if (values.pupBundled === true && !hasText(values.pupNotes)) {
-      addError('pup', 'Bundled PUP Pack needs notes', 'Describe the bundled PUP Pack and where it is located.');
+      addError('pup', 'Bundled PUP Pack needs notes', 'Describe the bundled PUP Pack and where it is located.', 'pupNotes');
     }
     if (isStepEnabled(WIZARD_STEPS.find(step => step.id === 'pup'))) {
       [
@@ -160,7 +187,7 @@
         ['pupArchiveFormat', 'PUP Pack Archive Format']
       ].forEach(([key, label]) => {
         if (!hasText(values[key])) {
-          addError('pup', `${label} is required`, `Add ${label} before copying or downloading.`);
+          addError('pup', `${label} is required`, `Add ${label} before copying or downloading.`, key);
         }
       });
     }
@@ -169,19 +196,19 @@
     const dmdOverride = values.specialDMDOverride === true;
     if (dmdBundled || dmdOverride) {
       if (!hasText(values.specialDMDType)) {
-        addGate('dmd', 'DMD Type is required', 'Add DMD Type before copying or downloading.');
+        addGate('dmd', 'DMD Type is required', 'Add DMD Type before copying or downloading.', 'specialDMDType');
       }
       [
         ['specialDMDArchiveRoot', 'DMD Archive Root'],
         ['specialDMDArchiveFormat', 'DMD Archive Format']
       ].forEach(([key, label]) => {
         if (!hasText(values[key])) {
-          addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`);
+          addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`, key);
         }
       });
       if (dmdBundled && normalizeChecksumValue(values.vpxChecksum).length < 2) {
         addError('vpx', 'Bundled DMD needs both checksums',
-          'Drop the bundled archive on VPX Checksum: the list must carry the archive MD5 alongside the .vpx MD5.');
+          'Drop the bundled archive on VPX Checksum: the list must carry the archive MD5 alongside the .vpx MD5.', 'vpxChecksum');
       }
       if (!dmdBundled) {
         validateChecksum('specialDMDChecksum', 'dmd', 'DMD Checksum', { required: true });
@@ -190,7 +217,7 @@
           ['specialDMDVersion', 'DMD Version']
         ].forEach(([key, label]) => {
           if (!hasText(values[key])) {
-            addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`);
+            addError('dmd', `${label} is required`, `Add ${label} before copying or downloading.`, key);
           }
         });
       }
@@ -198,10 +225,10 @@
 
     validateChecksum('diffChecksum', 'vpuPatch', 'VPU Patch Checksum');
     if (hasText(values.diffUrlOverride) && !hasText(values.diffNotes)) {
-      addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.');
+      addError('vpuPatch', 'Patch Notes are required', 'Add Patch Notes when using Patch URL Override.', 'diffNotes');
     }
     if (values.diffBundled === true && !hasText(values.diffNotes)) {
-      addError('vpuPatch', 'Bundled VPU Patch needs notes', 'Describe the bundled VPU Patch and where it is located.');
+      addError('vpuPatch', 'Bundled VPU Patch needs notes', 'Describe the bundled VPU Patch and where it is located.', 'diffNotes');
     }
 
     WIZARD_STEPS.forEach(step => {
@@ -223,170 +250,6 @@
     if (longLine) {
       addError('main', 'YAML line exceeds 120 characters', 'Shorten the value or use a supported URL field so the generated file passes yamllint.');
     }
-
-    return output;
-  }
-
-  // getFieldErrors ran once per open tab and returned field -> messages. Here
-  // it runs for every enabled tab, in step order; within a tab, entries keep
-  // the order getFieldErrors' Map gave them, one per distinct message.
-  function fieldIssues(ctx, fields, utils) {
-    const { CATEGORY_CONFIG, WIZARD_STEPS } = fields;
-    const { isItemBroken, getCategoryItems } = utils;
-    const { record, selections, values, isStepEnabled } = ctx;
-    const output = [];
-    const isMd5 = value => /^[a-f0-9]{32}$/i.test(String(value || '').trim());
-    const normalizeNames = value => Array.isArray(value)
-      ? value.map(item => String(item).trim()).filter(Boolean)
-      : String(value || '').split(',').map(item => item.trim()).filter(Boolean);
-    const hasText = hasValue;
-
-    WIZARD_STEPS.forEach(step => {
-      if (isStepEnabled(step) === false) return;
-      const errors = new Map();
-      const generic = new Set();
-      const add = (fieldName, message) => {
-        if (!fieldName || !message) return;
-        const messages = errors.get(fieldName) || [];
-        if (!messages.includes(message)) messages.push(message);
-        errors.set(fieldName, messages);
-      };
-      // A list of one gets the dot for the build rule "<label> list is
-      // invalid", so it marks its own field instead of falling back to the
-      // tab's ID field (Phase 2 decision 4, Jason, 2026-10-12). Mostly a
-      // backstop: migrateBuildValues in main.js turns a list of one into a
-      // plain string on load, except a lone entry behind a blank first one,
-      // which keeps its shape and is reached here.
-      const validateChecksum = (fieldName, label, { required = false } = {}) => {
-        const raw = values[fieldName];
-        const value = String(Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? '')).trim();
-        if (Array.isArray(raw) && raw.filter(item => String(item ?? '').trim()).length === 1) {
-          add(fieldName, 'Use a plain string for one checksum or a list containing at least two checksums.');
-        }
-        if (required && !value) add(fieldName, `${label} is required.`);
-        else if (value && !isMd5(value)) add(fieldName, `${label} must be a 32-character MD5 value.`);
-      };
-
-      // The dot twin of the build rule "<label> entry is broken", on the tab's
-      // ID. Without it the ID took only the generic fallback dot, and only
-      // when nothing else on the tab had a dot, so a broken entry with a bad
-      // checksum showed "2 errors" and one dot (Jason, 2026-10-14).
-      Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
-        if (config.stepId !== step.id || !config.idField) return;
-        const selectedId = selections[category];
-        const item = getCategoryItems(record, category, config, { selections })
-          .find(candidate => String(candidate.id || '') === String(selectedId || ''));
-        if (item && isItemBroken(item)) add(config.idField, `${config.label} entry is broken.`);
-      });
-
-      switch (step.id) {
-        case 'main': {
-          if (!hasText(values.tableVPSId)) add('tableVPSId', 'Table VPS ID is required.');
-          const fps = String(values.fps ?? '').trim();
-          if (!fps) add('fps', 'FPS is required.');
-          else if (!/^\d+$/.test(fps)) add('fps', 'FPS must be an integer.');
-          if (!normalizeNames(values.testers).length) add('testers', 'At least one tester is required.');
-          break;
-        }
-        case 'vpx': {
-          if (!hasText(values.vpxVPSId)) add('vpxVPSId', 'A VPX file must be selected.');
-          validateChecksum('vpxChecksum', 'VPX Checksum', { required: true });
-          const bundledPair = Array.isArray(values.vpxChecksum)
-            ? values.vpxChecksum.filter(entry => String(entry || '').trim()).length
-            : 0;
-          if (values.specialDMDBundled === true && bundledPair < 2) {
-            add('vpxChecksum', 'A bundled DMD needs both the archive and .vpx checksums.');
-          }
-          break;
-        }
-        case 'b2s':
-          validateChecksum('backglassChecksum', 'Backglass Checksum', { required: true });
-          if (hasText(values.backglassUrlOverride) && !hasText(values.backglassNotes)) {
-            add('backglassNotes', 'Backglass Notes are required when using Backglass URL Override.');
-          }
-          if (values.backglassBundled === true && !hasText(values.backglassNotes)) {
-            add('backglassNotes', 'Bundled Backglass entries require notes.');
-          }
-          break;
-        case 'rom':
-          validateChecksum('romChecksum', 'ROM Checksum', { required: true });
-          if (hasText(values.romUrlOverride) && hasText(values.romVPSId)) {
-            add('romVPSId', 'ROM VPS ID conflicts with ROM URL Override.');
-            add('romUrlOverride', 'Use either ROM VPS ID or ROM URL Override, not both.');
-          }
-          if (hasText(values.romUrlOverride) && !hasText(values.romNotes)) {
-            add('romNotes', 'ROM Notes are required when using ROM URL Override.');
-          }
-          if (values.romBundled === true && !hasText(values.romNotes)) {
-            add('romNotes', 'Bundled ROM entries require notes.');
-          }
-          break;
-        case 'coloredRom': {
-          validateChecksum('coloredROMChecksum', 'Color ROM Checksum', { required: true });
-          if (values.coloredROMPin2DMD === true) {
-            validateChecksum('coloredROMChecksumSecondary', 'Color ROM VNI Checksum', { required: true });
-          }
-          if (hasText(values.coloredROMUrlOverride) && !hasText(values.coloredROMNotes)) {
-            add('coloredROMNotes', 'Color ROM Notes are required when using Color ROM URL Override.');
-          }
-          if (values.coloredROMBundled === true && !hasText(values.coloredROMNotes)) {
-            add('coloredROMNotes', 'Bundled Color ROM entries require notes.');
-          }
-          break;
-        }
-        case 'pup': {
-          validateChecksum('pupChecksum', 'PUP Pack Checksum', { required: true });
-          if (values.pupBundled === true && !hasText(values.pupNotes)) {
-            add('pupNotes', 'Bundled PUP Pack entries require notes.');
-          }
-          if (!hasText(values.pupVersion)) add('pupVersion', 'PUP Pack Version is required.');
-          if (!hasText(values.pupArchiveRoot)) add('pupArchiveRoot', 'PUP Pack Archive Root is required.');
-          if (!hasText(values.pupArchiveFormat)) add('pupArchiveFormat', 'PUP Pack Archive Format is required.');
-          break;
-        }
-        case 'dmd': {
-          const dmdBundled = values.specialDMDBundled === true;
-          if (!hasText(values.specialDMDType)) add('specialDMDType', 'DMD Type is required.');
-          if (!hasText(values.specialDMDArchiveRoot)) add('specialDMDArchiveRoot', 'DMD Archive Root is required.');
-          if (!hasText(values.specialDMDArchiveFormat)) add('specialDMDArchiveFormat', 'DMD Archive Format is required.');
-          if (!dmdBundled) {
-            validateChecksum('specialDMDChecksum', 'DMD Checksum', { required: true });
-            if (!hasText(values.specialDMDUrlOverride)) add('specialDMDUrlOverride', 'DMD URL Override is required.');
-            if (!hasText(values.specialDMDVersion)) add('specialDMDVersion', 'DMD Version is required.');
-          }
-          break;
-        }
-        case 'vpuPatch':
-          validateChecksum('diffChecksum', 'VPU Patch Checksum');
-          if (hasText(values.diffUrlOverride) && !hasText(values.diffNotes)) {
-            add('diffNotes', 'Patch Notes are required when using Patch URL Override.');
-          }
-          if (values.diffBundled === true && !hasText(values.diffNotes)) {
-            add('diffNotes', 'Bundled VPU Patch entries require notes.');
-          }
-          break;
-        default:
-          break;
-      }
-
-      if (step.overrideField && values[step.overrideField] === true) {
-        (step.overrideRequiredFields || []).forEach(key => {
-          if (!hasText(values[key])) {
-            const label = step.fields.find(field => field.yml_field === key)?.name || key;
-            const message = `${label} is required when Override is enabled.`;
-            add(key, message);
-            generic.add(`${key}\n${message}`);
-          }
-        });
-      }
-
-      errors.forEach((messages, fieldName) => {
-        messages.forEach(message => output.push({
-          system: 'field', type: 'error', stepId: step.id, fieldName, title: '', message,
-          ...(generic.has(`${fieldName}\n${message}`) && { generic: true })
-        }));
-      });
-    });
 
     return output;
   }
@@ -509,16 +372,14 @@
     };
     const issues = [
       ...buildIssues(full, utils, fields),
-      ...fieldIssues(full, fields, utils),
       ...featureIssues(full, utils),
       ...v090Issues(full)
     ].filter(issue => issue.gate || open(issue.stepId));
     // One problem, one issue (Phase 2 decision 2, Jason, 2026-10-10). Override's
-    // "every Advanced Config field is required" is dropped, in both its dialog
-    // and its dot form, from a field that a more specific rule already reports:
-    // the specific one says why. Every specific field rule on those fields has
-    // its dialog twin (or is a feature or v090 rule, which carries both), so
-    // nothing loses its dialog line, its count or its blocking.
+    // "every Advanced Config field is required" is dropped from a field that a
+    // more specific rule already reports: the specific one says why. Every
+    // issue carries its dialog line, count, dot and blocking together
+    // (decision 5), so dropping the generic one loses none of them.
     const covered = new Set(issues
       .filter(issue => issue.fieldName && !issue.generic)
       .map(issue => `${issue.stepId}:${issue.fieldName}`));

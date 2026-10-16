@@ -78,7 +78,7 @@ await scenario('Alt Sound checksum not an MD5', [...SOUND, ['fill', 'altSoundChe
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundChecksum: Each checksum must contain exactly 32 hexadecimal characters.'
+    'altSound field-altSoundChecksum: Alt Sound Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -90,7 +90,7 @@ await scenario('Alt Sound archive format empty', [...SOUND, ['fill', 'altSoundAr
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundArchiveFormat: Choose ZIP, RAR, or 7Z.'
+    'altSound field-altSoundArchiveFormat: Alt Sound Archive Format is required. Choose ZIP, RAR, or 7Z.'
   ],
   download: 'blocked'
 });
@@ -104,7 +104,7 @@ await scenario('Alt Sound picked from VPS and given a URL too', [...SOUND,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundUrlOverride: Use either Alt Sound VPS ID or Alt Sound URL Override, not both.'
+    'altSound field-altSoundUrlOverride: Choose one Alt Sound source. Use either Alt Sound VPS ID or Alt Sound URL Override, not both.'
   ],
   download: 'blocked'
 });
@@ -116,7 +116,7 @@ await scenario('Alt Sound URL without a version', soundOverrideWithout('altSound
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundVersionOverride: Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
+    'altSound field-altSoundVersionOverride: Alt Sound Version Override is required. Add Alt Sound Version Override whenever Alt Sound URL Override is used.'
   ],
   download: 'blocked'
 });
@@ -128,7 +128,7 @@ await scenario('Alt Sound version without a URL', [...SOUND, ['fill', 'altSoundV
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundUrlOverride: Add Alt Sound URL Override whenever Alt Sound Version Override is used.'
+    'altSound field-altSoundUrlOverride: Alt Sound URL Override is required. Add Alt Sound URL Override whenever Alt Sound Version Override is used.'
   ],
   download: 'blocked'
 });
@@ -140,7 +140,7 @@ await scenario('Alt Sound URL without notes', soundOverrideWithout('altSoundNote
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Add Alt Sound Notes when using Alt Sound URL Override.'
+    'altSound field-altSoundNotes: Alt Sound Notes are required. Add Alt Sound Notes when using Alt Sound URL Override.'
   ],
   download: 'blocked'
 });
@@ -154,7 +154,7 @@ await scenario('Alt Sound bundled without notes', [...LOTR,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+    'altSound field-altSoundNotes: Alt Sound Notes are required. Add Alt Sound Notes when the Alt Sound ships inside the table download.'
   ],
   download: 'blocked'
 });
@@ -172,7 +172,7 @@ await scenario('Alt Sound bundled with a URL, without notes', [...LOTR,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundNotes: Add Alt Sound Notes when the Alt Sound ships inside the table download.'
+    'altSound field-altSoundNotes: Alt Sound Notes are required. Add Alt Sound Notes when the Alt Sound ships inside the table download.'
   ],
   download: 'blocked'
 });
@@ -186,7 +186,7 @@ await scenario('Alt Sound bundled without an archive root', [...LOTR,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 1 error', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundArchiveRoot: Choose the Alt Sound root folder from the uploaded Alt Sound archive.'
+    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root is required. Choose the Alt Sound root folder from the uploaded Alt Sound archive.'
   ],
   download: 'blocked'
 });
@@ -204,13 +204,13 @@ await scenario('Alt Sound override with nothing filled', [...LOTR, ['override', 
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 7 errors', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'altSound field-altSoundChecksum: Add a valid MD5 value for Alt Sound Checksum.',
-    'altSound field-altSoundNotes: Alt Sound Notes is required when Override is enabled.',
-    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root is required when Override is enabled.',
-    'altSound field-altSoundArchiveFormat: Choose ZIP, RAR, or 7Z.',
-    'altSound field-altSoundAuthorsOverride: Alt Sound Authors Override is required when Override is enabled.',
-    'altSound field-altSoundUrlOverride: Alt Sound URL Override is required when Override is enabled.',
-    'altSound field-altSoundVersionOverride: Alt Sound Version Override is required when Override is enabled.'
+    'altSound field-altSoundChecksum: Alt Sound Checksum is required. Add a valid MD5 value for Alt Sound Checksum.',
+    'altSound field-altSoundNotes: Alt Sound Notes is required. Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root is required. Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundArchiveFormat: Alt Sound Archive Format is required. Choose ZIP, RAR, or 7Z.',
+    'altSound field-altSoundAuthorsOverride: Alt Sound Authors Override is required. Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundUrlOverride: Alt Sound URL Override is required. Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundVersionOverride: Alt Sound Version Override is required. Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -225,7 +225,7 @@ await scenario('VPU Patch checksum empty', [...TFTC, ['asset', 'vpuPatchFiles', 
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffChecksum: Add a valid MD5 value for VPU Patch Checksum.'
+    'vpuPatch field-diffChecksum: VPU Patch Checksum is required. Add a valid MD5 value for VPU Patch Checksum.'
   ],
   download: 'blocked'
 });
@@ -237,7 +237,7 @@ await scenario('VPU Patch checksum not an MD5', [...PATCH, ['fill', 'diffChecksu
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffChecksum: VPU Patch Checksum must be a 32-character MD5 value.'
+    'vpuPatch field-diffChecksum: VPU Patch Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -276,7 +276,7 @@ await scenario('Patch URL without notes', [...PATCH, ['fill', 'diffUrlOverride',
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffNotes: Patch Notes are required when using Patch URL Override.'
+    'vpuPatch field-diffNotes: Patch Notes are required. Add Patch Notes when using Patch URL Override.'
   ],
   download: 'blocked'
 });
@@ -288,7 +288,7 @@ await scenario('Patch URL without a version', [...PATCH, ['fill', 'diffUrlOverri
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffVersionOverride: Add Patch Version Override when using Patch URL Override.'
+    'vpuPatch field-diffVersionOverride: Patch version override is required. Add Patch Version Override when using Patch URL Override.'
   ],
   download: 'blocked'
 });
@@ -300,7 +300,7 @@ await scenario('Patch version without a URL', [...PATCH, ['fill', 'diffVersionOv
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffUrlOverride: Add Patch URL Override when using Patch Version Override.'
+    'vpuPatch field-diffUrlOverride: Patch URL override is required. Add Patch URL Override when using Patch Version Override.'
   ],
   download: 'blocked'
 });
@@ -312,7 +312,7 @@ await scenario('VPU Patch bundled without notes', [...TFTC, ['bundle', 'vpuPatch
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffNotes: Bundled VPU Patch entries require notes.'
+    'vpuPatch field-diffNotes: Bundled VPU Patch needs notes. Describe the bundled VPU Patch and where it is located.'
   ],
   download: 'blocked'
 });
@@ -327,10 +327,10 @@ await scenario('VPU Patch override with nothing filled', [...TFTC, ['override', 
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 4 errors', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffNotes: Patch Notes is required when Override is enabled.',
-    'vpuPatch field-diffAuthorsOverride: Patch Authors Override is required when Override is enabled.',
-    'vpuPatch field-diffUrlOverride: Patch URL Override is required when Override is enabled.',
-    'vpuPatch field-diffVersionOverride: Patch Version Override is required when Override is enabled.'
+    'vpuPatch field-diffNotes: Patch Notes is required. Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'vpuPatch field-diffAuthorsOverride: Patch Authors Override is required. Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'vpuPatch field-diffUrlOverride: Patch URL Override is required. Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'vpuPatch field-diffVersionOverride: Patch Version Override is required. Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -347,7 +347,7 @@ await scenario('VPU Patch entry broken (from a draft)', [...PATCH, ['draft', 're
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 1 error', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffVPSId: VPU Patch entry is broken.'
+    'vpuPatch field-diffVPSId: VPU Patch entry is broken. Choose another database entry before copying or downloading.'
   ],
   download: 'blocked'
 });
@@ -379,8 +379,8 @@ await scenario('VPU Patch entry broken, with a bad checksum (from a draft)', [..
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 2 errors', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffVPSId: VPU Patch entry is broken.',
-    'vpuPatch field-diffChecksum: VPU Patch Checksum must be a 32-character MD5 value.'
+    'vpuPatch field-diffVPSId: VPU Patch entry is broken. Choose another database entry before copying or downloading.',
+    'vpuPatch field-diffChecksum: VPU Patch Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });

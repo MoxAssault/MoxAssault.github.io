@@ -58,9 +58,9 @@ await scenario('nothing loaded', [], {
   ],
   tabs: ['main: 3 errors', 'vpx: disabled', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-tableVPSId: Table VPS ID is required.',
-    'main field-fps: FPS is required.',
-    'main field-testers: At least one tester is required.'
+    'main field-tableVPSId: No table selected. Search for and load a VPS table first.',
+    'main field-fps: FPS is required. Enter the table frame rate as an integer.',
+    'main field-testers: Testers are required. Enter at least one tester; separate multiple names with commas.'
   ],
   download: 'blocked'
 });
@@ -76,8 +76,8 @@ await scenario('no VPX selected', [['search', 'Lgi1JLk0Vf']], {
   ],
   tabs: ['main: 2 errors', 'vpx: disabled', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-fps: FPS is required.',
-    'main field-testers: At least one tester is required.'
+    'main field-fps: FPS is required. Enter the table frame rate as an integer.',
+    'main field-testers: Testers are required. Enter at least one tester; separate multiple names with commas.'
   ],
   download: 'blocked'
 });
@@ -89,7 +89,7 @@ await scenario('FPS empty', [...BASE, ['fill', 'fps', '']], {
   ],
   tabs: ['main: 1 error', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-fps: FPS is required.'
+    'main field-fps: FPS is required. Enter the table frame rate as an integer.'
   ],
   download: 'blocked'
 });
@@ -102,7 +102,7 @@ await scenario('FPS not a number (from a draft)', [...BASE, ['draft', 'values.fp
   ],
   tabs: ['main: 1 error', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-fps: FPS must be an integer.'
+    'main field-fps: FPS must be an integer. Use numbers only for FPS.'
   ],
   download: 'blocked'
 });
@@ -114,7 +114,7 @@ await scenario('testers empty', [...BASE, ['fill', 'testers', '']], {
   ],
   tabs: ['main: 1 error', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-testers: At least one tester is required.'
+    'main field-testers: Testers are required. Enter at least one tester; separate multiple names with commas.'
   ],
   download: 'blocked'
 });
@@ -128,7 +128,7 @@ await scenario('YAML line over 120', [...BASE, ['fill', 'testers', 'T'.repeat(12
   ],
   tabs: ['main: 1 error', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-tableVPSId: This section contains an unresolved validation error.'
+    'main field-tableVPSId: YAML line exceeds 120 characters. Shorten the value or use a supported URL field so the generated file passes yamllint.'
   ],
   download: 'blocked'
 });
@@ -141,7 +141,7 @@ await scenario('tutorial not on this table (from a draft)', [...BASE, ['draft', 
   ],
   tabs: ['main: 1 error', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'main field-tutorialVPSId: Choose an available tutorial for this table.'
+    'main field-tutorialVPSId: Tutorial VPS ID is unavailable. Choose an available tutorial for this table.'
   ],
   download: 'blocked'
 });
@@ -156,7 +156,7 @@ await scenario('VPX checksum empty', [...TABLE, ...MAIN], {
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'vpx field-vpxChecksum: VPX Checksum is required.'
+    'vpx field-vpxChecksum: VPX Checksum is required. Add a valid MD5 value for VPX Checksum.'
   ],
   download: 'blocked'
 });
@@ -168,7 +168,7 @@ await scenario('VPX checksum not an MD5', [...TABLE, ...MAIN, ['fill', 'vpxCheck
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'vpx field-vpxChecksum: VPX Checksum must be a 32-character MD5 value.'
+    'vpx field-vpxChecksum: VPX Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -208,7 +208,7 @@ await scenario('VPX checksum list with a blank first entry (from a draft)', [...
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+    'vpx field-vpxChecksum: VPX Checksum list is invalid. Use a plain string for one checksum or a list containing at least two checksums.'
   ],
   download: 'blocked'
 });
@@ -224,7 +224,7 @@ await scenario('VPX checksum list with a blank first entry, saved unchanged in A
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+    'vpx field-vpxChecksum: VPX Checksum list is invalid. Use a plain string for one checksum or a list containing at least two checksums.'
   ],
   download: 'blocked'
 });
@@ -250,7 +250,7 @@ await scenario('VPX checksum list with a blank first entry, extra removed in Add
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'vpx field-vpxChecksum: VPX Checksum is required.'
+    'vpx field-vpxChecksum: VPX Checksum is required. Add a valid MD5 value for VPX Checksum.'
   ],
   download: 'blocked'
 });
@@ -310,7 +310,7 @@ await scenario('VPX checksum with an extra, primary typed empty', [...BASE, ['ad
   ],
   tabs: ['main: ready', 'vpx: 1 error', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'vpx field-vpxChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nVPX Checksum is required.'
+    'vpx field-vpxChecksum: VPX Checksum list is invalid. Use a plain string for one checksum or a list containing at least two checksums.'
   ],
   download: 'blocked'
 });
@@ -325,7 +325,7 @@ await scenario('backglass checksum empty', [...BASE, ['asset', 'b2sFiles', 'WlwK
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassChecksum: Backglass Checksum is required.'
+    'b2s field-backglassChecksum: Backglass Checksum is required. Add a valid MD5 value for Backglass Checksum.'
   ],
   download: 'blocked'
 });
@@ -337,7 +337,7 @@ await scenario('backglass checksum not an MD5', [...BASE, ['asset', 'b2sFiles', 
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassChecksum: Backglass Checksum must be a 32-character MD5 value.'
+    'b2s field-backglassChecksum: Backglass Checksum is not a valid MD5. Each checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });
@@ -351,7 +351,7 @@ await scenario('backglass checksum extra added with the primary empty', [...BASE
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassChecksum: Use a plain string for one checksum or a list containing at least two checksums.\nBackglass Checksum is required.'
+    'b2s field-backglassChecksum: Backglass Checksum list is invalid. Use a plain string for one checksum or a list containing at least two checksums.'
   ],
   download: 'blocked'
 });
@@ -367,7 +367,7 @@ await scenario('backglass URL override without notes', [...B2S,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassNotes: Backglass Notes are required when using Backglass URL Override.'
+    'b2s field-backglassNotes: Backglass Notes are required. Add Backglass Notes when using Backglass URL Override.'
   ],
   download: 'blocked'
 });
@@ -383,7 +383,7 @@ await scenario('backglass URL override without authors', [...B2S,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassAuthorsOverride: Add at least one Backglass Authors Override when using Backglass URL Override.'
+    'b2s field-backglassAuthorsOverride: Backglass authors override is required. Add at least one Backglass Authors Override when using Backglass URL Override.'
   ],
   download: 'blocked'
 });
@@ -399,7 +399,7 @@ await scenario('backglass URL override without image', [...B2S,
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassImageOverride: Add Backglass Image Override when using Backglass URL Override.'
+    'b2s field-backglassImageOverride: Backglass image override is required. Add Backglass Image Override when using Backglass URL Override.'
   ],
   download: 'blocked'
 });
@@ -411,7 +411,7 @@ await scenario('backglass bundled without notes', [...BASE, ['bundle', 'b2sFiles
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassNotes: Bundled Backglass entries require notes.'
+    'b2s field-backglassNotes: Bundled Backglass needs notes. Describe the bundled Backglass and where it is located.'
   ],
   download: 'blocked'
 });
@@ -437,10 +437,32 @@ await scenario('backglass override with nothing filled', [...BASE, ['override', 
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 4 errors', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassNotes: Backglass Notes is required when Override is enabled.',
-    'b2s field-backglassAuthorsOverride: Backglass Authors Override is required when Override is enabled.',
-    'b2s field-backglassImageOverride: Backglass Image Override is required when Override is enabled.',
-    'b2s field-backglassUrlOverride: Backglass URL Override is required when Override is enabled.'
+    'b2s field-backglassNotes: Backglass Notes is required. Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'b2s field-backglassAuthorsOverride: Backglass Authors Override is required. Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'b2s field-backglassImageOverride: Backglass Image Override is required. Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'b2s field-backglassUrlOverride: Backglass URL Override is required. Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+  ],
+  download: 'blocked'
+});
+// Override opens the tab, so the checksum is asked for there before any URL
+// is typed: one rule gives the dot and the dialog line (decision 5).
+await scenario('backglass override with the checksum empty too', [...BASE, ['override', 'b2sFiles', true]], {
+  rule: 'Backglass Checksum is required',
+  keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'error: Backglass Checksum is required | Add a valid MD5 value for Backglass Checksum.',
+    'error: Backglass Notes is required | Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Backglass Authors Override is required | Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Backglass Image Override is required | Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Backglass URL Override is required | Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: 5 errors', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [
+    'b2s field-backglassChecksum: Backglass Checksum is required. Add a valid MD5 value for Backglass Checksum.',
+    'b2s field-backglassNotes: Backglass Notes is required. Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'b2s field-backglassAuthorsOverride: Backglass Authors Override is required. Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'b2s field-backglassImageOverride: Backglass Image Override is required. Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'b2s field-backglassUrlOverride: Backglass URL Override is required. Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
   ],
   download: 'blocked'
 });
@@ -459,7 +481,7 @@ await scenario('backglass entry broken (from a draft)', [...B2S, ['draft', 'reco
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 1 error', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassVPSId: B2S entry is broken.'
+    'b2s field-backglassVPSId: B2S entry is broken. Choose another database entry before copying or downloading.'
   ],
   download: 'blocked'
 });

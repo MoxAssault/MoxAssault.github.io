@@ -38,13 +38,16 @@
   // (validationRules.js). Until 2026-10-06 four scripts drew them, each on its
   // own frame: this file (getFieldErrors and the fallback dot),
   // featureValidationController.js, v090Enhancements.js, and v091Corrections.js,
-  // which deleted any dot drawn on the VPU Patch ID. Phase 1 of the merge keeps
-  // every dot exactly as it looked, so each system still gets the dot it had:
-  //   field   - .field-error-dot, one per field, its messages one per line
+  // which deleted any dot drawn on the VPU Patch ID. Every dot now says what
+  // its dialog line says, headline then instruction (Phase 2 decision 5,
+  // 2026-10-15), and each system still gets the dot it had:
+  //   build   - .field-error-dot, one per field, its messages one per line
   //   v090    - .field-error-dot.v090-error-dot, one per issue
   //   feature - .feature-error-dot, one per field, messages joined by a space
   //             and written into the control's aria-label too
   // Drawn in that order, which is the order the old frames left them in.
+
+  const dotText = issue => [issue.title, issue.message].filter(Boolean).join('. ');
 
   function clearFieldErrors(container) {
     container?.querySelectorAll('.field.has-field-error').forEach(field => {
@@ -167,13 +170,14 @@
     control.setAttribute('aria-invalid', 'true');
   }
 
-  // Messages per field, in the order the rulebook lists them, each once.
+  // Dot texts per field, in the order the rulebook lists them, each once.
   function groupMessages(issues, keyOf) {
     const grouped = new Map();
     issues.forEach(issue => {
       const key = keyOf(issue);
+      const text = dotText(issue);
       const messages = grouped.get(key) || [];
-      if (!messages.includes(issue.message)) messages.push(issue.message);
+      if (!messages.includes(text)) messages.push(text);
       grouped.set(key, messages);
     });
     return grouped;
@@ -194,29 +198,20 @@
     const step = steps.find(candidate => candidate.id === panel?.dataset.step);
     if (step) {
       const onStep = system => issues.filter(issue => issue.system === system && issue.stepId === step.id);
-      let added = 0;
-      groupMessages(onStep('field'), issue => issue.fieldName).forEach((messages, fieldName) => {
-        if (addFieldErrorDot(container, fieldName, messages)) added += 1;
+
+      // An error with no field of its own (the long YAML line) goes on the
+      // tab's first read-only field, in its own words. Until decision 5 that
+      // dot said only "This section contains an unresolved validation error.",
+      // and only when nothing else on the tab had a dot.
+      const fallback = step.fields.find(field => field.readonly)
+        || step.fields.find(field => !field.advanced)
+        || step.fields[0];
+      const buildErrors = onStep('build').filter(issue => issue.type === 'error');
+      groupMessages(buildErrors, issue => issue.fieldName || fallback?.yml_field).forEach((messages, fieldName) => {
+        if (fieldName) addFieldErrorDot(container, fieldName, messages);
       });
 
-      // A tab in error with no dot of its own points at its first field, so
-      // the user is not left looking for the problem.
-      // The VPU Patch ID was barred from any dot until 2026-10-14
-      // (NO_DOT_FIELDS); a broken entry now has its own dot there.
-      const tab = container.querySelector(`.config-tab[data-step="${utils.cssEscape(step.id)}"]`);
-      const hasExtendedFieldError = issues.some(issue => (
-        (issue.system === 'feature' || issue.system === 'v090') && issue.stepId === step.id
-      ));
-      if (!added && !hasExtendedFieldError && tab?.classList.contains('has-error')) {
-        const fallback = step.fields.find(field => field.readonly)
-          || step.fields.find(field => !field.advanced)
-          || step.fields[0];
-        if (fallback) {
-          addFieldErrorDot(container, fallback.yml_field, ['This section contains an unresolved validation error.']);
-        }
-      }
-
-      onStep('v090').forEach(issue => addFieldErrorDot(container, issue.fieldName, [issue.message], { v090: true }));
+      onStep('v090').forEach(issue => addFieldErrorDot(container, issue.fieldName, [dotText(issue)], { v090: true }));
     }
 
     const feature = issues.filter(issue => issue.system === 'feature');
