@@ -11,7 +11,7 @@
 import { check, report } from './harness.mjs';
 import { startScenarios } from './yaml-scenarios.mjs';
 
-const { app, scenario, PRINT } = await startScenarios();
+const { app, scenario, play, PRINT } = await startScenarios();
 
 const MD5_VPX = 'E6DF3800F7C9286FA195E84034DA683A';
 const MD5_B2S = 'B3500DC847FF54988DB01C2FFDD0AAA0';
@@ -485,6 +485,39 @@ await scenario('backglass entry broken (from a draft)', [...B2S, ['draft', 'reco
   ],
   download: 'blocked'
 });
+
+// No rule names a field that is missing from the page today, so the check
+// swaps in a rulebook that adds one. Its dot must still show, on the tab's
+// first read-only field: a tab counting an error with no dot anywhere is the
+// bug Jason caught live on 2026-10-14 (pr-checker on 3433dc1).
+if (!PRINT) {
+  await play(BASE);
+  const dots = await app.run(async () => {
+    const settle = () => new Promise(resolve => {
+      const frames = n => n ? requestAnimationFrame(() => frames(n - 1)) : setTimeout(resolve, 0);
+      frames(3);
+    });
+    const real = window.VPS_VALIDATION;
+    window.VPS_VALIDATION = {
+      collectAllErrors: ctx => [...real.collectAllErrors(ctx), {
+        system: 'build', type: 'error', stepId: 'main',
+        title: 'Ghost field is required', message: 'This field is not on the page.', fieldName: 'notOnThePage'
+      }]
+    };
+    try {
+      document.getElementById('config-tab-vpx').click();
+      await settle();
+      document.getElementById('config-tab-main').click();
+      await settle();
+      return [...document.querySelectorAll('.config-tab-panel .field-error-dot')].map(dot =>
+        (dot.closest('.field')?.querySelector('[id^="field-"]')?.id || '?') + ': ' + dot.dataset.tooltip);
+    } finally {
+      window.VPS_VALIDATION = real;
+    }
+  });
+  check('an error on a field missing from the page still gets its dot, on the first read-only field',
+    dots.join('\n') === 'field-tableVPSId: Ghost field is required. This field is not on the page.', dots.join('\n'));
+}
 
 await app.close();
 report('yaml-rules-main');

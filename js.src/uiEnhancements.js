@@ -202,16 +202,19 @@
       // An error with no field of its own (the long YAML line) goes on the
       // tab's first read-only field, in its own words. Until decision 5 that
       // dot said only "This section contains an unresolved validation error.",
-      // and only when nothing else on the tab had a dot.
+      // and only when nothing else on the tab had a dot. So does an error whose
+      // field is not on the page (none today), so a tab that counts an error
+      // always shows its dot.
       const fallback = step.fields.find(field => field.readonly)
         || step.fields.find(field => !field.advanced)
         || step.fields[0];
+      const drawnOn = fieldName => (fieldName && findFieldWrapper(container, fieldName) ? fieldName : fallback?.yml_field);
       const buildErrors = onStep('build').filter(issue => issue.type === 'error');
-      groupMessages(buildErrors, issue => issue.fieldName || fallback?.yml_field).forEach((messages, fieldName) => {
+      groupMessages(buildErrors, issue => drawnOn(issue.fieldName)).forEach((messages, fieldName) => {
         if (fieldName) addFieldErrorDot(container, fieldName, messages);
       });
 
-      onStep('v090').forEach(issue => addFieldErrorDot(container, issue.fieldName, [dotText(issue)], { v090: true }));
+      onStep('v090').forEach(issue => addFieldErrorDot(container, drawnOn(issue.fieldName), [dotText(issue)], { v090: true }));
     }
 
     const feature = issues.filter(issue => issue.system === 'feature');

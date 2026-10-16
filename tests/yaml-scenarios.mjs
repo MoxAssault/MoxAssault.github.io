@@ -310,5 +310,14 @@ export async function startScenarios() {
     check(name + ': no page errors', pageErrors.length === 0, pageErrors.join('\n'));
   }
 
-  return { app, scenario, PRINT };
+  // The steps alone, on a fresh page, for a check that inspects the page itself.
+  async function play(steps) {
+    await app.reset();
+    for (const step of steps) {
+      if (step[0] === 'draft') await draftStep(app, step);
+      else await pageStep(app, step);
+    }
+  }
+
+  return { app, scenario, play, PRINT };
 }
