@@ -77,9 +77,7 @@
       if (config.bundleField && selectedId && values[config.bundleField] === true) {
         addWarning(config.stepId, `${config.label} selected and bundled`, 'Choose either a separate VPS entry or bundled status unless both are intentionally required.');
       }
-      if (selectedId && !item) {
-        addError(config.stepId, `${config.label} ID unavailable`, 'Choose an available VPS entry before copying or downloading.', config.idField);
-      } else if (item && isItemBroken(item)) {
+      if (item && isItemBroken(item)) {
         addError(config.stepId, `${config.label} entry broken`, 'Choose another database entry before copying or downloading.', config.idField);
       }
     });

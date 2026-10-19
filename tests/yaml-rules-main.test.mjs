@@ -469,10 +469,10 @@ await scenario('backglass override with the checksum empty too', [...BASE, ['ove
 // Defensive: the dropdown disables a broken entry and the importer refuses
 // one, so only a saved draft can carry it.
 //
-// The build rules' other asset rule, "<asset> ID unavailable", has no
-// scenario because nothing can reach it: sanitizeAssetSelections in main.js
-// drops any selection the table does not offer every time a table loads,
-// a restored draft included (checked 2026-10-04). The merge may drop it.
+// There is no "<asset> ID unavailable" rule: sanitizeAssetSelections in main.js
+// drops any selection the table does not offer every time a table loads, a
+// restored draft included, and the importer refuses one, so it could never
+// fire. Removed 2026-10-19.
 await scenario('backglass entry broken (from a draft)', [...B2S, ['draft', 'record.b2sFiles.0.broken', true]], {
   rule: 'B2S entry broken',
   keys: ['backglassChecksum', 'backglassVPSId', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
