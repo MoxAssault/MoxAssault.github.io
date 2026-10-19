@@ -194,23 +194,23 @@ await scenario('Alt Sound override with nothing filled', [...LOTR, ['override', 
   rule: 'Alt Sound Checksum required',
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Alt Sound Notes required | Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Archive Root required | Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Authors Override required | Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound URL Override required | Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Alt Sound Version Override required | Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'error: Alt Sound Notes required | Add Alt Sound Notes. Override has no VPS entry to fill it in.',
+    'error: Alt Sound Archive Root required | Add Alt Sound Archive Root. Override has no VPS entry to fill it in.',
+    'error: Alt Sound Authors Override required | Add Alt Sound Authors Override. Override has no VPS entry to fill it in.',
+    'error: Alt Sound URL Override required | Add Alt Sound URL Override. Override has no VPS entry to fill it in.',
+    'error: Alt Sound Version Override required | Add Alt Sound Version Override. Override has no VPS entry to fill it in.',
     'error: Alt Sound Checksum required | Add a valid MD5 value for Alt Sound Checksum.',
     'error: Alt Sound Archive Format required | Choose ZIP, RAR, or 7Z.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: 7 errors', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'altSound field-altSoundChecksum: Alt Sound Checksum required. Add a valid MD5 value for Alt Sound Checksum.',
-    'altSound field-altSoundNotes: Alt Sound Notes required. Add Alt Sound Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root required. Add Alt Sound Archive Root — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
+    'altSound field-altSoundNotes: Alt Sound Notes required. Add Alt Sound Notes. Override has no VPS entry to fill it in.',
+    'altSound field-altSoundArchiveRoot: Alt Sound Archive Root required. Add Alt Sound Archive Root. Override has no VPS entry to fill it in.',
     'altSound field-altSoundArchiveFormat: Alt Sound Archive Format required. Choose ZIP, RAR, or 7Z.',
-    'altSound field-altSoundAuthorsOverride: Alt Sound Authors Override required. Add Alt Sound Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundUrlOverride: Alt Sound URL Override required. Add Alt Sound URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'altSound field-altSoundVersionOverride: Alt Sound Version Override required. Add Alt Sound Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'altSound field-altSoundAuthorsOverride: Alt Sound Authors Override required. Add Alt Sound Authors Override. Override has no VPS entry to fill it in.',
+    'altSound field-altSoundUrlOverride: Alt Sound URL Override required. Add Alt Sound URL Override. Override has no VPS entry to fill it in.',
+    'altSound field-altSoundVersionOverride: Alt Sound Version Override required. Add Alt Sound Version Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });
@@ -320,17 +320,17 @@ await scenario('VPU Patch override with nothing filled', [...TFTC, ['override', 
   rule: 'Patch Notes required',
   keys: ['diffChecksum', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Patch Notes required | Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Patch Authors Override required | Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Patch URL Override required | Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Patch Version Override required | Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Patch Notes required | Add Patch Notes. Override has no VPS entry to fill it in.',
+    'error: Patch Authors Override required | Add Patch Authors Override. Override has no VPS entry to fill it in.',
+    'error: Patch URL Override required | Add Patch URL Override. Override has no VPS entry to fill it in.',
+    'error: Patch Version Override required | Add Patch Version Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: 4 errors', 'dmd: disabled'],
   dots: [
-    'vpuPatch field-diffNotes: Patch Notes required. Add Patch Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'vpuPatch field-diffAuthorsOverride: Patch Authors Override required. Add Patch Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'vpuPatch field-diffUrlOverride: Patch URL Override required. Add Patch URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'vpuPatch field-diffVersionOverride: Patch Version Override required. Add Patch Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'vpuPatch field-diffNotes: Patch Notes required. Add Patch Notes. Override has no VPS entry to fill it in.',
+    'vpuPatch field-diffAuthorsOverride: Patch Authors Override required. Add Patch Authors Override. Override has no VPS entry to fill it in.',
+    'vpuPatch field-diffUrlOverride: Patch URL Override required. Add Patch URL Override. Override has no VPS entry to fill it in.',
+    'vpuPatch field-diffVersionOverride: Patch Version Override required. Add Patch Version Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });

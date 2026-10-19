@@ -123,13 +123,13 @@ await scenario('PUP override with nothing filled', [...LOTR, ['override', 'pupPa
   rule: 'PUP Pack Notes required',
   keys: ['fps', 'pupArchiveFormat', 'pupArchiveRoot', 'pupChecksum', 'pupVersion', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: PUP Pack Notes required | Add PUP Pack Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: PUP Pack URL required | Add PUP Pack URL — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: PUP Pack Notes required | Add PUP Pack Notes. Override has no VPS entry to fill it in.',
+    'error: PUP Pack URL required | Add PUP Pack URL. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: disabled', 'pup: 2 errors', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'pup field-pupNotes: PUP Pack Notes required. Add PUP Pack Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'pup field-pupFileUrl: PUP Pack URL required. Add PUP Pack URL — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'pup field-pupNotes: PUP Pack Notes required. Add PUP Pack Notes. Override has no VPS entry to fill it in.',
+    'pup field-pupFileUrl: PUP Pack URL required. Add PUP Pack URL. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });

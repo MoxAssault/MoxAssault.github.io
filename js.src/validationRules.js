@@ -236,7 +236,7 @@
       (step.overrideRequiredFields || []).forEach(key => {
         if (hasText(values[key])) return;
         const label = step.fields.find(field => field.yml_field === key)?.name || key;
-        addError(step.id, `${label} required`, `Add ${label} — Override requires every Advanced Config field since there is no VPS entry to pull it from.`);
+        addError(step.id, `${label} required`, `Add ${label}. Override has no VPS entry to fill it in.`);
         Object.assign(output[output.length - 1], { fieldName: key, generic: true });
       });
     });

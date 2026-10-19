@@ -430,17 +430,17 @@ await scenario('backglass override with nothing filled', [...BASE, ['override', 
   rule: 'Backglass Notes required',
   keys: ['backglassChecksum', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Backglass Notes required | Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Backglass Authors Override required | Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Backglass Image Override required | Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Backglass URL Override required | Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Backglass Notes required | Add Backglass Notes. Override has no VPS entry to fill it in.',
+    'error: Backglass Authors Override required | Add Backglass Authors Override. Override has no VPS entry to fill it in.',
+    'error: Backglass Image Override required | Add Backglass Image Override. Override has no VPS entry to fill it in.',
+    'error: Backglass URL Override required | Add Backglass URL Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 4 errors', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'b2s field-backglassNotes: Backglass Notes required. Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'b2s field-backglassAuthorsOverride: Backglass Authors Override required. Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'b2s field-backglassImageOverride: Backglass Image Override required. Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'b2s field-backglassUrlOverride: Backglass URL Override required. Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'b2s field-backglassNotes: Backglass Notes required. Add Backglass Notes. Override has no VPS entry to fill it in.',
+    'b2s field-backglassAuthorsOverride: Backglass Authors Override required. Add Backglass Authors Override. Override has no VPS entry to fill it in.',
+    'b2s field-backglassImageOverride: Backglass Image Override required. Add Backglass Image Override. Override has no VPS entry to fill it in.',
+    'b2s field-backglassUrlOverride: Backglass URL Override required. Add Backglass URL Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });
@@ -451,18 +451,18 @@ await scenario('backglass override with the checksum empty too', [...BASE, ['ove
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
     'error: Backglass Checksum required | Add a valid MD5 value for Backglass Checksum.',
-    'error: Backglass Notes required | Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Backglass Authors Override required | Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Backglass Image Override required | Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Backglass URL Override required | Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Backglass Notes required | Add Backglass Notes. Override has no VPS entry to fill it in.',
+    'error: Backglass Authors Override required | Add Backglass Authors Override. Override has no VPS entry to fill it in.',
+    'error: Backglass Image Override required | Add Backglass Image Override. Override has no VPS entry to fill it in.',
+    'error: Backglass URL Override required | Add Backglass URL Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: 5 errors', 'rom: disabled', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'b2s field-backglassChecksum: Backglass Checksum required. Add a valid MD5 value for Backglass Checksum.',
-    'b2s field-backglassNotes: Backglass Notes required. Add Backglass Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'b2s field-backglassAuthorsOverride: Backglass Authors Override required. Add Backglass Authors Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'b2s field-backglassImageOverride: Backglass Image Override required. Add Backglass Image Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'b2s field-backglassUrlOverride: Backglass URL Override required. Add Backglass URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'b2s field-backglassNotes: Backglass Notes required. Add Backglass Notes. Override has no VPS entry to fill it in.',
+    'b2s field-backglassAuthorsOverride: Backglass Authors Override required. Add Backglass Authors Override. Override has no VPS entry to fill it in.',
+    'b2s field-backglassImageOverride: Backglass Image Override required. Add Backglass Image Override. Override has no VPS entry to fill it in.',
+    'b2s field-backglassUrlOverride: Backglass URL Override required. Add Backglass URL Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });

@@ -164,15 +164,15 @@ await scenario('ROM override with nothing filled', [...PINK_FLOYD, ['override', 
   rule: 'ROM Notes required',
   keys: ['fps', 'romChecksum', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: ROM Notes required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM URL Override required | Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM Version Override required | Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: ROM Notes required | Add ROM Notes. Override has no VPS entry to fill it in.',
+    'error: ROM URL Override required | Add ROM URL Override. Override has no VPS entry to fill it in.',
+    'error: ROM Version Override required | Add ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 3 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom field-romNotes: ROM Notes required. Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romUrlOverride: ROM URL Override required. Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romVersionOverride: ROM Version Override required. Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'rom field-romNotes: ROM Notes required. Add ROM Notes. Override has no VPS entry to fill it in.',
+    'rom field-romUrlOverride: ROM URL Override required. Add ROM URL Override. Override has no VPS entry to fill it in.',
+    'rom field-romVersionOverride: ROM Version Override required. Add ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });
@@ -182,16 +182,16 @@ await scenario('ROM override with the checksum empty too', [...PINK_FLOYD, ['ove
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
     'error: ROM Checksum required | Add a valid MD5 value for ROM Checksum.',
-    'error: ROM Notes required | Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM URL Override required | Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: ROM Version Override required | Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: ROM Notes required | Add ROM Notes. Override has no VPS entry to fill it in.',
+    'error: ROM URL Override required | Add ROM URL Override. Override has no VPS entry to fill it in.',
+    'error: ROM Version Override required | Add ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 4 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'rom field-romChecksum: ROM Checksum required. Add a valid MD5 value for ROM Checksum.',
-    'rom field-romNotes: ROM Notes required. Add ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romUrlOverride: ROM URL Override required. Add ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'rom field-romVersionOverride: ROM Version Override required. Add ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'rom field-romNotes: ROM Notes required. Add ROM Notes. Override has no VPS entry to fill it in.',
+    'rom field-romUrlOverride: ROM URL Override required. Add ROM URL Override. Override has no VPS entry to fill it in.',
+    'rom field-romVersionOverride: ROM Version Override required. Add ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });
@@ -326,15 +326,15 @@ await scenario('Color ROM override with nothing filled', [...LOTR, ['override', 
   rule: 'Color ROM Notes required',
   keys: ['coloredROMChecksum', 'fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Color ROM Notes required | Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM URL Override required | Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM Version Override required | Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Color ROM Notes required | Add Color ROM Notes. Override has no VPS entry to fill it in.',
+    'error: Color ROM URL Override required | Add Color ROM URL Override. Override has no VPS entry to fill it in.',
+    'error: Color ROM Version Override required | Add Color ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 3 errors', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override required. Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override required. Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes. Override has no VPS entry to fill it in.',
+    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override required. Add Color ROM URL Override. Override has no VPS entry to fill it in.',
+    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override required. Add Color ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });
@@ -344,16 +344,16 @@ await scenario('Color ROM override with the checksum empty too', [...LOTR, ['ove
   keys: ['fps', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
     'error: Color ROM Checksum required | Add a valid MD5 value for Color ROM Checksum.',
-    'error: Color ROM Notes required | Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM URL Override required | Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'error: Color ROM Version Override required | Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'error: Color ROM Notes required | Add Color ROM Notes. Override has no VPS entry to fill it in.',
+    'error: Color ROM URL Override required | Add Color ROM URL Override. Override has no VPS entry to fill it in.',
+    'error: Color ROM Version Override required | Add Color ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: disabled', 'coloredRom: 4 errors', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
     'coloredRom field-coloredROMChecksum: Color ROM Checksum required. Add a valid MD5 value for Color ROM Checksum.',
-    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override required. Add Color ROM URL Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.',
-    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override required. Add Color ROM Version Override — Override requires every Advanced Config field since there is no VPS entry to pull it from.'
+    'coloredRom field-coloredROMNotes: Color ROM Notes required. Add Color ROM Notes. Override has no VPS entry to fill it in.',
+    'coloredRom field-coloredROMUrlOverride: Color ROM URL Override required. Add Color ROM URL Override. Override has no VPS entry to fill it in.',
+    'coloredRom field-coloredROMVersionOverride: Color ROM Version Override required. Add Color ROM Version Override. Override has no VPS entry to fill it in.'
   ],
   download: 'blocked'
 });
