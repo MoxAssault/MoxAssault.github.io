@@ -497,8 +497,10 @@ await scenario('Additional ROM listed twice', imported([{ vpsId: 'WshhKlRf', che
     'error: Additional ROM 2 needs attention | That ROM is already in Additional ROMs.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  // One problem per line since decision 5 piece 3 (2026-10-18): every dot
+  // keeps its plain text that way; the Additional ROM dot joined with spaces.
   dots: [
-    'rom additionalRoms: Additional ROM 1 needs attention. That ROM is already in Additional ROMs. Additional ROM 2 needs attention. That ROM is already in Additional ROMs.'
+    'rom additionalRoms: Additional ROM 1 needs attention. That ROM is already in Additional ROMs.\nAdditional ROM 2 needs attention. That ROM is already in Additional ROMs.'
   ],
   download: 'blocked'
 });
@@ -516,8 +518,9 @@ await scenario('Additional ROM with two problems', imported([{ checksum: 'NOT-A-
     'error: Additional ROM 1 needs attention | Checksum must contain exactly 32 hexadecimal characters.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 2 errors', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  // One problem per line since decision 5 piece 3, as above.
   dots: [
-    'rom additionalRoms: Additional ROM 1 needs attention. Select a ROM VPS ID. Additional ROM 1 needs attention. Checksum must contain exactly 32 hexadecimal characters.'
+    'rom additionalRoms: Additional ROM 1 needs attention. Select a ROM VPS ID.\nAdditional ROM 1 needs attention. Checksum must contain exactly 32 hexadecimal characters.'
   ],
   download: 'blocked'
 });

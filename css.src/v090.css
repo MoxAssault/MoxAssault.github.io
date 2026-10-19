@@ -169,8 +169,7 @@
 .field-pup-required .checkbox-row { min-height: 36px; align-items: center; }
 
 /* Custom field-error tooltip replaces the browser title popup. */
-.field-error-dot[data-tooltip]::before,
-.feature-error-dot[data-tooltip]::before {
+.field-error-dot[data-tooltip]::before {
   position: absolute;
   z-index: 180;
   right: -2px;
@@ -190,18 +189,14 @@
   white-space: normal;
 }
 .field-error-dot[data-tooltip]:hover::before,
-.field-error-dot[data-tooltip]:focus-visible::before,
-.feature-error-dot[data-tooltip]:hover::before,
-.feature-error-dot[data-tooltip]:focus-visible::before { display: block; }
-.field-error-dot,
-.feature-error-dot { cursor: help; }
+.field-error-dot[data-tooltip]:focus-visible::before { display: block; }
+.field-error-dot { cursor: help; }
 
 /* A dot drawn from the rulebook carries a real tooltip element instead, one
    line per problem with its headline in bold (decision 5, piece 2), because a
    pseudo-element's text cannot be partly bold. Same box in the same place; the
    pseudo tooltip above steps aside for it. */
-.field-error-dot[data-tooltip]:has(> .error-dot-tip)::before,
-.feature-error-dot[data-tooltip]:has(> .error-dot-tip)::before { content: none; }
+.field-error-dot[data-tooltip]:has(> .error-dot-tip)::before { content: none; }
 .error-dot-tip {
   position: absolute;
   z-index: 180;
@@ -226,9 +221,7 @@
 .error-dot-tip-line + .error-dot-tip-line { margin-top: 4px; }
 .error-dot-tip strong { font-weight: 700; }
 .field-error-dot:hover > .error-dot-tip,
-.field-error-dot:focus-visible > .error-dot-tip,
-.feature-error-dot:hover > .error-dot-tip,
-.feature-error-dot:focus-visible > .error-dot-tip { display: block; }
+.field-error-dot:focus-visible > .error-dot-tip { display: block; }
 
 #previewStatusDot { cursor: pointer; }
 

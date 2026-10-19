@@ -40,14 +40,15 @@
   // featureValidationController.js, v090Enhancements.js, and v091Corrections.js,
   // which deleted any dot drawn on the VPU Patch ID. Every dot now says what
   // its dialog line says, headline then instruction (Phase 2 decision 5,
-  // 2026-10-15), and each system still gets the dot it had:
-  //   build   - .field-error-dot, one per field, its messages one per line
-  //   v090    - .field-error-dot.v090-error-dot, one per issue
-  //   feature - .feature-error-dot, one per field, messages joined by a space
-  //             and written into the control's aria-label too
-  // Drawn in that order, which is the order the old frames left them in. All
-  // three show the same tooltip, one line per problem with its headline in
-  // bold (decision 5, piece 2); data-tooltip keeps the joined plain text.
+  // 2026-10-15), and every dot is one kind (piece 3, 2026-10-18): one
+  // .field-error-dot per field, carrying all of that field's problems in
+  // rulebook order (build, then v090, then feature), each once. Until then each
+  // system drew its own (.feature-error-dot, and a v090 dot per issue), so a
+  // field with problems from two systems stacked two dots in one corner and
+  // the top one hid the other. The tooltip shows one line per problem with its
+  // headline in bold (piece 2); data-tooltip keeps the plain text, one line
+  // each. Feature problems are also written into the control's aria-label, as
+  // they always were.
 
   const dotText = issue => [issue.title, issue.message].filter(Boolean).join('. ');
   // A dot's entries are its issues' { title, message }; a plain string is a
@@ -82,37 +83,10 @@
     dot.appendChild(tip);
   }
 
-  function clearFieldErrors(container) {
-    container?.querySelectorAll('.field.has-field-error').forEach(field => {
-      field.classList.remove('has-field-error');
-      field.querySelectorAll(':scope > .field-error-dot').forEach(dot => dot.remove());
-    });
-  }
-
   function findFieldWrapper(container, fieldName) {
     const control = container?.querySelector(`#field-${utils.cssEscape(fieldName)}`)
       || container?.querySelector(`[name="${utils.cssEscape(fieldName)}"]`);
     return control?.closest('.field') || null;
-  }
-
-  function addFieldErrorDot(container, fieldName, entries, { v090 = false } = {}) {
-    const wrapper = findFieldWrapper(container, fieldName);
-    if (!wrapper || !entries?.length) return false;
-
-    wrapper.classList.add('has-field-error');
-
-    const messages = entries.map(entryText);
-    const dot = document.createElement('span');
-    dot.className = v090 ? 'field-error-dot v090-error-dot' : 'field-error-dot';
-    dot.setAttribute('role', 'img');
-    dot.setAttribute('aria-label', messages.join(' '));
-    dot.dataset.tooltip = messages.join('\n');
-    dot.tabIndex = 0;
-    setDotTip(dot, entries);
-    // Ahead of a feature dot, which is kept between passes while these are
-    // redrawn, so a field carrying both always lists them in the same order.
-    wrapper.insertBefore(dot, wrapper.querySelector(':scope > .feature-error-dot'));
-    return true;
   }
 
   function restoreControlLabel(control) {
@@ -137,91 +111,116 @@
       } else {
         restoreControlLabel(wrapper.querySelector('input, textarea, select, button, .readonly-id'));
       }
-      if (!wrapper.querySelector('.field-error-dot')) {
-        wrapper.classList.remove('has-field-error');
-      }
     });
   }
 
   // The dot is a real element rather than a pseudo-element on the field
   // wrapper. CSS cannot scope :hover to a pseudo-element, so the old
-  // attribute-only version popped its tooltip from anywhere in the field —
-  // including the hint line underneath it — while every other checksum error
-  // in the app pops only from its dot. A real element can own the hover, so
-  // this now behaves and looks identical to the legacy dots.
+  // attribute-only feature version popped its tooltip from anywhere in the
+  // field, including the hint line underneath it. A real element owns the hover.
   //
-  // Deliberately NOT class `field-error-dot`: clearFieldErrors above and
-  // additionalRomsController remove `.field-error-dot` wholesale, and this one
-  // is updated in place instead. The CSS gives both classes the same rules.
+  // Updated in place, and swept in decorateCurrentFields only once its field
+  // clears, so a field with a standing error causes no DOM mutation between
+  // passes; its tooltip element is rebuilt only when the text changes. Until
+  // piece 3 only the feature dots worked this way; the rest were deleted and
+  // redrawn on every pass.
   //
   // .additional-rom-controls is the whole Advanced Config header row, so its
   // dot sits on the Additional ROM indicator inside it (the + button when there
   // is no indicator). Until 2026-10-11 it was a pseudo-element on the row: it
   // sat on the row's corner and popped its tooltip from anywhere on the row.
   function presentErrorDot(wrapper, entries) {
-    const host = wrapper.matches('.additional-rom-controls')
+    const inButton = wrapper.matches('.additional-rom-controls');
+    const host = inButton
       ? wrapper.querySelector('.additional-rom-indicator') || wrapper.querySelector('.additional-rom-add')
       : wrapper;
     if (!host) return null;
-    let dot = host.querySelector(':scope > .feature-error-dot');
+    let dot = host.querySelector(':scope > .field-error-dot');
     if (!dot) {
       dot = document.createElement('span');
-      dot.className = 'feature-error-dot';
+      dot.className = 'field-error-dot';
       dot.setAttribute('role', 'img');
+      // A focus stop inside a button is invalid, and the button already
+      // announces this dot through aria-describedby (presentField).
+      if (!inButton) dot.tabIndex = 0;
       host.appendChild(dot);
     }
-    // Updated in place, and swept in decorateCurrentFields only once the error
-    // clears, so a field with a standing error causes no DOM mutation between
-    // passes; its tooltip element is rebuilt only when the text changes.
-    const tooltip = entries.map(entryText).join(' ');
+    const messages = entries.map(entryText);
+    const tooltip = messages.join('\n');
     if (dot.dataset.tooltip !== tooltip || !dot.querySelector(':scope > .error-dot-tip')) {
       dot.dataset.tooltip = tooltip;
       setDotTip(dot, entries);
     }
-    if (dot.getAttribute('aria-label') !== tooltip) dot.setAttribute('aria-label', tooltip);
+    const label = messages.join(' ');
+    if (dot.getAttribute('aria-label') !== label) dot.setAttribute('aria-label', label);
     return dot;
   }
 
-  function presentFeatureField(wrapper, entries) {
-    if (!wrapper || !entries.length) return;
-    wrapper.classList.add('has-field-error', 'feature-has-field-error');
-    const messages = entries.map(entryText);
+  // One field's dot, and the screen-reader half of its feature problems,
+  // which are also written into the control's label (a build or v090 problem
+  // is announced from the dot alone, as it always was).
+  function presentField(wrapper, entries, featureEntries) {
+    wrapper.classList.add('has-field-error');
     const dot = presentErrorDot(wrapper, entries);
+    if (!featureEntries.length) return dot;
+    wrapper.classList.add('feature-has-field-error');
 
     // The Additional ROM dot sits inside a button, whose children a screen
     // reader does not announce, and the indicator rewrites its own label on
     // every render. So the button points at the dot for its description
     // instead of having the message folded into its label.
     if (wrapper.matches('.additional-rom-controls')) {
-      if (!dot) return;
+      if (!dot) return null;
       dot.id = 'additional-rom-error-dot';
       dot.parentElement.setAttribute('aria-describedby', dot.id);
       dot.parentElement.setAttribute('aria-invalid', 'true');
-      return;
+      return dot;
     }
 
     const control = wrapper.querySelector('input, textarea, select, button, .readonly-id');
-    if (!control) return;
+    if (!control) return dot;
     if (control.dataset.featureOriginalAriaLabel === undefined) {
       control.dataset.featureOriginalAriaLabel = control.getAttribute('aria-label') || '';
     }
     const original = control.dataset.featureOriginalAriaLabel;
-    control.setAttribute('aria-label', `${original ? `${original}. ` : ''}${messages.join(' ')}`);
+    control.setAttribute('aria-label', `${original ? `${original}. ` : ''}${featureEntries.map(entryText).join(' ')}`);
     control.setAttribute('aria-invalid', 'true');
+    return dot;
   }
 
-  // Dot entries per field, in the order the rulebook lists them, each once.
-  function groupMessages(issues, keyOf) {
-    const grouped = new Map();
-    issues.forEach(issue => {
-      const key = keyOf(issue);
-      const entries = grouped.get(key) || [];
-      if (!entries.some(entry => dotText(entry) === dotText(issue))) {
-        entries.push({ title: issue.title, message: issue.message });
-      }
-      grouped.set(key, entries);
+  // Each field's dot entries, keyed by its wrapper, in the order they are
+  // added, each once; the feature ones are also kept apart for the label.
+  function collectFieldEntries() {
+    const fields = new Map();
+    const add = (wrapper, issue) => {
+      if (!wrapper) return;
+      const field = fields.get(wrapper) || { entries: [], feature: [] };
+      const entry = { title: issue.title, message: issue.message };
+      const lists = issue.system === 'feature' ? [field.entries, field.feature] : [field.entries];
+      lists.forEach(list => {
+        if (!list.some(known => dotText(known) === dotText(entry))) list.push(entry);
+      });
+      fields.set(wrapper, field);
+    };
+    return { fields, add };
+  }
+
+  // Draws every field's dot, then removes what no longer has a problem: a dot
+  // not drawn this pass and a wrapper no longer marked. Scoped to the builder,
+  // so the Additional ROM and Additional Checksums dialogs, which draw their
+  // own dots, are never touched.
+  function presentFields(container, fields) {
+    const drawn = new Set();
+    fields.forEach((field, wrapper) => {
+      const dot = presentField(wrapper, field.entries, field.feature);
+      if (dot) drawn.add(dot);
     });
-    return grouped;
+    container.querySelectorAll('.field-error-dot').forEach(dot => {
+      if (!drawn.has(dot)) dot.remove();
+    });
+    container.querySelectorAll('.has-field-error').forEach(wrapper => {
+      if (!fields.has(wrapper)) wrapper.classList.remove('has-field-error');
+    });
   }
 
   function decorateCurrentFields() {
@@ -231,8 +230,8 @@
 
     const { container, steps } = accordionContext;
     const issues = window.VPS_VALIDATION.collectAllErrors(ctx);
-    clearFieldErrors(container);
     clearFeaturePresentation();
+    const { fields, add } = collectFieldEntries();
 
     // Only the open tab is in the DOM, so only its dots can be drawn.
     const panel = container.querySelector('.config-tab-panel');
@@ -250,29 +249,25 @@
         || step.fields.find(field => !field.advanced)
         || step.fields[0];
       const drawnOn = fieldName => (fieldName && findFieldWrapper(container, fieldName) ? fieldName : fallback?.yml_field);
-      const buildErrors = onStep('build').filter(issue => issue.type === 'error');
-      groupMessages(buildErrors, issue => drawnOn(issue.fieldName)).forEach((messages, fieldName) => {
-        if (fieldName) addFieldErrorDot(container, fieldName, messages);
-      });
-
-      onStep('v090').forEach(issue => addFieldErrorDot(container, drawnOn(issue.fieldName), [issue], { v090: true }));
+      const addOnStep = issue => {
+        const fieldName = drawnOn(issue.fieldName);
+        if (fieldName) add(findFieldWrapper(container, fieldName), issue);
+      };
+      onStep('build').filter(issue => issue.type === 'error').forEach(addOnStep);
+      onStep('v090').forEach(addOnStep);
     }
 
-    const feature = issues.filter(issue => issue.system === 'feature');
-    groupMessages(feature, issue => `${issue.stepId}:${issue.fieldName}`).forEach((messages, key) => {
-      const fieldName = key.slice(key.indexOf(':') + 1);
+    issues.filter(issue => issue.system === 'feature').forEach(issue => {
       // Scoped to the ROM tab: the VPX tab's Additional Passwords control
       // shares the .additional-rom-controls class, and an unscoped lookup put
       // Additional ROM errors on it whenever the VPX tab was open (2026-10-04).
-      const wrapper = fieldName === 'additionalRoms'
+      const wrapper = issue.fieldName === 'additionalRoms'
         ? document.querySelector('#config-panel-rom .additional-rom-controls')
-        : document.getElementById(`field-${fieldName}`)?.closest('.field');
-      presentFeatureField(wrapper, messages);
+        : document.getElementById(`field-${issue.fieldName}`)?.closest('.field');
+      if (wrapper && container.contains(wrapper)) add(wrapper, issue);
     });
 
-    document.querySelectorAll('.feature-error-dot').forEach(dot => {
-      if (!dot.closest('.feature-has-field-error')) dot.remove();
-    });
+    presentFields(container, fields);
   }
 
   function classState(element) {

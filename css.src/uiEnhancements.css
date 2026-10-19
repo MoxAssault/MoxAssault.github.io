@@ -51,8 +51,7 @@
 .field.has-field-error > .checkbox-row {
   border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
 }
-.field-error-dot,
-.feature-error-dot {
+.field-error-dot {
   position: absolute;
   z-index: 8;
   top: -4px;

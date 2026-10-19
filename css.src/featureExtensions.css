@@ -33,7 +33,6 @@
 
 /* Anchor every checksum error dot to the input corner instead of the padded drop zone. */
 .checksum-drop-field > .field-error-dot,
-.checksum-drop-field > .feature-error-dot,
 .additional-rom-controls > .field-error-dot {
   top: 1px;
   right: 1px;
@@ -42,8 +41,7 @@
 }
 /* ID fields carry the same 5px padding as the drop zones (.field-id-standard in
    category.css), so their dot needs the same shift to sit on the visible box. */
-.field-id-standard > .field-error-dot,
-.field-id-standard > .feature-error-dot {
+.field-id-standard > .field-error-dot {
   top: 1px;
   right: 1px;
 }
@@ -383,24 +381,24 @@
 .field.feature-has-field-error {
   position: relative;
 }
-/* Every feature error is a real .feature-error-dot element, so its tooltip is
+/* Every error dot is a real .field-error-dot element, so its tooltip is
    hover-scoped to the dot. The Additional ROM one sits on the indicator's top
    right corner, not on the header row; the indicator's own tooltip steps aside
    while the dot's is showing. */
-.additional-rom-indicator > .feature-error-dot,
-.additional-rom-add > .feature-error-dot {
+.additional-rom-indicator > .field-error-dot,
+.additional-rom-add > .field-error-dot {
   z-index: 510;
   border-color: var(--panel-raised);
 }
-.additional-rom-indicator > .feature-error-dot[data-tooltip]::before,
-.additional-rom-add > .feature-error-dot[data-tooltip]::before,
-.additional-rom-indicator > .feature-error-dot > .error-dot-tip,
-.additional-rom-add > .feature-error-dot > .error-dot-tip {
+.additional-rom-indicator > .field-error-dot[data-tooltip]::before,
+.additional-rom-add > .field-error-dot[data-tooltip]::before,
+.additional-rom-indicator > .field-error-dot > .error-dot-tip,
+.additional-rom-add > .field-error-dot > .error-dot-tip {
   z-index: 560;
   letter-spacing: 0;
 }
-.additional-rom-indicator:has(> .feature-error-dot:hover)::after,
-.additional-rom-add:has(> .feature-error-dot:hover)::after {
+.additional-rom-indicator:has(> .field-error-dot:hover)::after,
+.additional-rom-add:has(> .field-error-dot:hover)::after {
   display: none;
 }
 .config-tab.feature-has-error {
