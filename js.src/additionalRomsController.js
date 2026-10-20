@@ -9,6 +9,9 @@
   const { getCategoryItems, getItemLabel, isItemBroken, isMd5Hash } = utils;
   const ARCHIVE_EXTENSIONS = ['.zip', '.rar', '.7z'];
   let editingIndex = -1;
+  // The dots stay quiet until a Save ROM fails. From then until the editor
+  // reopens, every edit re-checks the entry, so each dot clears as it is fixed.
+  let liveDots = false;
 
   // This dialog renders its own checksum drop field, so it resolves the same
   // manufacturer rules from the same field definition rather than keeping a
@@ -218,6 +221,8 @@
       checksumInput.value = upper;
       try { checksumInput.setSelectionRange(selectionStart, selectionEnd); } catch (_) { /* no-op */ }
     });
+    node.addEventListener('input', revalidate);
+    node.addEventListener('change', revalidate);
     bindDrop(node);
     return node;
   }
@@ -297,6 +302,8 @@
             ? `MD5 calculated (whole archive — no single ${scanExtension} inside) from ${file.name}`
             : `MD5 calculated from ${file.name}`;
         }
+        // Setting the value from code fires no input event.
+        revalidate();
       } catch (error) {
         if (!stillCurrent()) return;
         hint.textContent = error?.message || 'MD5 calculation failed.';
@@ -342,6 +349,7 @@
       openHint.classList.remove('error');
       openHint.textContent = dropHintText();
     }
+    liveDots = false;
     clearFieldErrorPresentation(node);
     node.querySelector('#additionalRomTitle').textContent = index >= 0 ? 'Edit Additional ROM' : 'Add Additional ROM';
     node.querySelector('#additionalRomRemove').hidden = index < 0;
@@ -362,16 +370,27 @@
     runtime.schedule();
   }
 
-  function save() {
-    const node = dialog();
-    const entry = {
+  function readEntry(node) {
+    return {
       vpsId: node.querySelector('#additionalRomVpsId').value.trim(),
       checksum: node.querySelector('#additionalRomChecksum').value.trim(),
       versionOverride: node.querySelector('#additionalRomVersionOverride').value.trim(),
       urlOverride: node.querySelector('#additionalRomUrlOverride').value.trim()
     };
+  }
+
+  function revalidate() {
+    if (!liveDots) return;
+    const node = dialog();
+    presentFieldErrors(node, validateEntryDetailed(readEntry(node), editingIndex));
+  }
+
+  function save() {
+    const node = dialog();
+    const entry = readEntry(node);
     const detailedErrors = validateEntryDetailed(entry, editingIndex);
     if (detailedErrors.length) {
+      liveDots = true;
       presentFieldErrors(node, detailedErrors);
       const firstInvalid = ['vpsId', 'checksum', 'versionOverride', 'urlOverride']
         .find(name => detailedErrors.some(error => error.field === name));

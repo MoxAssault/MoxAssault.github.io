@@ -583,5 +583,75 @@ if (!PRINT) {
   check('the editor dot\'s tooltip is not cut off under the header', tip.inside === true, JSON.stringify(tip));
 }
 
+// Since 2026-10-19 the editor's dots are live once a Save ROM has failed:
+// quiet on open, then each edit (and a file drop) re-checks the entry, until
+// the editor reopens.
+if (!PRINT) {
+  await play(imported([{ vpsId: 'WshhKlRf', checksum: 'NOT-A-HASH' }]));
+  const live = await app.run(async (md5) => {
+    const settle = () => new Promise(resolve => {
+      const frames = n => n ? requestAnimationFrame(() => frames(n - 1)) : setTimeout(resolve, 0);
+      frames(3);
+    });
+    const node = () => document.getElementById('additionalRomDialog');
+    const dots = () => [...node().querySelectorAll('.field-error-dot')]
+      .map(dot => dot.closest('.field').querySelector('input, select').id.replace('additionalRom', ''));
+    const edit = async (id, value, type) => {
+      const control = document.getElementById('additionalRom' + id);
+      control.value = value;
+      control.dispatchEvent(new Event(type, { bubbles: true }));
+      await settle();
+      return dots();
+    };
+    const openEditor = async () => {
+      document.querySelector('#config-panel-rom .additional-rom-indicator').click();
+      await settle();
+    };
+    const save = async () => {
+      document.getElementById('additionalRomSave').click();
+      await settle();
+      return dots();
+    };
+    const result = {};
+    document.getElementById('config-tab-rom').click();
+    await settle();
+    await openEditor();
+    result.opened = dots();
+    result.typedBeforeSave = await edit('Checksum', 'X', 'input');
+    await edit('Checksum', 'NOT-A-HASH', 'input');
+    result.saved = await save();
+    result.fixed = await edit('Checksum', md5, 'input');
+    result.broken = await edit('VpsId', '', 'change');
+    node().close();
+    await openEditor();
+    result.reopened = dots();
+    result.typedAfterReopen = await edit('Checksum', 'Y', 'input');
+    await edit('Checksum', 'NOT-A-HASH', 'input');
+    result.savedAgain = await save();
+    const drop = new DataTransfer();
+    drop.items.add(new File(['additional rom bytes'], 'rom.zip'));
+    document.getElementById('additionalRomChecksumField')
+      .dispatchEvent(new DragEvent('drop', { dataTransfer: drop, bubbles: true, cancelable: true }));
+    const hint = node().querySelector('.checksum-drop-hint');
+    for (let wait = 0; wait < 100 && !hint.textContent.startsWith('MD5 calculated'); wait += 1) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    await settle();
+    result.hint = hint.textContent;
+    result.dropped = dots();
+    node().close();
+    return result;
+  }, MD5_ADD);
+  const shown = JSON.stringify(live);
+  check('the editor opens with no dots', live.opened.length === 0, shown);
+  check('typing before the first Save draws no dots', live.typedBeforeSave.length === 0, shown);
+  check('a failed Save dots the checksum', JSON.stringify(live.saved) === '["Checksum"]', shown);
+  check('fixing the checksum clears its dot at once', live.fixed.length === 0, shown);
+  check('blanking the VPS ID dots it at once', JSON.stringify(live.broken) === '["VpsId"]', shown);
+  check('reopening the editor starts quiet again', live.reopened.length === 0 && live.typedAfterReopen.length === 0, shown);
+  check('the second Save dots the checksum again', JSON.stringify(live.savedAgain) === '["Checksum"]', shown);
+  check('a file drop that fills the checksum clears its dot', live.hint.startsWith('MD5 calculated') && live.dropped.length === 0, shown);
+}
+
 await app.close();
 report('yaml-rules-rom');
