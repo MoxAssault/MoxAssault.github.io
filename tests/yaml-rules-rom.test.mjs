@@ -8,7 +8,7 @@
 import { check, report } from './harness.mjs';
 import { startScenarios } from './yaml-scenarios.mjs';
 
-const { app, scenario, PRINT } = await startScenarios();
+const { app, scenario, play, PRINT } = await startScenarios();
 
 const MD5_VPX = 'E6DF3800F7C9286FA195E84034DA683A';
 const MD5_ROM = 'E4C898AFCDCF6FD2A884C77C7FD6C3A9';
@@ -539,6 +539,49 @@ await scenario('v090 and feature issues together', withRomVersion([{ checksum: M
   ],
   download: 'blocked'
 });
+
+// The Additional ROM editor draws its own dots. Since 2026-10-19 their
+// tooltip is one problem per line, like the builder's. The primary ROM listed
+// twice (import-only) puts two problems on the editor's ROM field.
+if (!PRINT) {
+  await play(imported([{ vpsId: 's-4c6GqaOn', checksum: MD5_ADD }, { vpsId: 's-4c6GqaOn', checksum: MD5_ADD }]));
+  const tip = await app.run(async () => {
+    const settle = () => new Promise(resolve => {
+      const frames = n => n ? requestAnimationFrame(() => frames(n - 1)) : setTimeout(resolve, 0);
+      frames(3);
+    });
+    document.getElementById('config-tab-rom').click();
+    await settle();
+    document.querySelector('#config-panel-rom .additional-rom-indicator').click();
+    await settle();
+    document.getElementById('additionalRomSave').click();
+    await settle();
+    const dot = document.getElementById('additionalRomVpsId')?.closest('.field')?.querySelector(':scope > .field-error-dot');
+    const lines = [...(dot?.querySelectorAll('.error-dot-tip > .error-dot-tip-line') || [])].map(line => line.textContent);
+    const result = {
+      tooltip: dot?.dataset.tooltip || '',
+      lines,
+      label: dot?.getAttribute('aria-label') || '',
+      pseudo: dot ? getComputedStyle(dot, '::before').content : ''
+    };
+    // The body scrolls, so a tip above its top edge is cut off under the header.
+    dot?.focus();
+    const box = dot?.querySelector(':scope > .error-dot-tip')?.getBoundingClientRect();
+    const body = dot?.closest('.dialog-body')?.getBoundingClientRect();
+    const spot = dot?.getBoundingClientRect();
+    result.below = box && spot ? box.top >= spot.bottom : false;
+    result.inside = box && body ? box.top >= body.top && box.height > 0 : false;
+    document.getElementById('additionalRomVpsId').closest('dialog')?.close();
+    return result;
+  });
+  const both = ['The primary ROM cannot also be an Additional ROM.', 'That ROM is already in Additional ROMs.'];
+  check('the editor dot\'s tooltip is one problem per line', tip.tooltip === both.join('\n'), JSON.stringify(tip));
+  check('the editor dot shows each problem on its own line', JSON.stringify(tip.lines) === JSON.stringify(both), JSON.stringify(tip.lines));
+  check('the editor dot\'s label still reads as one sentence', tip.label === both.join(' '), tip.label);
+  check('the editor dot\'s plain pseudo tooltip steps aside', tip.pseudo === 'none', tip.pseudo);
+  check('the editor dot\'s tooltip opens below the dot', tip.below === true, JSON.stringify(tip));
+  check('the editor dot\'s tooltip is not cut off under the header', tip.inside === true, JSON.stringify(tip));
+}
 
 await app.close();
 report('yaml-rules-rom');

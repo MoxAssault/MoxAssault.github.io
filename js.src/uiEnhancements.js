@@ -413,8 +413,9 @@
   };
 
   // For the controllers that change state outside an input or change event
-  // (an archive scan finishing, a dialog saving) and redraw at once.
-  window.VPS_ERROR_DOTS = Object.freeze({ refresh: decorateCurrentFields });
+  // (an archive scan finishing, a dialog saving) and redraw at once. setTip
+  // lets a dialog that draws its own dots give them the same tooltip.
+  window.VPS_ERROR_DOTS = Object.freeze({ refresh: decorateCurrentFields, setTip: setDotTip });
 
   document.addEventListener('input', queueStatusRefresh, true);
   document.addEventListener('change', queueStatusRefresh, true);

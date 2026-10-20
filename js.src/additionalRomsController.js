@@ -120,7 +120,9 @@
       wrapper.classList.add('has-field-error');
       const dot = document.createElement('span');
       dot.className = 'field-error-dot';
-      dot.dataset.tooltip = messages.join(' ');
+      // One problem per line, like the builder's dots.
+      dot.dataset.tooltip = messages.join('\n');
+      window.VPS_ERROR_DOTS?.setTip?.(dot, messages);
       dot.setAttribute('role', 'img');
       dot.setAttribute('aria-label', messages.join(' '));
       dot.tabIndex = 0;

@@ -151,6 +151,14 @@
 #additionalRomDialog .field.has-field-error > input {
   border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
 }
+/* The editor's body scrolls, and a scroll box cuts off anything above its top
+   edge, so a tooltip rising from the first field went under the header. Inside
+   the editor every dot tooltip opens downward instead. */
+#additionalRomDialog .error-dot-tip,
+#additionalRomDialog .field-error-dot[data-tooltip]::before {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
 .additional-rom-dialog-actions {
   display: flex;
   justify-content: flex-end;
