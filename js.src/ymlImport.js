@@ -779,11 +779,15 @@
       await selectImportedAssets(values);
       await loadImportedFields(values);
       restoreListValues(values);
-      // vpxMagicAdditional is a customRenderer field with no DOM control,
-      // so loadImportedFields cannot reach it - the same reason
-      // additionalRoms needs its own bridge. Without this, every password
-      // past the third is silently lost on import.
-      window.VPS_MAGIC_PASSWORDS?.applyImported?.(values.vpxMagicAdditional);
+      // The password keys are customRenderer fields with no DOM control, so
+      // loadImportedFields cannot reach them - the same reason additionalRoms
+      // needs its own bridge. Without this, every password is silently lost on
+      // import. The whole ordered list goes over, not one key.
+      window.VPS_MAGIC_PASSWORDS?.applyImported?.(window.VPS_UTILS?.collectVpxMagic?.(values) || []);
+      // vpxExtractExtra is customRenderer too. The flat parser reads its list
+      // fine; it just has no control to land in. (postInstallRename, a list of
+      // objects, goes through ymlFeatureImportBridge instead.)
+      window.VPS_EXTRACT_EXTRA?.applyImported?.(values.vpxExtractExtra);
 
       const ignoredMessage = ignored.length
         ? ` Loaded successfully; ${ignored.length} outdated field${ignored.length === 1 ? ' was' : 's were'} removed.`

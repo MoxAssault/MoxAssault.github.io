@@ -27,6 +27,25 @@
     }).filter(Boolean);
   }
 
+  // postInstallRename rows, tidied, with fully blank rows dropped. A row with
+  // one side missing is kept: the rulebook reports it, and it blocks the
+  // download, so it cannot reach a published file.
+  function normalizeInstallRenames(value) {
+    if (!Array.isArray(value)) return [];
+    return value.map(entry => ({
+      source: utils.tidyInstallPath(entry?.source),
+      destination: utils.tidyInstallPath(entry?.destination)
+    })).filter(entry => entry.source || entry.destination);
+  }
+
+  // vpxExtractExtra paths, tidied, blanks dropped. One plain string (a
+  // hand-written YML with a single path) is read as a list of one; the
+  // builder always writes a list.
+  function normalizeInstallPaths(value) {
+    const list = Array.isArray(value) ? value : (value === undefined || value === null ? [] : [value]);
+    return list.map(path => utils.tidyInstallPath(path)).filter(Boolean);
+  }
+
   const CHECKSUM_KEYS = [
     'vpxChecksum', 'backglassChecksum', 'romChecksum', 'coloredROMChecksum',
     'coloredROMChecksumSecondary', 'pupChecksum', 'diffChecksum', 'altSoundChecksum',
@@ -148,6 +167,14 @@
     if (additionalRoms.length) data.additionalRoms = additionalRoms;
     else delete data.additionalRoms;
 
+    const renames = normalizeInstallRenames(data.postInstallRename);
+    if (renames.length) data.postInstallRename = renames;
+    else delete data.postInstallRename;
+
+    const extractPaths = normalizeInstallPaths(data.vpxExtractExtra);
+    if (extractPaths.length) data.vpxExtractExtra = extractPaths;
+    else delete data.vpxExtractExtra;
+
     ['fps', 'tableYearOverride'].forEach(key => {
       if (data[key] === '' || data[key] === undefined || data[key] === null) {
         delete data[key];
@@ -230,7 +257,9 @@
 
   function serializeObjectList(name, items) {
     let yaml = `${name}:\n`;
-    const propertyOrder = ['vpsId', 'checksum', 'versionOverride', 'urlOverride'];
+    // additionalRoms' four, then postInstallRename's two (source first, the
+    // order Jason's spec writes them).
+    const propertyOrder = ['vpsId', 'checksum', 'versionOverride', 'urlOverride', 'source', 'destination'];
 
     items.forEach(item => {
       const properties = propertyOrder
@@ -323,4 +352,6 @@
   utils.buildYaml = buildYaml;
   utils.highlightYaml = highlightYaml;
   utils.normalizeAdditionalRoms = normalizeAdditionalRoms;
+  utils.normalizeInstallRenames = normalizeInstallRenames;
+  utils.normalizeInstallPaths = normalizeInstallPaths;
 })();

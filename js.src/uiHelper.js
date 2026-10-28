@@ -2081,7 +2081,7 @@
     appendFields(grid, commonFields, values, callbacks.onChange, step.id);
     panel.appendChild(grid);
 
-    if (advancedFields.length) {
+    if (advancedFields.length || step.advancedSection) {
       const advanced = element('details', 'advanced-fields compact-advanced');
       advanced.open = true;
       const advancedSummary = document.createElement('summary');

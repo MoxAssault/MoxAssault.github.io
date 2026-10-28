@@ -90,6 +90,8 @@
   function refreshFeatureUi() {
     window.VPS_ADDITIONAL_ROMS?.render?.();
     window.VPS_MAGIC_PASSWORDS?.render?.();
+    window.VPS_INSTALL_RENAMES?.render?.();
+    window.VPS_EXTRACT_EXTRA?.render?.();
     // Deliberately NOT called here — see applyControlCorrections. This
     // function also runs from capture-phase document input/change listeners
     // (below), which fire before the target field's own handler updates

@@ -658,10 +658,11 @@
     }
   }
 
-  // The builder holds passwords in four places: vpxMagic (the original field),
-  // vpxMagic2 and vpxMagic3 (revealed on demand in Advanced Config), and
-  // vpxMagicAdditional (a list owned by the overflow dialog). The YML carries
-  // ONE key. These two functions are the only place that mapping lives, for
+  // The builder holds passwords in four keys: vpxMagic, vpxMagic2, vpxMagic3
+  // and vpxMagicAdditional (the fourth onward). They were three inline boxes
+  // plus an overflow dialog until 2026-10-27; now one Passwords window edits
+  // them all, and the keys stayed so drafts saved before still restore. The
+  // YML carries ONE key. These two functions are the only place that mapping lives, for
   // the same reason encode and decode are shared: a second copy is how the two
   // halves of a round trip drift apart.
   const VPX_MAGIC_INLINE_KEYS = ['vpxMagic', 'vpxMagic2', 'vpxMagic3'];
@@ -705,6 +706,77 @@
     return encoded.length === 1 ? encoded[0] : encoded;
   }
 
+  // Paths inside the installed table folder: postInstallRename's source and
+  // destination (and vpxExtractExtra's entries). Jason's spec, 2026-10-27:
+  // relative to the table root, never starting or ending with /, no globs, no
+  // absolute paths, no .., no backslashes.
+  //
+  // Tidying is the forgiving half: spaces trimmed and any leading or trailing
+  // / stripped, so /Music becomes Music. It runs when a box is left, on Save
+  // and on import, so a stored path never carries the slashes.
+  function tidyInstallPath(value) {
+    return String(value ?? '').trim().replace(/^\/+|\/+$/g, '').trim();
+  }
+
+  // What is still wrong with a tidied path, in the order a user would fix it.
+  // An empty path is the caller's call (a rename row with one side missing),
+  // so it raises nothing here.
+  function installPathProblems(value) {
+    const path = String(value ?? '');
+    if (!path) return [];
+    const problems = [];
+    if (path.includes('\\')) problems.push('Use / between folders, not \\.');
+    if (/^[A-Za-z]:/.test(path) || path.startsWith('~')) {
+      problems.push('Use a path inside the table folder, not one starting with a drive letter or ~.');
+    }
+    if (path.split('/').includes('..')) problems.push('A path cannot step up a folder with "..".');
+    if (/[*?[\]]/.test(path)) problems.push('Wildcards (* ? [ ]) are not supported. Name the exact file or folder.');
+    if (path.includes('//')) problems.push('A path cannot contain an empty folder (//).');
+    return problems;
+  }
+
+  // The two-click Clear every pop-up shares (Jason, 2026-10-27/28): the first
+  // click only arms the button and says what the next click will do; the
+  // second does it. Reopening the dialog disarms it (resetTwoClick), so a
+  // button never opens already armed. canArm, when given, can refuse the
+  // first click (nothing to clear).
+  function bindTwoClick(button, armedText, action, canArm = () => true) {
+    button.addEventListener('click', () => {
+      if (button.dataset.armed === 'true') {
+        resetTwoClick(button);
+        action();
+        return;
+      }
+      if (!canArm()) return;
+      if (button.dataset.idleText === undefined) button.dataset.idleText = button.textContent;
+      button.dataset.armed = 'true';
+      button.textContent = armedText;
+      twoClickStatus(button).textContent = armedText;
+    });
+  }
+
+  function resetTwoClick(button) {
+    if (!button) return;
+    delete button.dataset.armed;
+    if (button.dataset.idleText !== undefined) button.textContent = button.dataset.idleText;
+    twoClickStatus(button).textContent = '';
+  }
+
+  // A screen reader often stays silent when a focused button only changes its
+  // text, and the next press deletes. So arming is also spoken from a hidden
+  // status line, inside the dialog (a modal hides everything outside it).
+  function twoClickStatus(button) {
+    const host = button.closest('dialog') || document.body;
+    let region = host.querySelector(':scope > .two-click-status');
+    if (!region) {
+      region = document.createElement('span');
+      region.className = 'two-click-status visually-hidden';
+      region.setAttribute('role', 'status');
+      host.appendChild(region);
+    }
+    return region;
+  }
+
   window.VPS_UTILS = {
     escapeHtml,
     humanize,
@@ -738,6 +810,10 @@
     collectVpxMagic,
     distributeVpxMagic,
     buildVpxMagicOutput,
-    VPX_MAGIC_INLINE_KEYS
+    VPX_MAGIC_INLINE_KEYS,
+    tidyInstallPath,
+    installPathProblems,
+    bindTwoClick,
+    resetTwoClick
   };
 })();

@@ -211,7 +211,9 @@
     node.querySelectorAll('[data-additional-rom-close]').forEach(button => button.addEventListener('click', () => node.close()));
     node.addEventListener('click', event => { if (event.target === node) node.close(); });
     node.querySelector('#additionalRomSave').addEventListener('click', save);
-    node.querySelector('#additionalRomRemove').addEventListener('click', removeEditing);
+    // Two clicks, like every pop-up's Clear (Jason, 2026-10-28): the ROM and
+    // its checksum can only be re-entered by hand.
+    utils.bindTwoClick(node.querySelector('#additionalRomRemove'), 'Click Again to Remove', removeEditing);
     const checksumInput = node.querySelector('#additionalRomChecksum');
     checksumInput.addEventListener('input', () => {
       const upper = checksumInput.value.toUpperCase();
@@ -353,6 +355,7 @@
     clearFieldErrorPresentation(node);
     node.querySelector('#additionalRomTitle').textContent = index >= 0 ? 'Edit Additional ROM' : 'Add Additional ROM';
     node.querySelector('#additionalRomRemove').hidden = index < 0;
+    utils.resetTwoClick(node.querySelector('#additionalRomRemove'));
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', '');
     if (overrideActive) node.querySelector('#additionalRomChecksum').focus();

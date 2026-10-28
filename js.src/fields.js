@@ -85,6 +85,10 @@
     },
     {
       id: 'vpx', label: 'VPX', legend: 'VPX File', category: 'tableFiles',
+      // Every advanced field on this tab is a customRenderer, so none survives
+      // into the renderer's field list. This keeps the Advanced Config section
+      // drawn anyway, as the home for the buttons vpxMagicController adds.
+      advancedSection: true,
       fields: [
         { name: 'VPX ID', yml_field: 'vpxVPSId', type: 'str', readonly: true, wide: true },
         {
@@ -106,23 +110,42 @@
           }
         },
         { name: 'VPX Notes', yml_field: 'tableNotes', type: 'str', multiline: true, wide: true },
-        // Standard text in the UI and in state; written to the YML
-        // base64-encoded by VPS_UTILS.encodeVpxMagic. `advanced: true` is what
-        // creates the Advanced Config section on this tab, which had none.
-        { name: 'Password', yml_field: 'vpxMagic', type: 'str', wide: true, advanced: true },
-        // Slots 2 and 3 are revealed on demand by vpxMagicController's "+"
-        // control and stay hidden until added. All four slots collapse into the
-        // single vpxMagic key at serialize time, so none of these three may
-        // ever reach the YML - see OMIT_FROM_YAML below, and the explicit
+        // The passwords. Plain text in the UI and in state; written to the YML
+        // base64-encoded by VPS_UTILS.encodeVpxMagic. Since 2026-10-27 none of
+        // them is a field on the tab: all four keys are edited together in the
+        // Passwords window vpxMagicController opens from Advanced Config
+        // (customRenderer, so productionUiExtensions strips them before the
+        // generic renderer). They collapse into the single vpxMagic key at
+        // serialize time, so vpxMagic2, vpxMagic3 and vpxMagicAdditional may
+        // never reach the YML - see OMIT_FROM_YAML below, and the explicit
         // deletes in prepareData, which matter because vpxMagicAdditional
         // holds PLAIN TEXT passwords.
-        { name: 'Password 2', yml_field: 'vpxMagic2', type: 'str', wide: true, advanced: true },
-        { name: 'Password 3', yml_field: 'vpxMagic3', type: 'str', wide: true, advanced: true },
+        { name: 'Password', yml_field: 'vpxMagic', type: 'str', advanced: true, customRenderer: true },
+        { name: 'Password 2', yml_field: 'vpxMagic2', type: 'str', advanced: true, customRenderer: true },
+        { name: 'Password 3', yml_field: 'vpxMagic3', type: 'str', advanced: true, customRenderer: true },
         {
-          // customRenderer: rendered by vpxMagicController, not uiHelper
-          // (productionUiExtensions strips these before the generic renderer).
           name: 'Additional Passwords', yml_field: 'vpxMagicAdditional',
           type: 'additional-passwords', advanced: true, customRenderer: true
+        },
+        // Ordered moves inside the installed table folder, each { source,
+        // destination }, edited in the window vpxRenamesController opens from
+        // Advanced Config (2026-10-27). Only meaningful alongside an asset that
+        // brings its own folders, so it is live only while one of
+        // activeWithSteps is on: otherwise the button is disabled and the key
+        // is cleared (main.js inactiveFieldKeys, Jason, 2026-10-28).
+        {
+          name: 'Post-install Renames', yml_field: 'postInstallRename',
+          type: 'install-renames', advanced: true, customRenderer: true,
+          activeWithSteps: ['pup', 'altSound', 'dmd']
+        },
+        // Extra folders to extract from inside the archive, a list of paths
+        // relative to the table root, edited in the window
+        // vpxExtractController opens (2026-10-27). Live under the same rule as
+        // postInstallRename above.
+        {
+          name: 'Extract Extra Paths', yml_field: 'vpxExtractExtra',
+          type: 'install-paths', advanced: true, customRenderer: true,
+          activeWithSteps: ['pup', 'altSound', 'dmd']
         }
       ]
     },
@@ -342,6 +365,8 @@
     'specialDMDOverride',
     // Password slots 2+ are builder-only state. They are collapsed into the
     // single vpxMagic key by prepareData; the raw keys must never be written.
+    // __vpxMagicSlots counted the inline password boxes, gone since
+    // 2026-10-27; nothing writes it now, but drafts saved before still carry it.
     'vpxMagic2',
     'vpxMagic3',
     'vpxMagicAdditional',

@@ -136,16 +136,17 @@
   function bindDialogs() {
     dom.helpBtn.addEventListener('click', () => openDialog(dom.helpDialog));
     dom.recentBtn.addEventListener('click', () => {
+      window.VPS_UTILS.resetTwoClick(dom.clearHistoryBtn);
       renderRecentDialog();
       openDialog(dom.recentDialog);
     });
-    dom.clearHistoryBtn.addEventListener('click', () => {
-      if (!state.recent.length) return;
-      if (!window.confirm('Clear all recent build history? This cannot be undone.')) return;
+    // Two clicks, like every pop-up's Clear (Jason, 2026-10-28), instead of the
+    // browser's confirm box. Nothing to clear, nothing to arm.
+    window.VPS_UTILS.bindTwoClick(dom.clearHistoryBtn, 'Click Again to Clear History', () => {
       state.recent = [];
       removeStorage(STORAGE.recent);
       renderRecentDialog();
-    });
+    }, () => state.recent.length > 0);
 
     document.querySelectorAll('[data-close-dialog]').forEach(button => {
       button.addEventListener('click', () => button.closest('dialog')?.close());
@@ -672,11 +673,15 @@
     // Clear. This used to name PUP explicitly, which left Alt Sound's list
     // (and later the DMD one) behind after a section was cleared.
     delete state.values[`__${step.id}ArchiveDirectories`];
-    // Slots 2 and 3 collapse back out of sight, and the overflow list goes
-    // with them - neither is reachable through step.fields alone.
+    // The password keys are customRenderer fields, and Clear section is handed
+    // the tab's RENDERED step, which productionUiExtensions has stripped them
+    // from - so step.fields alone would leave every password behind.
+    // __vpxMagicSlots is the old inline-box count a draft saved before
+    // 2026-10-27 may still carry. postInstallRename and vpxExtractExtra are
+    // stripped the same way.
     if (step.id === 'vpx') {
-      delete state.values.__vpxMagicSlots;
-      delete state.values.vpxMagicAdditional;
+      ['vpxMagic', 'vpxMagic2', 'vpxMagic3', 'vpxMagicAdditional', '__vpxMagicSlots', 'postInstallRename', 'vpxExtractExtra']
+        .forEach(key => { delete state.values[key]; });
     }
     if (!preserveBundle && step.bundleField) delete state.values[step.bundleField];
     if (!preserveOverride && step.overrideField) delete state.values[step.overrideField];
@@ -853,7 +858,28 @@
     dom.previewStatusDot.setAttribute('aria-label', `Overall asset status: ${overall.label}`);
   }
 
+  // A field with activeWithSteps (postInstallRename, vpxExtractExtra) only
+  // means something while one of those tabs is on. With none on, its value is
+  // cleared (Jason, 2026-10-28: removing the last PUP Pack, Alt Sound or DMD
+  // takes the saved paths and their count with it; until then they were kept
+  // and only left out of the YML). Pruned here, on every preview, because
+  // every change that can turn a tab off reaches it, and so does a value that
+  // lands while the tabs are off (an import's rows, applied after the import).
+  function inactiveFieldKeys() {
+    const keys = [];
+    WIZARD_STEPS.forEach(step => (step.fields || []).forEach(field => {
+      if (!field.activeWithSteps) return;
+      const live = field.activeWithSteps.some(id => {
+        const owner = WIZARD_STEPS.find(candidate => candidate.id === id);
+        return owner && isStepEnabled(owner);
+      });
+      if (!live) keys.push(field.yml_field);
+    }));
+    return keys;
+  }
+
   function updatePreview() {
+    inactiveFieldKeys().forEach(key => { delete state.values[key]; });
     state.yaml = buildYaml(state.values, { omit: OMIT_FROM_YAML });
     dom.previewYaml.innerHTML = highlightYaml(state.yaml);
     const lineCount = state.yaml.trimEnd().split('\n').length;

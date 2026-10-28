@@ -308,6 +308,17 @@
         add('rom', 'additionalRoms', `Additional ROM ${index + 1} needs attention`, message);
       });
     });
+
+    // Post-install Renames (2026-10-27): drawn on the VPX tab's button. Only
+    // while a PUP Pack, Alt Sound or DMD tab is on; otherwise the key is not
+    // written, so there is nothing to block.
+    window.VPS_INSTALL_RENAMES?.issues?.(ctx.isStepEnabled).forEach(({ index, message }) => {
+      add('vpx', 'postInstallRename', `Post-install Rename ${index + 1} needs attention`, message);
+    });
+    // Extract Extra Paths, under the same rule, drawn on its own button.
+    window.VPS_EXTRACT_EXTRA?.issues?.(ctx.isStepEnabled).forEach(({ index, message }) => {
+      add('vpx', 'vpxExtractExtra', `Extract Extra Path ${index + 1} needs attention`, message);
+    });
     return output;
   }
 

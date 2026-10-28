@@ -7,102 +7,54 @@
 
   const { WIZARD_STEPS } = fields;
 
-  // The three slots that live directly in Advanced Config. Slot 1 is always
-  // shown; 2 and 3 are revealed by the "+" control. Anything past these
-  // overflows into the dialog below.
+  // The VPX passwords. Since 2026-10-27 (Jason) they are not fields on the
+  // tab: a Passwords button in Advanced Config opens one window that edits
+  // every password, and the button shows how many are saved. They used to be
+  // three inline boxes behind a "+" plus an overflow dialog for the fourth on.
+  //
+  // State still holds them in the same four keys (vpxMagic, vpxMagic2,
+  // vpxMagic3, vpxMagicAdditional), so a draft saved before restores as it
+  // was, and the YML, the importer and the archive unlocker are untouched.
+  // collectVpxMagic and distributeVpxMagic on VPS_UTILS are the only place
+  // the list-to-keys mapping lives; this file never spells it out itself.
   const SLOT_KEYS = utils.VPX_MAGIC_INLINE_KEYS || ['vpxMagic', 'vpxMagic2', 'vpxMagic3'];
-  const INLINE_SLOTS = SLOT_KEYS.length;
+  const ALL_KEYS = [...SLOT_KEYS, 'vpxMagicAdditional'];
 
-  function definition() {
+  function definition(key) {
     return WIZARD_STEPS.find(step => step.id === 'vpx')?.fields
-      .find(field => field.yml_field === 'vpxMagicAdditional') || { yml_field: 'vpxMagicAdditional' };
+      .find(field => field.yml_field === key) || { yml_field: key };
   }
 
   function values() {
     return runtime.state.values || {};
   }
 
+  // Every saved password in order, blanks dropped.
   function entries() {
-    const list = values().vpxMagicAdditional;
-    return Array.isArray(list) ? list.map(entry => String(entry ?? '')) : [];
+    return utils.collectVpxMagic(values());
   }
 
   function commit(key, value) {
-    runtime.state.callbacks?.onChange?.(key, value, definition());
+    runtime.state.callbacks?.onChange?.(key, value, definition(key));
   }
 
-  // Every password in order, inline slots first, blanks preserved so an index
-  // means the same thing here as it does on screen.
-  //
-  // Only the VISIBLE slots are included. A hidden third slot is not a row the
-  // user can see, so counting it would make removing one of two rows leave two
-  // behind - the same off-by-one that made an empty slot 2 take slot 3 with it.
-  function currentList() {
-    const source = values();
-    return [
-      ...SLOT_KEYS.slice(0, slots()).map(key => String(source[key] ?? '')),
-      ...entries()
-    ];
-  }
-
-  // Push state back into the inline inputs. Called ONLY from applyList, never
-  // from render(): render() also runs from the capture-phase input listeners
-  // in productionUiExtensions, which fire before the field's own handler has
-  // committed, so syncing there would clobber the character just typed.
-  function syncSlotInputs() {
-    const source = values();
-    SLOT_KEYS.forEach(key => {
-      const input = document.getElementById(`field-${key}`);
-      if (input && input !== document.activeElement) input.value = String(source[key] ?? '');
-    });
-  }
-
-  // Write a whole ordered list back across the slots, closing every gap. This
-  // is what makes removing Password 2 shift Password 3 up into its place.
+  // Writes a whole ordered list back across the four keys.
   function applyList(list) {
-    // Blanks are preserved here on purpose. They are dropped at serialize time
-    // by collectVpxMagic, so an empty slot costs the YML nothing - but the row
-    // COUNT has to come from how many rows remain, not how many hold a value.
-    // Counting filled entries cannot tell two empty rows from one, which made
-    // removing an empty slot 2 collapse an empty slot 3 along with it.
-    const next = list.map(entry => String(entry ?? ''));
-    SLOT_KEYS.forEach((key, index) => commit(key, next[index] ?? ''));
-    const overflow = next.slice(INLINE_SLOTS).map(entry => entry.trim()).filter(Boolean);
-    commit('vpxMagicAdditional', overflow.length ? overflow : undefined);
-    commit('__vpxMagicSlots', Math.max(1, Math.min(INLINE_SLOTS, next.length)));
-    syncSlotInputs();
+    const target = utils.distributeVpxMagic(list, {});
+    ALL_KEYS.forEach(key => commit(key, target[key]));
     render();
     runtime.schedule();
   }
 
-  // How many inline slots are showing. Held in state so it survives the
-  // re-render a tab switch causes, and floored by what is actually filled so
-  // an import carrying three passwords reveals three fields.
-  function slots() {
-    const source = values();
-    let filled = 1;
-    SLOT_KEYS.forEach((key, index) => {
-      if (String(source[key] ?? '').trim()) filled = index + 1;
-    });
-    const stored = Number(source.__vpxMagicSlots) || 0;
-    return Math.min(INLINE_SLOTS, Math.max(1, filled, stored));
-  }
-
-  // The overflow list is a customRenderer field, so it has no DOM control for
-  // ymlImport's setField to drive - exactly the reason additionalRoms needs its
-  // own import bridge. Without this, passwords past slot 3 are silently dropped
-  // on load. Called from ymlImport once loadImportedFields has finished.
+  // The keys are customRenderer fields, so they have no DOM control for
+  // ymlImport's setField to drive. The importer hands the whole list over
+  // here once loadImportedFields has finished.
   function applyImported(list) {
-    const clean = (Array.isArray(list) ? list : [])
-      .map(entry => String(entry ?? '').trim())
-      .filter(Boolean);
-    commit('vpxMagicAdditional', clean.length ? clean : undefined);
-    render();
-    runtime.schedule();
+    applyList(Array.isArray(list) ? list : []);
   }
 
-  // ── the overflow dialog ──────────────────────────────────────────────────
-  // The dialog edits a working copy and commits only on Save, so a half-typed
+  // ── the window ───────────────────────────────────────────────────────────
+  // It edits a working copy and commits only on Save, so a half-typed
   // password never reaches state, and Cancel genuinely discards.
   let draft = [];
 
@@ -115,13 +67,13 @@
     node.setAttribute('aria-labelledby', 'vpxMagicTitle');
     node.innerHTML = `
       <div class="dialog-header">
-        <div><p class="eyebrow">VPX Configuration</p><h2 id="vpxMagicTitle">Additional Passwords</h2></div>
-        <button class="dialog-close" data-vpx-magic-close type="button" aria-label="Close additional passwords">&times;</button>
+        <div><p class="eyebrow">VPX Configuration</p><h2 id="vpxMagicTitle">Passwords</h2></div>
+        <button class="dialog-close" data-vpx-magic-close type="button" aria-label="Close passwords">&times;</button>
       </div>
       <div class="dialog-body vpx-magic-body">
-        <p class="vpx-magic-note">Passwords ${INLINE_SLOTS + 1} and up. The first ${INLINE_SLOTS} stay on the VPX tab.</p>
-        <div class="field-grid vpx-magic-list" id="vpxMagicList"></div>
-        <button class="text-btn vpx-magic-add-row" id="vpxMagicAddRow" type="button">+ Add another password</button>
+        <p class="vpx-magic-note">Opens password-protected archives dropped on this table. Written to the YML encoded, never as typed.</p>
+        <div class="vpx-magic-list" id="vpxMagicList"></div>
+        <button class="text-btn vpx-magic-add-row" id="vpxMagicAddRow" type="button">+ Add Password</button>
         <div class="vpx-magic-dialog-actions">
           <button class="text-btn danger-btn" id="vpxMagicClear" type="button" hidden>Clear</button>
           <button class="text-btn" data-vpx-magic-close type="button">Cancel</button>
@@ -135,7 +87,9 @@
     });
     node.addEventListener('click', event => { if (event.target === node) cancel(); });
     node.querySelector('#vpxMagicSave').addEventListener('click', save);
-    node.querySelector('#vpxMagicClear').addEventListener('click', clearAll);
+    // Clear deletes every saved password and they can only be re-typed, so it
+    // takes a second click: the first only arms it.
+    utils.bindTwoClick(node.querySelector('#vpxMagicClear'), 'Click Again to Clear All', () => clearAll());
     node.querySelector('#vpxMagicAddRow').addEventListener('click', () => {
       draft.push('');
       paint();
@@ -148,8 +102,8 @@
     const list = dialog().querySelector('#vpxMagicList');
     list.replaceChildren();
     draft.forEach((value, index) => {
-      const controlId = `vpxMagicExtra${index}`;
-      const name = `Password ${INLINE_SLOTS + index + 1}`;
+      const controlId = `vpxMagicEntry${index}`;
+      const name = `Password ${index + 1}`;
       const wrapper = document.createElement('div');
       wrapper.className = 'field field-wide vpx-magic-row';
 
@@ -175,11 +129,14 @@
       remove.className = 'vpx-magic-remove';
       remove.textContent = '−';
       remove.dataset.tooltip = 'REMOVE PASSWORD';
-      remove.setAttribute('aria-label', `Remove password ${INLINE_SLOTS + index + 1}`);
+      remove.setAttribute('aria-label', `Remove password ${index + 1}`);
       remove.addEventListener('click', () => {
         draft.splice(index, 1);
         if (!draft.length) draft.push('');
         paint();
+        // paint() rebuilt the list, so the button that had focus is gone; put
+        // the keyboard on the row that took its place.
+        dialog().querySelectorAll('#vpxMagicList input')[Math.min(index, draft.length - 1)]?.focus();
       });
       row.appendChild(remove);
 
@@ -193,8 +150,11 @@
     if (!draft.length) draft.push('');
     paint();
     const node = dialog();
-    // Clear only makes sense once something has actually been saved.
-    node.querySelector('#vpxMagicClear').hidden = entries().length === 0;
+    // Clear only makes sense once something has actually been saved, and it
+    // always opens unarmed.
+    const clear = node.querySelector('#vpxMagicClear');
+    clear.hidden = entries().length === 0;
+    utils.resetTwoClick(clear);
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', 'open');
     node.querySelector('#vpxMagicList input')?.focus();
@@ -209,121 +169,67 @@
     const kept = draft.map(entry => String(entry ?? '').trim()).filter(Boolean);
     draft = [];
     dialog().close?.();
-    commit('vpxMagicAdditional', kept.length ? kept : undefined);
-    render();
-    runtime.schedule();
+    applyList(kept);
   }
 
   function clearAll() {
     draft = [];
     dialog().close?.();
-    commit('vpxMagicAdditional', undefined);
-    render();
-    runtime.schedule();
+    applyList([]);
   }
 
-  // ── the inline controls on the VPX tab ───────────────────────────────────
-  function wrapperFor(key) {
-    return document.getElementById(`field-${key}`)?.closest('.field') || null;
-  }
-
-  function keyIndicatorSvg() {
+  // ── the button in Advanced Config ────────────────────────────────────────
+  function keyIconSvg() {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="3.2"/><path d="M11 12h10M18 12v3.5M21 12v2.5"/></svg>';
   }
 
-  // Slots 2 and 3 get their own remove control, matching the dialog's rows.
-  // Slot 1 does not: it is the original Password field and always shows.
-  function decorateSlot(key, index) {
-    const wrapper = wrapperFor(key);
-    if (!wrapper || index === 0) return;
-    if (wrapper.querySelector('.vpx-magic-slot-remove')) return;
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'vpx-magic-slot-remove';
-    remove.textContent = '−';
-    remove.dataset.tooltip = 'REMOVE PASSWORD';
-    remove.setAttribute('aria-label', `Remove password ${index + 1}`);
-    remove.addEventListener('click', event => {
-      event.preventDefault();
-      event.stopPropagation();
-      const next = currentList();
-      next.splice(index, 1);
-      applyList(next);
-    });
-    wrapper.classList.add('vpx-magic-slot');
-    wrapper.appendChild(remove);
+  // The row every Advanced Config button sits in, created once per render of
+  // the tab. It lives inside the section's own grid, which already carries
+  // the section's padding and divider.
+  function actionRow() {
+    const grid = document.querySelector('#config-panel-vpx .compact-advanced > .advanced-grid');
+    if (!grid) return null;
+    let row = grid.querySelector(':scope > .advanced-actions');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'advanced-actions';
+      grid.appendChild(row);
+    }
+    return row;
   }
 
+  // Runs on every input and change in the app (productionUiExtensions), so it
+  // only builds the button once and otherwise just updates its count.
   function render() {
-    const panel = document.getElementById('config-panel-vpx');
-    const advanced = panel?.querySelector('.compact-advanced');
-    const summary = advanced?.querySelector(':scope > summary');
-    if (!advanced || !summary || !runtime.state.callbacks) return;
+    const row = actionRow();
+    if (!row || !runtime.state.callbacks) return;
 
-    // Reuses the Additional ROMs control classes deliberately: same affordance
-    // in the same place on a different tab, and a second set of near-identical
-    // rules is how those two would drift apart visually.
-    summary.classList.add('additional-rom-controls');
-
-    const showing = slots();
-    SLOT_KEYS.forEach((key, index) => {
-      const wrapper = wrapperFor(key);
-      if (wrapper) wrapper.hidden = index >= showing;
-      if (index < showing) decorateSlot(key, index);
-    });
-
-    let add = summary.querySelector('.vpx-magic-add');
-    if (!add) {
-      add = document.createElement('button');
-      add.type = 'button';
-      add.className = 'additional-rom-add vpx-magic-add';
-      add.textContent = '+';
-      add.addEventListener('click', event => {
+    let button = row.querySelector('#vpxPasswordsBtn');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.id = 'vpxPasswordsBtn';
+      button.className = 'advanced-action-btn';
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.innerHTML = `${keyIconSvg()}<span class="advanced-action-label">Passwords</span><span class="advanced-action-count" aria-hidden="true" hidden></span>`;
+      button.addEventListener('click', event => {
         event.preventDefault();
-        event.stopPropagation();
-        const current = slots();
-        // The first two clicks reveal a field in place; past that the overflow
-        // dialog owns every further password.
-        if (current < INLINE_SLOTS) {
-          commit('__vpxMagicSlots', current + 1);
-          render();
-          runtime.schedule();
-          return;
-        }
         open();
       });
-      summary.appendChild(add);
+      row.appendChild(button);
     }
-    const nextIsDialog = showing >= INLINE_SLOTS;
-    add.dataset.tooltip = nextIsDialog ? 'ADDITIONAL PASSWORDS' : 'ADD PASSWORD';
-    add.setAttribute('aria-label', nextIsDialog ? 'Open additional passwords' : 'Add another password');
 
-    const extra = entries().filter(Boolean);
-    let indicator = summary.querySelector('.vpx-magic-indicator');
-    if (!extra.length) {
-      indicator?.remove();
-      return;
-    }
-    if (!indicator) {
-      indicator = document.createElement('button');
-      indicator.type = 'button';
-      indicator.className = 'additional-rom-indicator vpx-magic-indicator';
-      indicator.innerHTML = keyIndicatorSvg();
-      indicator.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        open();
-      });
-      summary.insertBefore(indicator, add);
-    }
-    // Never the password itself, only how many: this tooltip renders into the
-    // page and would otherwise put a secret on screen next to a closed field.
-    const count = `${extra.length} additional password${extra.length === 1 ? '' : 's'}`;
-    indicator.dataset.tooltip = count.toUpperCase();
-    indicator.setAttribute('aria-label', `${count}. Activate to edit.`);
+    // Never a password itself, only how many: the count renders on the page.
+    const count = entries().length;
+    const badge = button.querySelector('.advanced-action-count');
+    badge.hidden = count === 0;
+    badge.textContent = String(count);
+    button.setAttribute('aria-label', count
+      ? `Passwords, ${count} saved. Opens the passwords window.`
+      : 'Passwords, none saved. Opens the passwords window.');
   }
 
-  const api = Object.freeze({ entries, open, render, slots, applyImported, applyList });
+  const api = Object.freeze({ entries, open, render, applyImported, applyList });
   window.VPS_MAGIC_PASSWORDS = api;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dialog, { once: true });
   else dialog();

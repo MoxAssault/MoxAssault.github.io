@@ -108,6 +108,48 @@
     return { found: true, entries, strippedText: stripped, tableId: extractTableId(stripped) };
   }
 
+  // postInstallRename is a list of { source, destination }, which the flat
+  // importer cannot read either (2026-10-27). Same treatment as additionalRoms:
+  // the block is cut out before the original importer runs and its rows are
+  // handed to vpxRenamesController afterwards.
+  const RENAME_KEYS = new Set(['source', 'destination']);
+
+  function parseRenames(lines) {
+    const entries = [];
+    let current = null;
+    lines.forEach((line, offset) => {
+      if (!line.trim() || /^\s*#/.test(line)) return;
+      const itemMatch = line.match(/^\s*-\s+([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
+      const propertyMatch = itemMatch ? null : line.match(/^\s{2,}([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
+      const match = itemMatch || propertyMatch;
+      if (!match || (!itemMatch && !current)) {
+        throw new Error(`Could not parse the postInstallRename block near line ${offset + 1}.`);
+      }
+      if (!RENAME_KEYS.has(match[1])) throw new Error(`Unsupported postInstallRename field “${match[1]}” near line ${offset + 1}.`);
+      if (itemMatch) {
+        if (current) entries.push(current);
+        current = {};
+      }
+      current[match[1]] = parseScalar(match[2]);
+    });
+    if (current) entries.push(current);
+    return entries.map(entry => ({
+      source: String(entry.source || ''),
+      destination: String(entry.destination || '')
+    }));
+  }
+
+  function extractRenameBlock(normalized) {
+    const lines = normalized.split('\n');
+    const start = lines.findIndex(line => /^postInstallRename:\s*(?:\[\s*\])?\s*(?:#.*)?$/.test(line));
+    if (start < 0) return { found: false, entries: [], strippedText: normalized };
+    let end = start + 1;
+    while (end < lines.length && (!lines[end].trim() || /^\s/.test(lines[end]))) end += 1;
+    const inlineEmpty = /^postInstallRename:\s*\[\s*\]/.test(lines[start]);
+    const entries = inlineEmpty ? [] : parseRenames(lines.slice(start + 1, end));
+    return { found: true, entries, strippedText: [...lines.slice(0, start), ...lines.slice(end)].join('\n') };
+  }
+
   function transformedFile(source, text) {
     return new File([text], source.name, {
       type: source.type || 'text/yaml',
@@ -177,17 +219,20 @@
     processing = true;
     try {
       let extracted;
+      let renames;
       try {
         extracted = extractFeatureBlock(await source.text());
+        renames = extractRenameBlock(extracted.strippedText);
       } catch (error) {
-        console.warn('Additional ROM import preprocessing failed; using the original importer error path.', error);
+        console.warn('Additional ROM / rename import preprocessing failed; using the original importer error path.', error);
         dispatchToOriginal(source);
         return;
       }
 
-      const nextFile = extracted.found ? transformedFile(source, extracted.strippedText) : source;
+      const found = extracted.found || renames.found;
+      const nextFile = found ? transformedFile(source, renames.strippedText) : source;
       dispatchToOriginal(nextFile);
-      if (!extracted.found) return;
+      if (!found) return;
 
       try {
         await waitForOriginalImport(extracted.tableId);
@@ -195,8 +240,11 @@
         return;
       }
 
-      runtime.state.callbacks.onChange('additionalRoms', extracted.entries, additionalRomsDefinition());
-      window.VPS_ADDITIONAL_ROMS?.render?.();
+      if (extracted.found) {
+        runtime.state.callbacks.onChange('additionalRoms', extracted.entries, additionalRomsDefinition());
+        window.VPS_ADDITIONAL_ROMS?.render?.();
+      }
+      if (renames.found) window.VPS_INSTALL_RENAMES?.applyImported?.(renames.entries);
       window.VPS_PRODUCTION_UI_EXTENSIONS?.scheduleControlCorrections?.();
     } finally {
       processing = false;

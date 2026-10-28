@@ -108,6 +108,9 @@
           control.removeAttribute('aria-describedby');
           control.removeAttribute('aria-invalid');
         });
+      } else if (wrapper.matches('.advanced-action-btn')) {
+        wrapper.removeAttribute('aria-describedby');
+        wrapper.removeAttribute('aria-invalid');
       } else {
         restoreControlLabel(wrapper.querySelector('input, textarea, select, button, .readonly-id'));
       }
@@ -129,11 +132,18 @@
   // dot sits on the Additional ROM indicator inside it (the + button when there
   // is no indicator). Until 2026-10-11 it was a pseudo-element on the row: it
   // sat on the row's corner and popped its tooltip from anywhere on the row.
+  //
+  // An Advanced Config button (VPX tab, 2026-10-27) is its own wrapper and
+  // host: its dot goes inside it, on the top-left corner, because the count
+  // owns the top-right.
   function presentErrorDot(wrapper, entries) {
-    const inButton = wrapper.matches('.additional-rom-controls');
-    const host = inButton
-      ? wrapper.querySelector('.additional-rom-indicator') || wrapper.querySelector('.additional-rom-add')
-      : wrapper;
+    const actionButton = wrapper.matches('.advanced-action-btn');
+    const inButton = actionButton || wrapper.matches('.additional-rom-controls');
+    const host = actionButton
+      ? wrapper
+      : inButton
+        ? wrapper.querySelector('.additional-rom-indicator') || wrapper.querySelector('.additional-rom-add')
+        : wrapper;
     if (!host) return null;
     let dot = host.querySelector(':scope > .field-error-dot');
     if (!dot) {
@@ -174,6 +184,13 @@
       dot.id = 'additional-rom-error-dot';
       dot.parentElement.setAttribute('aria-describedby', dot.id);
       dot.parentElement.setAttribute('aria-invalid', 'true');
+      return dot;
+    }
+    if (wrapper.matches('.advanced-action-btn')) {
+      if (!dot) return null;
+      dot.id = `${wrapper.id}-error-dot`;
+      wrapper.setAttribute('aria-describedby', dot.id);
+      wrapper.setAttribute('aria-invalid', 'true');
       return dot;
     }
 
@@ -263,7 +280,11 @@
       // Additional ROM errors on it whenever the VPX tab was open (2026-10-04).
       const wrapper = issue.fieldName === 'additionalRoms'
         ? document.querySelector('#config-panel-rom .additional-rom-controls')
-        : document.getElementById(`field-${issue.fieldName}`)?.closest('.field');
+        : issue.fieldName === 'postInstallRename'
+          ? document.querySelector('#config-panel-vpx #vpxRenamesBtn')
+          : issue.fieldName === 'vpxExtractExtra'
+            ? document.querySelector('#config-panel-vpx #vpxExtractBtn')
+            : document.getElementById(`field-${issue.fieldName}`)?.closest('.field');
       if (wrapper && container.contains(wrapper)) add(wrapper, issue);
     });
 

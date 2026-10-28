@@ -204,6 +204,7 @@
       <div class="dialog-body checksum-additional-body">
         <div class="checksum-additional-list" id="checksumAdditionalList"></div>
         <div class="checksum-additional-dialog-actions">
+          <button class="text-btn danger-btn" id="checksumAdditionalClear" type="button" hidden>Clear</button>
           <button class="text-btn" data-checksum-additional-close type="button">Cancel</button>
           <button class="text-btn preview-primary" id="checksumAdditionalSave" type="button">Save</button>
         </div>
@@ -212,6 +213,9 @@
     node.querySelectorAll('[data-checksum-additional-close]').forEach(button => button.addEventListener('click', () => node.close()));
     node.addEventListener('click', event => { if (event.target === node) node.close(); });
     node.querySelector('#checksumAdditionalSave').addEventListener('click', save);
+    // Two clicks, like every pop-up's Clear (Jason, 2026-10-28). Takes every
+    // additional checksum; the primary in the field itself stays.
+    utils.bindTwoClick(node.querySelector('#checksumAdditionalClear'), 'Click Again to Clear All', clearAll);
     return node;
   }
 
@@ -223,6 +227,9 @@
     container.replaceChildren();
     additionalValues(yml_field).forEach(value => addRow(container, value));
     addRow(container, '');
+    const clear = node.querySelector('#checksumAdditionalClear');
+    clear.hidden = additionalValues(yml_field).length === 0;
+    utils.resetTwoClick(clear);
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', '');
     container.querySelector('input')?.focus();
@@ -244,6 +251,14 @@
     if (hasError) return;
     commit(activeField, values);
     node.close();
+    render();
+    runtime.schedule();
+  }
+
+  function clearAll() {
+    if (!activeField) return;
+    commit(activeField, []);
+    dialog().close();
     render();
     runtime.schedule();
   }

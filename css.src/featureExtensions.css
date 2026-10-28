@@ -425,22 +425,135 @@
   content: '';
 }
 
-/* VPX password overflow dialog. Deliberately mirrors the Additional ROMs
-   dialog above: same affordance in the same place on a different tab, so the
-   two read as one system rather than two conventions. The "+" control and the
-   indicator reuse the .additional-rom-* rules outright for the same reason. */
+/* Advanced Config buttons that each open their own window (VPX tab, since
+   2026-10-27): the icon and the name, with a count of saved entries pinned to
+   the top-right corner like the checksum button's bubble. The corner is the
+   count's, so a button's error dot goes top-left. The row spans the section's
+   grid, which already carries its padding and divider. */
+.advanced-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.advanced-action-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  color: var(--text);
+  font: 700 12px/1 "Inter", sans-serif;
+  cursor: pointer;
+}
+.advanced-action-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.advanced-action-btn:hover,
+.advanced-action-btn:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+/* content-box, as the checksum ::after gets by default: base.css makes every
+   element border-box, which squeezed the padding inside and drew a 12px circle
+   instead of the 16x12 pill. */
+.advanced-action-count {
+  box-sizing: content-box;
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 700 8px/1 "Inter", sans-serif;
+}
+.advanced-action-count[hidden] { display: none; }
+/* Fixed order whichever controller renders its button first. */
+#vpxPasswordsBtn { order: 1; }
+#vpxRenamesBtn { order: 2; }
+#vpxExtractBtn { order: 3; }
+/* The red dot goes top-left: the count owns the top-right (Jason, 2026-10-27).
+   Inside the button, so it is the button's to announce (aria-describedby). */
+.advanced-action-btn > .field-error-dot {
+  z-index: 510;
+  right: auto;
+  left: -4px;
+  border-color: var(--panel-raised);
+}
+.advanced-action-btn > .field-error-dot > .error-dot-tip {
+  right: auto;
+  left: -2px;
+  z-index: 560;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* Disabled until a PUP Pack, Alt Sound or DMD tab is on. aria-disabled, so it
+   still takes hover and focus, and the tooltip can say why. Faded by colour,
+   not opacity: opacity would fade the tooltip drawn inside it too. */
+.advanced-action-btn[aria-disabled="true"] {
+  border-style: dashed;
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+.advanced-action-btn[aria-disabled="true"]:hover,
+.advanced-action-btn[aria-disabled="true"]:focus-visible {
+  border-color: var(--panel-line-strong);
+  background: var(--panel-raised);
+}
+.advanced-action-btn[aria-disabled="true"] svg { stroke: currentColor; }
+.advanced-action-btn[data-tooltip]::before {
+  position: absolute;
+  z-index: 560;
+  left: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: max-content;
+  max-width: 220px;
+  padding: 5px 7px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 700 10px/1.2 "Inter", sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+.advanced-action-btn[data-tooltip]:hover::before,
+.advanced-action-btn[data-tooltip]:focus-visible::before { display: block; }
+
+/* The Passwords window. Deliberately mirrors the Additional ROMs dialog above,
+   so the two read as one system rather than two conventions. */
 .vpx-magic-dialog { width: min(560px, calc(100% - 28px)); }
 .vpx-magic-body { display: grid; gap: 12px; }
 .vpx-magic-note { margin: 0; color: var(--text-faint); font-size: 11.5px; }
-.vpx-magic-list { grid-template-columns: 1fr; gap: 10px; padding-top: 0; }
+/* Not a .field-grid: category.css forces every field-grid into two columns
+   and outranks a one-column rule here, which split the rows into two columns
+   at phone width. */
+.vpx-magic-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .vpx-magic-row-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .vpx-magic-row-controls input { flex: 1 1 auto; min-width: 0; }
-.vpx-magic-remove,
-.vpx-magic-slot-remove {
+.vpx-magic-remove {
   flex: 0 0 auto;
   width: 30px;
   min-height: 30px;
@@ -454,21 +567,10 @@
   cursor: pointer;
 }
 .vpx-magic-remove:hover,
-.vpx-magic-remove:focus-visible,
-.vpx-magic-slot-remove:hover,
-.vpx-magic-slot-remove:focus-visible {
+.vpx-magic-remove:focus-visible {
   border-color: var(--state-red);
   color: var(--state-red);
 }
-/* The inline slot's remove sits at the right-hand end of the field, level with
-   the input rather than the label above it. */
-.field.vpx-magic-slot { position: relative; }
-.field.vpx-magic-slot > .vpx-magic-slot-remove {
-  position: absolute;
-  right: 6px;
-  bottom: 3px;
-}
-.field.vpx-magic-slot > input { padding-right: 42px; }
 .vpx-magic-add-row {
   justify-self: start;
   padding: 6px 10px;
@@ -481,6 +583,44 @@
 }
 .vpx-magic-add-row:hover,
 .vpx-magic-add-row:focus-visible { border-color: var(--accent); color: var(--accent); }
+/* Post-install Renames: two boxes per row, source then destination, side by
+   side at every width (Jason's spec), then the remove button. */
+.vpx-renames-head,
+.vpx-renames-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
+  gap: 8px;
+  align-items: center;
+}
+.vpx-renames-head {
+  margin-bottom: -4px;
+  color: var(--text-faint);
+  font: 700 10.5px/1 "Inter", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vpx-renames-cell { margin: 0; }
+.vpx-renames-cell input { width: 100%; min-width: 0; }
+/* Extract's one box per row stretches across the window like a Passwords
+   box, the remove button at the right edge (Jason, 2026-10-28). The cell,
+   not the input, is the row's flex child, so the cell does the growing. */
+.vpx-extract-row > .vpx-extract-cell { flex: 1 1 auto; min-width: 0; }
+.vpx-renames-cell.has-field-error > input {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
+}
+/* The body scrolls and would cut a tooltip rising from the first row, so
+   inside this window (and the Extract one) every dot tooltip opens downward,
+   as in the Additional ROM editor. */
+#vpxRenamesDialog .error-dot-tip,
+#vpxRenamesDialog .field-error-dot[data-tooltip]::before,
+#vpxExtractDialog .error-dot-tip,
+#vpxExtractDialog .field-error-dot[data-tooltip]::before {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+.vpx-magic-note code { font-size: 11px; }
+.vpx-renames-status { margin: 0; color: var(--state-red); font-size: 11.5px; }
+.vpx-renames-status:empty { display: none; }
 .vpx-magic-dialog-actions {
   display: flex;
   justify-content: flex-end;
