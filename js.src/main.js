@@ -422,7 +422,13 @@
       },
       getStatus: getSectionStatus,
       onChange: handleFieldChange,
-      onClear: step => clearStepData(step, { preserveId: true, preserveBundle: true, preserveOverride: true })
+      // uiHelper hands back the step it drew, which productionUiExtensions
+      // has stripped of every customRenderer field (the passwords, the
+      // renames and extract paths, the Additional ROM), so clear from the
+      // full definition: Clear section left the Additional ROM in the build
+      // until 2026-10-28.
+      onClear: step => clearStepData(WIZARD_STEPS.find(candidate => candidate.id === step.id) || step,
+        { preserveId: true, preserveBundle: true, preserveOverride: true })
     });
   }
 
@@ -673,16 +679,9 @@
     // Clear. This used to name PUP explicitly, which left Alt Sound's list
     // (and later the DMD one) behind after a section was cleared.
     delete state.values[`__${step.id}ArchiveDirectories`];
-    // The password keys are customRenderer fields, and Clear section is handed
-    // the tab's RENDERED step, which productionUiExtensions has stripped them
-    // from - so step.fields alone would leave every password behind.
-    // __vpxMagicSlots is the old inline-box count a draft saved before
-    // 2026-10-27 may still carry. postInstallRename and vpxExtractExtra are
-    // stripped the same way.
-    if (step.id === 'vpx') {
-      ['vpxMagic', 'vpxMagic2', 'vpxMagic3', 'vpxMagicAdditional', '__vpxMagicSlots', 'postInstallRename', 'vpxExtractExtra']
-        .forEach(key => { delete state.values[key]; });
-    }
+    // The old inline password-box count, belonging to no field: a draft saved
+    // before 2026-10-27 may still carry it.
+    if (step.id === 'vpx') delete state.values.__vpxMagicSlots;
     if (!preserveBundle && step.bundleField) delete state.values[step.bundleField];
     if (!preserveOverride && step.overrideField) delete state.values[step.overrideField];
 

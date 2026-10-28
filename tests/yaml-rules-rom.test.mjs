@@ -653,5 +653,36 @@ if (!PRINT) {
   check('a file drop that fills the checksum clears its dot', live.hint.startsWith('MD5 calculated') && live.dropped.length === 0, shown);
 }
 
+// Clear section on the ROM tab takes the Additional ROM with it (fixed
+// 2026-10-28). It used to be handed the tab as drawn on screen, which has no
+// Additional ROM field (its controller draws it), so the ROM stayed in the
+// build and its indicator stayed on screen.
+if (!PRINT) {
+  await play(imported([{ vpsId: 'WshhKlRf', checksum: MD5_ADD }]));
+  const cleared = await app.run(async () => {
+    const settle = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))));
+    const state = () => window.VPS_FEATURE_RUNTIME.state.values;
+    const indicator = () => !!document.querySelector('#config-panel-rom .additional-rom-indicator');
+    document.getElementById('config-tab-rom').click();
+    await settle();
+    const before = { saved: (state().additionalRoms || []).length, indicator: indicator() };
+    document.querySelector('#config-panel-rom .clear-section-btn').click();
+    await settle();
+    return {
+      before,
+      saved: (state().additionalRoms || []).length,
+      indicator: indicator(),
+      inYaml: document.getElementById('previewYaml').textContent.includes('additionalRoms:'),
+      checksum: state().romChecksum || '',
+      romId: state().romVPSId || ''
+    };
+  });
+  const shown = JSON.stringify(cleared);
+  check('before Clear section the Additional ROM is there', cleared.before.saved === 1 && cleared.before.indicator === true, shown);
+  check('Clear section removes the Additional ROM from the build', cleared.saved === 0 && cleared.inYaml === false, shown);
+  check('Clear section removes its indicator', cleared.indicator === false, shown);
+  check('Clear section still clears the ROM fields and keeps the ROM ID', cleared.checksum === '' && cleared.romId !== '', shown);
+}
+
 await app.close();
 report('yaml-rules-rom');
