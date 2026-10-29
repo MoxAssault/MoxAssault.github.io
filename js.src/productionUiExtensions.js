@@ -92,6 +92,7 @@
     window.VPS_MAGIC_PASSWORDS?.render?.();
     window.VPS_INSTALL_RENAMES?.render?.();
     window.VPS_EXTRACT_EXTRA?.render?.();
+    window.VPS_MANUAL_VPSID?.render?.();
     // Deliberately NOT called here — see applyControlCorrections. This
     // function also runs from capture-phase document input/change listeners
     // (below), which fire before the target field's own handler updates
@@ -104,7 +105,9 @@
   }
 
   UI.renderAssetMatrix = function (container, record, selections, values, callbacks) {
-    runtime.update({ record, selections, values });
+    // assetCallbacks: the row's own onChange redraws the workspace, which the
+    // Manual VPSID box needs after a commit (manualVpsIdController.js).
+    runtime.update({ record, selections, values, assetCallbacks: callbacks });
     const result = renderAssets(container, record, selections, values, callbacks);
     relabelAssetOptions(container, record, selections);
     refreshFeatureUi();

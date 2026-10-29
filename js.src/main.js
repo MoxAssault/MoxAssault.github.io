@@ -568,6 +568,12 @@
     // Read before the shape moves — see liveMirrors.
     const mirrorsBefore = liveMirrors(step);
     state.values[fieldName] = checked;
+    // On the rows with a Manual VPSID box, Override replaces the dropdown, so
+    // an asset already picked moves into the box rather than vanishing with it.
+    // Its ID is already in the asset's ID key; only the selection goes.
+    if (checked && step && window.VPS_MANUAL_VPSID?.CATEGORIES?.includes(step.category)) {
+      delete state.selections[step.category];
+    }
     if (checked && step?.bundleField) state.values[step.bundleField] = false;
     clearShapeDisabledFields(step, mirrorsBefore);
     if (!checked && step && !state.selections[step.category] && state.values[step.bundleField] !== true) {

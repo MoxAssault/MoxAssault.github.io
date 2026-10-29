@@ -375,6 +375,24 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
     return result.result.value;
   }
 
+  // Real keyboard input, as a user's keys arrive (2026-10-28). A script that
+  // sets .value and fires its own events skips what the browser does between
+  // them - which input really has focus when change fires, the blur after it
+  // - and a test built that way passed while Tab in the real app lost the
+  // Manual VPSID. typeText inserts into whatever has focus; pressKey sends one
+  // named key (Tab, Enter) down and up.
+  async function typeText(text) {
+    await send('Input.insertText', { text }, sessionId);
+  }
+
+  async function pressKey(key) {
+    const codes = { Backspace: 8, Tab: 9, Enter: 13, Escape: 27 };
+    const base = { key, code: key, windowsVirtualKeyCode: codes[key] || 0, nativeVirtualKeyCode: codes[key] || 0 };
+    await send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...base }, sessionId);
+    if (key === 'Enter') await send('Input.dispatchKeyEvent', { type: 'char', text: String.fromCharCode(13), ...base }, sessionId);
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base }, sessionId);
+  }
+
   // Loads the page again, keeping its storage. The server sends no-store, so
   // a navigation fetches everything fresh, as Page.reload's ignoreCache did.
   async function reload() {
@@ -409,5 +427,5 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
     await cleanup();
   }
 
-  return { run, reload, reset, nextDownload, close, warnings, errors, base };
+  return { run, reload, reset, nextDownload, close, warnings, errors, base, typeText, pressKey };
 }

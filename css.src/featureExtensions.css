@@ -654,3 +654,71 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Override's Manual VPSID (2026-10-28): with Override ticked on Backglass,
+   ROM, Color ROM, PUP Pack or Alt Sound, the row's dropdown is hidden (kept
+   in the page: four other scripts read it) and a narrowed box takes its
+   place, with the asset's own game name and type in the space beside it
+   (Jason: beside, not under; the row is 52px tall). Styled like the row's
+   dropdown so the two read as one control. */
+.asset-select-wrap.has-manual-vpsid > select { display: none; }
+.manual-vpsid {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.manual-vpsid input {
+  flex: 0 0 120px;
+  width: 120px;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--panel-line);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  padding: 0 9px;
+  color: var(--text);
+}
+.manual-vpsid-field {
+  position: relative;
+  display: flex;
+  flex: 0 0 120px;
+}
+/* Sits on the box's top border, half in and half out (Jason, 2026-10-28).
+   Out of flow, so the 52px row does not grow. Its background is the row's
+   colour above the line and the box's below it, so the border reads as cut
+   by the label. */
+/* A bad ID's message, mirrored from the dot. --state-red measured 6.32:1
+   (dark) and 5.90:1 (light) on the row. */
+.manual-vpsid-label.is-error { color: var(--state-red); }
+.manual-vpsid-optional {
+  position: absolute;
+  top: -6px;
+  left: 7px;
+  padding: 0 4px;
+  background: linear-gradient(to bottom, var(--panel-soft) 50%, var(--panel-raised) 50%);
+  color: var(--text-muted);
+  font: 700 8.5px/12px "Inter", sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.manual-vpsid.has-field-error input {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
+}
+/* The dot sits on the box's corner, not the label's. */
+.manual-vpsid > .field-error-dot { left: 112px; right: auto; }
+.manual-vpsid-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  /* --text-muted, not --text-faint: faint measured 3.75:1 (dark) and 3.09:1
+     (light) on the row, under the 4.5:1 body text needs; muted is 6.97 / 5.53. */
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

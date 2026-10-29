@@ -231,6 +231,9 @@
 
     WIZARD_STEPS.forEach(step => {
       if (!step.overrideField || values[step.overrideField] !== true) return;
+      // A verified Manual VPSID makes the asset a normal linked one: the
+      // database supplies what these fields stand in for (Jason, 2026-10-28).
+      if (window.VPS_MANUAL_VPSID?.verified?.(step.category)) return;
       (step.overrideRequiredFields || []).forEach(key => {
         if (hasText(values[key])) return;
         const label = step.fields.find(field => field.yml_field === key)?.name || key;
@@ -314,6 +317,12 @@
     // written, so there is nothing to block.
     window.VPS_INSTALL_RENAMES?.issues?.(ctx.isStepEnabled).forEach(({ index, message }) => {
       add('vpx', 'postInstallRename', `Post-install Rename ${index + 1} needs attention`, message);
+    });
+    // Override's Manual VPSID: an ID found nowhere, or of the wrong asset
+    // type, blocks like any other error (Jason, 2026-10-28). The row's box
+    // draws its own dot; this one is the tab's ID field.
+    window.VPS_MANUAL_VPSID?.issues?.().forEach(({ stepId, fieldName, message }) => {
+      add(stepId, fieldName, 'Manual VPSID needs attention', message);
     });
     // Extract Extra Paths, under the same rule, drawn on its own button.
     window.VPS_EXTRACT_EXTRA?.issues?.(ctx.isStepEnabled).forEach(({ index, message }) => {
