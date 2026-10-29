@@ -96,6 +96,9 @@
   // Quiet until a Save is refused; from then until the window reopens, every
   // edit re-checks, so each dot clears as its box is fixed.
   let liveDots = false;
+  // "Add from archive folders" (VPS_UI.createArchiveFolderAdder), built with
+  // the window and refreshed on every open.
+  let folders = null;
 
   function dialog() {
     let node = document.getElementById('vpxRenamesDialog');
@@ -124,6 +127,8 @@
         </div>
       </div>`;
     document.body.appendChild(node);
+    folders = window.VPS_UI?.createArchiveFolderAdder?.({ id: 'vpxRenamesFolders', onAdd: addFolders }) || null;
+    if (folders) node.querySelector('.vpx-magic-note').after(folders.element);
     node.querySelectorAll('[data-vpx-renames-close]').forEach(button => {
       button.addEventListener('click', () => cancel());
     });
@@ -142,6 +147,25 @@
 
   function inputId(index, side) {
     return `vpxRename${side === 'source' ? 'Source' : 'Destination'}${index}`;
+  }
+
+  // One new row per picked folder, source and destination both set to it, for
+  // the destination to be edited after (Jason, 2026-10-29). A folder already
+  // a row's source is skipped; the empty row a fresh window opens with is
+  // filled rather than left above the new ones. Returns how many were added,
+  // and puts the keyboard on the first new destination.
+  function addFolders(picked) {
+    const have = new Set(draft.map(entry => utils.tidyInstallPath(entry.source)).filter(Boolean));
+    const fresh = picked.map(path => utils.tidyInstallPath(path)).filter(path => path && !have.has(path));
+    if (!fresh.length) return 0;
+    const blank = entry => !utils.tidyInstallPath(entry.source) && !utils.tidyInstallPath(entry.destination);
+    if (draft.length === 1 && blank(draft[0])) draft = [];
+    const first = draft.length;
+    fresh.forEach(path => draft.push({ source: path, destination: path }));
+    paint();
+    revalidate();
+    document.getElementById(inputId(first, 'destination'))?.focus();
+    return fresh.length;
   }
 
   function paint() {
@@ -259,6 +283,7 @@
     setStatus('');
     const node = dialog();
     clearDots();
+    folders?.refresh(runtime.state.values);
     const clear = node.querySelector('#vpxRenamesClear');
     clear.hidden = entries().length === 0;
     utils.resetTwoClick(clear);

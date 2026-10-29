@@ -386,8 +386,9 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
   }
 
   async function pressKey(key) {
-    const codes = { Backspace: 8, Tab: 9, Enter: 13, Escape: 27 };
-    const base = { key, code: key, windowsVirtualKeyCode: codes[key] || 0, nativeVirtualKeyCode: codes[key] || 0 };
+    const codes = { Backspace: 8, Tab: 9, Enter: 13, Escape: 27, ' ': 32, ArrowDown: 40 };
+    const code = key === ' ' ? 'Space' : key;
+    const base = { key, code, windowsVirtualKeyCode: codes[key] || 0, nativeVirtualKeyCode: codes[key] || 0 };
     await send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...base }, sessionId);
     if (key === 'Enter') await send('Input.dispatchKeyEvent', { type: 'char', text: String.fromCharCode(13), ...base }, sessionId);
     await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base }, sessionId);

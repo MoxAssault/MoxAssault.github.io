@@ -69,6 +69,9 @@
   // ── the window ───────────────────────────────────────────────────────────
   let draft = [];
   let liveDots = false;
+  // "Add from archive folders" (VPS_UI.createArchiveFolderAdder), built with
+  // the window and refreshed on every open.
+  let folders = null;
 
   function dialog() {
     let node = document.getElementById('vpxExtractDialog');
@@ -96,6 +99,8 @@
         </div>
       </div>`;
     document.body.appendChild(node);
+    folders = window.VPS_UI?.createArchiveFolderAdder?.({ id: 'vpxExtractFolders', onAdd: addFolders }) || null;
+    if (folders) node.querySelector('.vpx-magic-note').after(folders.element);
     node.querySelectorAll('[data-vpx-extract-close]').forEach(button => {
       button.addEventListener('click', () => cancel());
     });
@@ -113,6 +118,22 @@
 
   function inputId(index) {
     return `vpxExtractPath${index}`;
+  }
+
+  // One new row per picked folder (Jason, 2026-10-29), skipping any already
+  // in the window. The empty row a fresh window opens with is filled rather
+  // than left above the new ones. Returns how many were added.
+  function addFolders(picked) {
+    const have = new Set(draft.map(value => utils.tidyInstallPath(value)).filter(Boolean));
+    const fresh = picked.map(path => utils.tidyInstallPath(path)).filter(path => path && !have.has(path));
+    if (!fresh.length) return 0;
+    if (draft.length === 1 && !utils.tidyInstallPath(draft[0])) draft = [];
+    const first = draft.length;
+    draft.push(...fresh);
+    paint();
+    revalidate();
+    document.getElementById(inputId(first))?.focus();
+    return fresh.length;
   }
 
   function paint() {
@@ -220,6 +241,7 @@
     setStatus('');
     const node = dialog();
     clearDots();
+    folders?.refresh(runtime.state.values);
     const clear = node.querySelector('#vpxExtractClear');
     clear.hidden = entries().length === 0;
     utils.resetTwoClick(clear);

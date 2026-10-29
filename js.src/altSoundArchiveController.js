@@ -354,6 +354,12 @@
         console.warn('MD5 failed:', checksumResult.reason);
       }
 
+      const onChange = runtime.state.callbacks?.onChange;
+      if (onChange) {
+        window.VPS_UI?.rememberArchiveDirectories?.(runtime.state.values, onChange, 'altSoundChecksum', file.name,
+          directoryResult.status === 'fulfilled' ? directoryResult.value : null);
+      }
+
       if (directoryResult.status === 'fulfilled') {
         const directories = directoryResult.value || [];
         runtime.state.callbacks?.onChange?.('__altSoundArchiveDirectories', directories, { uiOnly: true });

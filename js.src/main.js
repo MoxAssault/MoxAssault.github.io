@@ -538,6 +538,16 @@
     // must not cost the user the folder list they just loaded.
     if (!shapeGated) return;
     delete state.values[`__${step.id}ArchiveDirectories`];
+    // The same archive's entry in the Renames / Extract folder lists. Done
+    // here rather than through forgetArchiveLists: tests run this function
+    // sliced out on its own.
+    const archiveLists = state.values.__archiveDirectoryLists;
+    if (archiveLists) {
+      const kept = { ...archiveLists };
+      (step.fields || []).forEach(field => { delete kept[field.yml_field]; });
+      if (Object.keys(kept).length) state.values.__archiveDirectoryLists = kept;
+      else delete state.values.__archiveDirectoryLists;
+    }
     (step.fields || []).forEach(field => {
       if (field.directoryPicker) delete state.values[field.yml_field];
       if (field.archiveFormatField) delete state.values[field.archiveFormatField];
@@ -618,6 +628,24 @@
   }
 
 
+  // The folder lists the VPX Renames and Extract windows offer, one per
+  // checksum field an archive was dropped on (uiHelper
+  // rememberArchiveDirectories). A field whose checksum is emptied or cleared
+  // takes its archive's folders with it. A key also takes the entries filed
+  // under it: additionalRoms takes every additionalRoms:<CHECKSUM>.
+  function forgetArchiveLists(keys) {
+    const lists = state.values.__archiveDirectoryLists;
+    if (!lists) return;
+    const kept = { ...lists };
+    keys.forEach(key => {
+      Object.keys(kept).forEach(stored => {
+        if (stored === key || stored.startsWith(`${key}:`)) delete kept[stored];
+      });
+    });
+    if (Object.keys(kept).length) state.values.__archiveDirectoryLists = kept;
+    else delete state.values.__archiveDirectoryLists;
+  }
+
   function handleFieldChange(key, value) {
     if (key.startsWith('__')) {
       state.values[key] = value;
@@ -628,6 +656,10 @@
     const previous = state.values[key];
     state.values[key] = value;
 
+    const emptied = value === undefined || value === null || String(value).trim() === ''
+      || (Array.isArray(value) && !value.some(item => String(item ?? '').trim()));
+    if (emptied) forgetArchiveLists([key]);
+
     if (key === 'coloredROMPin2DMD' && previous !== value) {
       const sources = { ...(state.values.__checksumSources || {}) };
       // A .pal checksum is valid in both modes, so it survives the toggle;
@@ -637,9 +669,11 @@
       if (!keepPrimary) {
         delete state.values.coloredROMChecksum;
         delete sources.coloredROMChecksum;
+        forgetArchiveLists(['coloredROMChecksum']);
       }
       delete state.values.coloredROMChecksumSecondary;
       delete sources.coloredROMChecksumSecondary;
+      forgetArchiveLists(['coloredROMChecksumSecondary']);
       state.values.__checksumSources = sources;
       UI.syncConditionalFields(state.values);
     }
@@ -681,6 +715,10 @@
     });
     if (Object.keys(checksumSources).length) state.values.__checksumSources = checksumSources;
     else delete state.values.__checksumSources;
+    forgetArchiveLists(step.fields.flatMap(field => [
+      field.yml_field,
+      ...(Array.isArray(field.items) ? field.items.map(item => item.yml_field) : [])
+    ]));
     // Any tab that browses an archive drops its loaded directory list on
     // Clear. This used to name PUP explicitly, which left Alt Sound's list
     // (and later the DMD one) behind after a section was cleared.

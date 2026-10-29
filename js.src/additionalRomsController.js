@@ -191,7 +191,7 @@
           <div class="field field-wide checksum-drop-field" id="additionalRomChecksumField">
             <label for="additionalRomChecksum"><span>Checksum</span></label>
             <input id="additionalRomChecksum" type="text" maxlength="32" placeholder="ROM Checksum" autocomplete="off">
-            <span class="checksum-drop-status"><span class="checksum-drop-hint">Drop .zip / .rar / .7z file to calculate MD5</span></span>
+            <span class="checksum-drop-status"><span class="checksum-loading-track" aria-hidden="true"><span class="checksum-loading-dot"></span></span><span class="checksum-drop-hint">Drop .zip / .rar / .7z file to calculate MD5</span></span>
           </div>
         </div>
         <details class="advanced-fields compact-advanced additional-rom-advanced" open>
@@ -208,8 +208,15 @@
         </div>
       </div>`;
     document.body.appendChild(node);
-    node.querySelectorAll('[data-additional-rom-close]').forEach(button => button.addEventListener('click', () => node.close()));
-    node.addEventListener('click', event => { if (event.target === node) node.close(); });
+    node.querySelectorAll('[data-additional-rom-close]').forEach(button => button.addEventListener('click', () => {
+      cancelDrop(node);
+      node.close();
+    }));
+    node.addEventListener('click', event => {
+      if (event.target !== node) return;
+      cancelDrop(node);
+      node.close();
+    });
     node.querySelector('#additionalRomSave').addEventListener('click', save);
     // Two clicks, like every pop-up's Clear (Jason, 2026-10-28): the ROM and
     // its checksum can only be re-entered by hand.
@@ -225,6 +232,13 @@
     });
     node.addEventListener('input', revalidate);
     node.addEventListener('change', revalidate);
+    // Closing while a drop is loading cancels it (Jason, 2026-10-29), so
+    // nothing it finds lands in this or the next ROM entry. Cancelled at the
+    // moment of closing: Escape's `cancel` fires then, and so do the buttons
+    // and the backdrop above. `close` comes a task later, by which time a
+    // small file's MD5 has already landed; it stays only as the backstop.
+    node.addEventListener('cancel', () => cancelDrop(node));
+    node.addEventListener('close', () => cancelDrop(node));
     bindDrop(node);
     return node;
   }
@@ -233,6 +247,23 @@
   // uiHelper's status registry, so it needs its own key in the generation map
   // to be cancellable by a Clear the same way every other drop is.
   const DROP_JOB_ID = 'additional-rom-checksum';
+  let dropLoading = false;
+
+  // While a drop loads, the loading bar runs and Save ROM waits: saving then
+  // would keep the old checksum while the new one is still being worked out.
+  function setDropLoading(node, on) {
+    dropLoading = on;
+    const wrapper = node.querySelector('#additionalRomChecksumField');
+    wrapper.classList.toggle('checksum-is-loading', on);
+    wrapper.setAttribute('aria-busy', on ? 'true' : 'false');
+    node.querySelector('#additionalRomSave').disabled = on;
+  }
+
+  function cancelDrop(node) {
+    if (!dropLoading) return;
+    window.VPS_UI?.beginChecksumJob?.(DROP_JOB_ID);
+    setDropLoading(node, false);
+  }
 
   function bindDrop(node) {
     const wrapper = node.querySelector('#additionalRomChecksumField');
@@ -260,11 +291,23 @@
       }
       hint.classList.remove('error');
       hint.textContent = `Calculating MD5 for ${file.name}…`;
-      wrapper.classList.add('checksum-is-loading');
+      setDropLoading(node, true);
       const beginJob = window.VPS_UI?.beginChecksumJob;
       const generation = typeof beginJob === 'function' ? beginJob(DROP_JOB_ID) : null;
       const stillCurrent = () => generation === null
         || window.VPS_UI?.isChecksumGenerationCurrent?.(DROP_JOB_ID, generation) !== false;
+      // Its folders, for the VPX Renames and Extract windows' lists, read
+      // alongside the checksum. A locked archive says so under the box; any
+      // other failed read stays quiet and never turns a good drop into an error.
+      const readFolders = window.VPS_UI?.readArchiveDirectories;
+      const folderTask = ARCHIVE_EXTENSIONS.includes(dropped) && typeof readFolders === 'function'
+        ? readFolders(file, utils.collectVpxMagic?.(runtime.state.values) || []).then(
+          directories => ({ directories }),
+          error => {
+            console.warn('Archive browse failed:', error);
+            return { directories: null, error };
+          })
+        : Promise.resolve({ directories: null });
       try {
         const ui = window.VPS_UI || {};
         const canScan = Boolean(scanExtension)
@@ -306,12 +349,30 @@
         }
         // Setting the value from code fires no input event.
         revalidate();
+        // Stored against this checksum, and offered only once a saved row
+        // carries it (VPS_UI archiveFolderGroups), so Cancel leaves nothing.
+        const folders = await folderTask;
+        if (!stillCurrent()) return;
+        // The MD5 still counts; the line says the folders did not come, and
+        // the app's own locked-archive wording says how to fix it.
+        if (folders.error?.archiveLocked) {
+          hint.textContent = `${hint.textContent} · ${folders.error.message}`;
+          hint.classList.add('error');
+        }
+        const checksum = String(input.value || '').trim().toUpperCase();
+        const onChange = runtime.state.callbacks?.onChange;
+        if (checksum && onChange) {
+          window.VPS_UI?.rememberArchiveDirectories?.(runtime.state.values, onChange,
+            `additionalRoms:${checksum}`, file.name, folders.directories);
+        }
       } catch (error) {
         if (!stillCurrent()) return;
         hint.textContent = error?.message || 'MD5 calculation failed.';
         hint.classList.add('error');
       } finally {
-        wrapper.classList.remove('checksum-is-loading');
+        // Only the drop still current may end the loading: a cancelled or
+        // superseded one finishing late must not stop a newer one's bar.
+        if (stillCurrent()) setDropLoading(node, false);
       }
     });
   }
@@ -389,6 +450,8 @@
   }
 
   function save() {
+    // Disabled while a drop loads; guarded here too, for any caller but the button.
+    if (dropLoading) return;
     const node = dialog();
     const entry = readEntry(node);
     const detailedErrors = validateEntryDetailed(entry, editingIndex);
