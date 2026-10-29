@@ -46,7 +46,9 @@ a { color: inherit; }
   font-weight: 700;
   white-space: nowrap;
 }
-.brand-bolt { color: var(--accent); font-size: 21px; }
+/* The Legends Unchained wordmark (2026-10-28, Jason; replaced the bolt). Its
+   canvas is trimmed to the drawing in images/, so the height is the logo. */
+.brand-logo { display: block; width: auto; height: 34px; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn, .text-btn {
   border: 1px solid var(--panel-line);
@@ -97,10 +99,10 @@ html[data-theme="light"] .theme-knob { transform: translateX(22px); }
   border: 1px solid var(--panel-line);
   border-radius: 18px;
   background: var(--panel);
-  color: var(--accent);
-  font-size: 30px;
   box-shadow: var(--shadow-lift);
 }
+/* The Legends Unchained wizard (2026-10-28, Jason; replaced the bolt). */
+.empty-state-icon img { display: block; width: 50px; height: 50px; }
 .empty-state h1 {
   max-width: 680px;
   margin: 8px 0 0;
@@ -211,11 +213,20 @@ kbd {
   .app { width: min(100% - 20px, 1180px); padding-top: 6px; }
   .app-header { gap: 8px; }
   .brand { font-size: 16px; }
+  .brand-logo { height: 28px; }
   .header-actions .icon-btn { padding: 0 9px; }
   .workspace-section { padding: 12px; border-radius: 12px; }
   .section-heading-row, .builder-toolbar { align-items: flex-start; flex-direction: column; }
   .toolbar-actions { justify-content: flex-start; }
   .site-footer { flex-wrap: wrap; }
+}
+
+/* Phone width: the wordmark is wider than the bolt it replaced, and at 400px
+   it pushed the title into the Recent button (measured 2026-10-28). One step
+   down for the logo, the gap and the title gives that width back. */
+@media (max-width: 480px) {
+  .brand { gap: 6px; font-size: 15px; }
+  .brand-logo { height: 22px; }
 }
 
 /* Keep compact workspace content inside narrow viewports. */
