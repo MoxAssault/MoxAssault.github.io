@@ -1364,8 +1364,12 @@
 
     function refresh(values) {
       const stored = values?.[ARCHIVE_LISTS_KEY] || {};
-      filesCleared = Object.keys(stored).some(key => listsFiles(key)
-        && archiveFileLists.get(key)?.drop !== stored[key]?.drop);
+      // An entry whose files are not from its own drop, including one saved
+      // before entries carried a drop mark, has had its files cleared.
+      filesCleared = Object.keys(stored).some(key => {
+        const kept = archiveFileLists.get(key);
+        return listsFiles(key) && !(kept && stored[key]?.drop && kept.drop === stored[key].drop);
+      });
       lists.forEach(list => {
         list.picker.setGroups(list.groups(values), { collapse: true });
         list.picker.clearSelection();

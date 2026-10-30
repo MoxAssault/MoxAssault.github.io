@@ -1038,12 +1038,19 @@ if (!PRINT) {
       adder.refresh({ __archiveDirectoryLists: { altSoundChecksum: { name: 'pack.zip', directories: ['Pack'], drop: 'from-a-draft' } } });
       const trigger = document.getElementById('probeTall-files');
       const result = { disabled: trigger.disabled, text: trigger.textContent.replace('▾', '').trim() };
+      // A draft saved before entries carried a drop mark, on a field with no
+      // file list in memory at all.
+      adder.refresh({ __archiveDirectoryLists: { pupChecksum: { name: 'old.zip', directories: ['Old'] } } });
+      result.unmarked = { disabled: trigger.disabled, text: trigger.textContent.replace('▾', '').trim() };
       adder.element.remove();
       delete window.__probeTall;
       return result;
     }, settleSource);
     check('files: a same-named archive from another drop never shows these files',
       borrowedName.disabled === true && borrowedName.text === 'Drop the archives again to list their files', JSON.stringify(borrowedName));
+    check('files: an entry from an older draft, with no drop mark, also says to drop again',
+      borrowedName.unmarked.disabled === true && borrowedName.unmarked.text === 'Drop the archives again to list their files',
+      JSON.stringify(borrowedName.unmarked));
   }
 
   check('no page errors', app.errors.filter(error => !/Unable to preload the VPS database/.test(error)).length === 0, app.errors.join('\n'));
