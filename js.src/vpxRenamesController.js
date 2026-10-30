@@ -127,7 +127,7 @@
         </div>
       </div>`;
     document.body.appendChild(node);
-    folders = window.VPS_UI?.createArchiveFolderAdder?.({ id: 'vpxRenamesFolders', onAdd: addFolders }) || null;
+    folders = window.VPS_UI?.createArchiveFolderAdder?.({ id: 'vpxRenamesFolders', onAdd: addFolders, withFiles: true }) || null;
     if (folders) node.querySelector('.vpx-magic-note').after(folders.element);
     node.querySelectorAll('[data-vpx-renames-close]').forEach(button => {
       button.addEventListener('click', () => cancel());
@@ -149,15 +149,15 @@
     return `vpxRename${side === 'source' ? 'Source' : 'Destination'}${index}`;
   }
 
-  // One new row per picked folder, source and destination both set to it, for
-  // the destination to be edited after (Jason, 2026-10-29). A folder already
-  // a row's source is skipped; the empty row a fresh window opens with is
-  // filled rather than left above the new ones. Returns how many were added,
-  // and puts the keyboard on the first new destination.
+  // One new row per picked folder or file, source and destination both set
+  // to it, for the destination to be edited after (Jason, 2026-10-29). A
+  // path already a row's source is skipped; the empty row a fresh window
+  // opens with is filled rather than left above the new ones. Returns the
+  // paths it added, and puts the keyboard on the first new destination.
   function addFolders(picked) {
     const have = new Set(draft.map(entry => utils.tidyInstallPath(entry.source)).filter(Boolean));
     const fresh = picked.map(path => utils.tidyInstallPath(path)).filter(path => path && !have.has(path));
-    if (!fresh.length) return 0;
+    if (!fresh.length) return [];
     const blank = entry => !utils.tidyInstallPath(entry.source) && !utils.tidyInstallPath(entry.destination);
     if (draft.length === 1 && blank(draft[0])) draft = [];
     const first = draft.length;
@@ -165,7 +165,7 @@
     paint();
     revalidate();
     document.getElementById(inputId(first, 'destination'))?.focus();
-    return fresh.length;
+    return fresh;
   }
 
   function paint() {

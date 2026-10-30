@@ -439,7 +439,9 @@ const NO_CIPHER_ENTRY = 'The file content is encrypted, but currently not suppor
     callSites.length === 2,
     'found ' + callSites.length + ' - expected the checksum scan drop and the Color ROM drop');
   check('the archive browse passes the plain passwords too',
-    source.includes('readArchiveDirectories(file, collectVpxMagic(values))'),
+    // readArchiveListing since 2026-10-29: the same read now returns the
+    // files too, for the VPX Renames window's Files list.
+    source.includes('readArchiveListing(file, collectVpxMagic(values))'),
     'the directory picker would fail on an encrypted archive');
   check('nothing hands the ENCODED form to an archive reader',
     !/passwords:\s*(buildVpxMagicOutput|.*encodeVpxMagic)/.test(source),

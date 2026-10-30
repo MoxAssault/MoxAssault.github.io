@@ -373,10 +373,29 @@
     });
     return [...new Set(directories)]
       .filter(Boolean)
-      .sort((left, right) => {
-        const depthDifference = left.split('/').length - right.split('/').length;
-        return depthDifference || left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
-      });
+      .sort(compareArchivePaths);
+  }
+
+  // Shallow first, then by name with numbers read as numbers.
+  function compareArchivePaths(left, right) {
+    const depthDifference = left.split('/').length - right.split('/').length;
+    return depthDifference || left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  // Every file's full path in an archive listing, for the VPX Renames
+  // window's Files list (Jason, 2026-10-29), in the folders' order. The
+  // streaming listers give { path, isFile }; libarchive gives each file as
+  // { path: '<its folder>/', file: { name } }.
+  function extractArchiveFiles(entries) {
+    const files = [];
+    (Array.isArray(entries) ? entries : []).forEach(entry => {
+      let path = '';
+      if (typeof entry?.file?.name === 'string') path = `${entry.path || ''}${entry.file.name}`;
+      else if (entry?.isFile === true) path = entry.path;
+      path = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+      if (path) files.push(path);
+    });
+    return [...new Set(files)].sort(compareArchivePaths);
   }
 
   // -----------------------------------------------------------------------
@@ -802,6 +821,7 @@
     normalizeChecksumValue,
     replacePrimaryChecksum,
     extractArchiveDirectories,
+    extractArchiveFiles,
     listArchiveEntryPaths,
     cssEscape,
     // Shared so the serializer and the YML importer cannot drift apart.

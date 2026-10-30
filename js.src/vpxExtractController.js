@@ -122,18 +122,18 @@
 
   // One new row per picked folder (Jason, 2026-10-29), skipping any already
   // in the window. The empty row a fresh window opens with is filled rather
-  // than left above the new ones. Returns how many were added.
+  // than left above the new ones. Returns the paths it added.
   function addFolders(picked) {
     const have = new Set(draft.map(value => utils.tidyInstallPath(value)).filter(Boolean));
     const fresh = picked.map(path => utils.tidyInstallPath(path)).filter(path => path && !have.has(path));
-    if (!fresh.length) return 0;
+    if (!fresh.length) return [];
     if (draft.length === 1 && !utils.tidyInstallPath(draft[0])) draft = [];
     const first = draft.length;
     draft.push(...fresh);
     paint();
     revalidate();
     document.getElementById(inputId(first))?.focus();
-    return fresh.length;
+    return fresh;
   }
 
   function paint() {

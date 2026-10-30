@@ -164,12 +164,15 @@
     return archiveModulePromise;
   }
 
-  async function readDirectories(file) {
+  // onFiles, when given, also gets the files' full paths from the same read,
+  // for the VPX Renames window's Files list.
+  async function readDirectories(file, onFiles) {
     // Fast path: streaming header parsers (currently RAR5) work for archives
     // of any size — they never load the whole file into memory.
     try {
       const streamedEntries = await utils.listArchiveEntryPaths?.(file);
       if (streamedEntries && streamedEntries.length > 0) {
+        onFiles?.(utils.extractArchiveFiles(streamedEntries));
         return utils.extractArchiveDirectories(streamedEntries);
       }
     } catch (error) {
@@ -189,7 +192,9 @@
       throw readError('browse', 'enter the directory manually', file, error);
     }
     try {
-      return utils.extractArchiveDirectories(await archive.getFilesArray());
+      const entries = await archive.getFilesArray();
+      onFiles?.(utils.extractArchiveFiles(entries));
+      return utils.extractArchiveDirectories(entries);
     } finally {
       try { await archive.close(); } catch (_) { /* worker may already be closed */ }
     }
@@ -330,7 +335,8 @@
       if (formatSelect) formatSelect.value = format;
 
       const checksumTask = calculateMd5(file);
-      const directoryTask = readDirectories(file);
+      let archiveFiles = null;
+      const directoryTask = readDirectories(file, files => { archiveFiles = files; });
       const [checksumResult, directoryResult] = await Promise.allSettled([checksumTask, directoryTask]);
       // Cleared, or superseded by a newer drop, while this ran.
       if (!stillCurrent()) return;
@@ -357,7 +363,8 @@
       const onChange = runtime.state.callbacks?.onChange;
       if (onChange) {
         window.VPS_UI?.rememberArchiveDirectories?.(runtime.state.values, onChange, 'altSoundChecksum', file.name,
-          directoryResult.status === 'fulfilled' ? directoryResult.value : null);
+          directoryResult.status === 'fulfilled' ? directoryResult.value : null,
+          directoryResult.status === 'fulfilled' ? archiveFiles : null);
       }
 
       if (directoryResult.status === 'fulfilled') {

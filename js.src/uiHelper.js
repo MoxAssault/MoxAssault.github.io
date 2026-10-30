@@ -11,6 +11,7 @@
     getCategoryItems,
     getAssetState,
     extractArchiveDirectories,
+    extractArchiveFiles,
     listArchiveEntryPaths,
     replacePrimaryChecksum,
     // The VPX Password slots double as the key ring for encrypted archives.
@@ -272,12 +273,21 @@
   }
 
   async function readArchiveDirectories(file, passwords) {
+    return (await readArchiveListing(file, passwords)).directories;
+  }
+
+  // The archive's folders and its files' full paths, from one read.
+  async function readArchiveListing(file, passwords) {
+    const listing = entries => ({
+      directories: extractArchiveDirectories(entries),
+      files: extractArchiveFiles(entries)
+    });
     // Fast path: streaming header parsers (currently RAR5) that work for archives
     // of any size — they never load the whole file into memory.
     try {
       const streamedEntries = await listArchiveEntryPaths(file);
       if (streamedEntries && streamedEntries.length > 0) {
-        return extractArchiveDirectories(streamedEntries);
+        return listing(streamedEntries);
       }
     } catch (error) {
       console.warn('Streaming archive parse failed, falling back to libarchive:', error);
@@ -293,7 +303,7 @@
     const { archive, entries } = await openArchiveUnlocked(
       file, passwords, 'browse', 'enter the directory manually');
     try {
-      return extractArchiveDirectories(entries);
+      return listing(entries);
     } finally {
       try { await archive.close(); } catch (_) { /* worker may already be closed */ }
     }
@@ -719,8 +729,15 @@
   // or, with multiple: true, { id, ariaLabel, emptyText, onToggle }: choosing a
   // row ticks or unticks it and the panel stays open; getSelected() returns
   // the ticked folders in list order (the VPX Renames and Extract windows).
+  // nouns: { one, many } names what is listed in the trigger's counts
+  // (default directory / directories; the Renames Files list says file / files).
+  // searchable: true puts a search box at the top of the open panel (the
+  // Renames Files list): typing narrows every depth at once, Up and Down move,
+  // Enter ticks, Escape clears and then closes. Ticks never change with it.
   function createDirectoryPicker(config) {
-    const { id, ariaLabel, emptyText, onSelect, getValue, multiple, onToggle } = config || {};
+    const { id, ariaLabel, emptyText, onSelect, getValue, multiple, onToggle, searchable } = config || {};
+    const nouns = config?.nouns || { one: 'directory', many: 'directories' };
+    const noun = count => (count === 1 ? nouns.one : nouns.many);
     const panelId = `${id}-panel`;
 
     const wrapper = element('div', 'archive-directory-picker');
@@ -739,10 +756,44 @@
 
     const panel = element('div', 'archive-directory-panel');
     panel.id = panelId;
-    panel.setAttribute('role', 'listbox');
-    if (ariaLabel) panel.setAttribute('aria-label', ariaLabel);
-    if (multiple) panel.setAttribute('aria-multiselectable', 'true');
     panel.hidden = true;
+    // With search, the panel holds the search box above the list: a text box
+    // may not sit inside a listbox, so the list is its own element. Without
+    // it, the panel is the list, as it always was.
+    const list = searchable ? element('div', 'archive-directory-list') : panel;
+    list.setAttribute('role', 'listbox');
+    if (ariaLabel) list.setAttribute('aria-label', ariaLabel);
+    if (multiple) list.setAttribute('aria-multiselectable', 'true');
+    let search = null;
+    let noMatch = null;
+    let noMatchText = null;
+    if (searchable) {
+      list.id = `${panelId}-list`;
+      trigger.setAttribute('aria-controls', list.id);
+      const searchRow = element('div', 'archive-directory-search');
+      search = element('input', 'archive-directory-search-input');
+      search.type = 'search';
+      search.id = `${id}-search`;
+      search.autocomplete = 'off';
+      search.spellcheck = false;
+      search.placeholder = `Search ${nouns.many}`;
+      search.setAttribute('aria-label', `Search ${nouns.many}`);
+      search.setAttribute('aria-controls', list.id);
+      searchRow.appendChild(search);
+      noMatch = element('div', 'archive-directory-nomatch');
+      noMatch.hidden = true;
+      noMatchText = element('span', 'archive-directory-nomatch-text');
+      noMatchText.setAttribute('role', 'status');
+      const clearSearch = element('button', 'text-btn archive-directory-nomatch-clear', 'Clear search');
+      clearSearch.type = 'button';
+      clearSearch.addEventListener('click', () => {
+        search.value = '';
+        applySearch();
+        search.focus();
+      });
+      noMatch.append(noMatchText, clearSearch);
+      panel.append(searchRow, noMatch, list);
+    }
 
     wrapper.append(trigger, panel);
 
@@ -750,13 +801,15 @@
     // setGroups, drawn as one labelled block per archive. `all` is then every
     // group's folders once each, in group order: counts, LOAD MORE and
     // getSelected work on it, so a folder two archives share counts once.
-    const state = { all: [], groups: null, rows: [], open: false, activeIndex: -1, typed: '', typedAt: 0, selected: new Set() };
+    const state = { all: [], groups: null, rows: [], open: false, activeIndex: -1, typed: '', typedAt: 0, selected: new Set(), query: '' };
 
     function currentValue() {
       return typeof getValue === 'function' ? String(getValue() || '') : '';
     }
 
     function visibleDirectories() {
+      // A search looks through every depth, LOAD MORE or not.
+      if (state.query) return state.all.filter(directory => directory.toLowerCase().includes(state.query));
       if (expandedDirectoryPickers.has(id)) return state.all;
       const shallow = state.all.filter(directory => directoryDepth(directory) <= DIRECTORY_PICKER_DEPTH);
       // An archive whose folders are all deep would otherwise show an empty
@@ -765,6 +818,7 @@
     }
 
     function hiddenCount() {
+      if (state.query) return 0;
       return state.all.length - visibleDirectories().length;
     }
 
@@ -772,12 +826,12 @@
       const hidden = hiddenCount();
       const ticked = state.selected.size;
       triggerText.textContent = !state.all.length
-        ? (emptyText || 'Drop an archive to browse directories')
+        ? ((typeof emptyText === 'function' ? emptyText() : emptyText) || 'Drop an archive to browse directories')
         : multiple && ticked
-          ? `${ticked} of ${state.all.length} director${state.all.length === 1 ? 'y' : 'ies'} selected`
+          ? `${ticked} of ${state.all.length} ${noun(state.all.length)} selected`
         : (hidden > 0
-          ? `Showing ${state.all.length - hidden} of ${state.all.length} archive directories…`
-          : `Choose from ${state.all.length} archive director${state.all.length === 1 ? 'y' : 'ies'}…`);
+          ? `Showing ${state.all.length - hidden} of ${state.all.length} archive ${nouns.many}…`
+          : `Choose from ${state.all.length} archive ${noun(state.all.length)}…`);
       trigger.disabled = state.all.length === 0;
     }
 
@@ -806,19 +860,24 @@
     }
 
     function setActive(index) {
-      if (!state.rows.length) return;
+      if (!state.rows.length) {
+        trigger.removeAttribute('aria-activedescendant');
+        search?.removeAttribute('aria-activedescendant');
+        return;
+      }
       const next = Math.max(0, Math.min(index, state.rows.length - 1));
       state.rows.forEach((row, position) => row.classList.toggle('is-active', position === next));
       state.activeIndex = next;
       const row = state.rows[next];
       trigger.setAttribute('aria-activedescendant', row.id);
+      search?.setAttribute('aria-activedescendant', row.id);
       row.scrollIntoView({ block: 'nearest' });
     }
 
     function renderRows() {
       const directories = visibleDirectories();
       const selected = currentValue();
-      panel.replaceChildren();
+      list.replaceChildren();
       state.rows = [];
 
       if (state.groups) {
@@ -835,10 +894,10 @@
           block.setAttribute('aria-labelledby', label.id);
           block.appendChild(label);
           items.forEach(directory => block.appendChild(optionRow(directory, selected)));
-          panel.appendChild(block);
+          list.appendChild(block);
         });
       } else {
-        directories.forEach(directory => panel.appendChild(optionRow(directory, selected)));
+        directories.forEach(directory => list.appendChild(optionRow(directory, selected)));
       }
 
       const hidden = hiddenCount();
@@ -852,11 +911,23 @@
           event.preventDefault();
           expand();
         });
-        panel.appendChild(more);
+        list.appendChild(more);
         state.rows.push(more);
       }
 
       state.rows.forEach((row, index) => { row.id = `${panelId}-option-${index}`; });
+      if (noMatch) {
+        const none = Boolean(state.query) && !state.rows.length;
+        noMatch.hidden = !none;
+        noMatchText.textContent = none ? `No ${nouns.many} match "${search.value.trim()}"` : '';
+      }
+    }
+
+    function applySearch() {
+      state.query = search ? search.value.trim().toLowerCase() : '';
+      renderRows();
+      positionPanel();
+      setActive(0);
     }
 
     // One option, registered in state.rows. Its own index travels with the
@@ -904,6 +975,11 @@
     function open() {
       if (state.open || trigger.disabled) return;
       state.open = true;
+      // Every opening starts with the search empty.
+      if (search) {
+        search.value = '';
+        state.query = '';
+      }
       panel.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
       renderRows();
@@ -911,6 +987,7 @@
       const selected = currentValue();
       const index = state.rows.findIndex(row => row.dataset.value === selected);
       setActive(index >= 0 ? index : 0);
+      search?.focus();
       window.addEventListener('scroll', positionPanel, true);
       window.addEventListener('resize', positionPanel);
       document.addEventListener('pointerdown', onDocumentPointerDown, true);
@@ -920,8 +997,14 @@
       if (!state.open) return;
       state.open = false;
       panel.hidden = true;
-      panel.replaceChildren();
+      list.replaceChildren();
       state.rows = [];
+      if (search) {
+        search.value = '';
+        state.query = '';
+        search.removeAttribute('aria-activedescendant');
+        noMatch.hidden = true;
+      }
       state.activeIndex = -1;
       trigger.setAttribute('aria-expanded', 'false');
       trigger.removeAttribute('aria-activedescendant');
@@ -966,6 +1049,49 @@
       if (state.open) close();
       else open();
     });
+
+    // While the panel is open with search, the keyboard is in the search box.
+    // Tab returns it to the list's button rather than wandering into the
+    // option rows, which are buttons only for the mouse.
+    if (search) {
+      search.addEventListener('input', applySearch);
+      search.addEventListener('keydown', event => {
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            setActive(state.activeIndex + 1);
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            setActive(state.activeIndex - 1);
+            break;
+          case 'Enter': {
+            event.preventDefault();
+            const row = state.rows[state.activeIndex];
+            if (!row) break;
+            if (row.dataset.loadMore === 'true') expand();
+            else choose(row.dataset.value, state.activeIndex);
+            break;
+          }
+          case 'Escape':
+            // Also keeps the window this sits in from closing.
+            event.preventDefault();
+            if (search.value) {
+              search.value = '';
+              applySearch();
+            } else {
+              close();
+            }
+            break;
+          case 'Tab':
+            event.preventDefault();
+            close();
+            break;
+          default:
+            break;
+        }
+      });
+    }
 
     trigger.addEventListener('keydown', event => {
       if (!state.open) {
@@ -1088,15 +1214,20 @@
   }
 
   // "Add from archive folders" in the VPX Renames and Extract windows (Jason,
-  // 2026-10-29): the multi-select picker over every folder from every archive
-  // dropped on a checksum field, and a button handing the ticked ones to
-  // onAdd, which returns how many rows it really added (a folder already in
-  // the window is skipped). refresh(values) reloads the list on each open.
-  // Folders are offered as the archive lists them, not mapped to install
-  // paths (Jason's call).
+  // 2026-10-29): a multi-select picker over every folder from every archive
+  // dropped on a checksum field, and Add Selected handing the ticked ones to
+  // onAdd, which returns the paths it really added (one already in the window
+  // is skipped). refresh(values) reloads the lists on each open. Paths are
+  // offered as the archive lists them, not mapped to install paths (Jason's
+  // call).
+  //
+  // withFiles (Renames) adds a second list, every file from those archives
+  // but the ROM tab's and Additional ROMs', and a Folders | Files switch on
+  // the label's line. Each list keeps its own ticks across a switch, the
+  // switch shows how many each holds, and Add Selected takes both.
   function createArchiveFolderAdder(config) {
-    const { id, onAdd } = config || {};
-    const LABEL = 'Add from archive folders';
+    const { id, onAdd, withFiles } = config || {};
+    const LABEL = withFiles ? 'Add from archive' : 'Add from archive folders';
     const wrapper = element('div', 'archive-folder-adder');
     const label = element('label', 'archive-folder-adder-label', LABEL);
     label.htmlFor = id;
@@ -1112,43 +1243,134 @@
     // title for the cut-off case: nativeTooltipCleanup.js strips them app-wide.)
     const say = text => { status.textContent = text; };
 
-    const picker = createDirectoryPicker({
-      id,
-      ariaLabel: LABEL,
-      emptyText: 'Drop an archive on a checksum field to list its folders',
-      multiple: true,
-      onToggle: selected => {
-        add.disabled = selected.length === 0;
-        say('');
-      }
+    const lists = [];
+    const onToggle = () => {
+      add.disabled = !lists.some(list => list.picker.getSelected().length);
+      syncSwitch();
+      say('');
+    };
+    lists.push({
+      kind: 'folders',
+      name: 'Folders',
+      groups: archiveFolderGroups,
+      picker: createDirectoryPicker({
+        id,
+        // The spoken name starts with the visible label, as WCAG asks.
+        ariaLabel: 'Add from archive folders',
+        emptyText: 'Drop an archive on a checksum field to list its folders',
+        multiple: true,
+        onToggle
+      })
     });
+    // After a reload the archives' entries come back with the draft but their
+    // files do not, so the empty list says to drop them again rather than
+    // reading as though the first drop failed.
+    let filesCleared = false;
+    if (withFiles) {
+      lists.push({
+        kind: 'files',
+        name: 'Files',
+        groups: archiveFileGroups,
+        picker: createDirectoryPicker({
+          id: `${id}-files`,
+          ariaLabel: 'Add from archive files',
+          emptyText: () => (filesCleared
+            ? 'Drop the archives again to list their files'
+            : 'Drop a non-ROM archive to list its files'),
+          nouns: { one: 'file', many: 'files' },
+          multiple: true,
+          searchable: true,
+          onToggle
+        })
+      });
+    }
+
+    let showing = 'folders';
+    const current = () => lists.find(list => list.kind === showing) || lists[0];
+    const switcher = withFiles ? element('div', 'archive-folder-adder-switch') : null;
+    if (switcher) {
+      switcher.setAttribute('role', 'group');
+      switcher.setAttribute('aria-label', 'Which list');
+      lists.forEach(list => {
+        const button = element('button', 'archive-folder-adder-switch-btn', list.name);
+        button.type = 'button';
+        button.id = `${id}-show-${list.kind}`;
+        button.dataset.kind = list.kind;
+        button.addEventListener('click', () => show(list.kind));
+        switcher.appendChild(button);
+      });
+    }
+
+    function syncSwitch() {
+      if (!switcher) return;
+      switcher.querySelectorAll('.archive-folder-adder-switch-btn').forEach(button => {
+        const list = lists.find(candidate => candidate.kind === button.dataset.kind);
+        const ticked = list.picker.getSelected().length;
+        // The count is a small number after the word; spoken, it says what it counts.
+        button.replaceChildren(document.createTextNode(list.name));
+        if (ticked) {
+          const count = element('span', 'archive-folder-adder-switch-count', String(ticked));
+          count.setAttribute('aria-hidden', 'true');
+          button.appendChild(count);
+          button.setAttribute('aria-label', `${list.name}, ${ticked} ticked`);
+        } else {
+          button.removeAttribute('aria-label');
+        }
+        button.setAttribute('aria-pressed', list.kind === showing ? 'true' : 'false');
+      });
+    }
+
+    function show(kind) {
+      showing = kind;
+      lists.forEach(list => {
+        list.picker.close({ silent: true });
+        list.picker.element.hidden = list.kind !== kind;
+      });
+      label.htmlFor = current().picker.trigger.id;
+      syncSwitch();
+    }
 
     add.addEventListener('click', () => {
-      const selected = picker.getSelected();
-      if (!selected.length) return;
-      picker.close({ silent: true });
-      const added = Number(typeof onAdd === 'function' ? onAdd(selected) : 0) || 0;
-      picker.clearSelection();
+      const ticked = lists.map(list => ({ kind: list.kind, paths: list.picker.getSelected() }));
+      const picked = ticked.flatMap(entry => entry.paths);
+      if (!picked.length) return;
+      lists.forEach(list => list.picker.close({ silent: true }));
+      const result = typeof onAdd === 'function' ? onAdd(picked) : [];
+      const added = new Set(Array.isArray(result) ? result : []);
+      lists.forEach(list => list.picker.clearSelection());
       // Clearing the ticks disables this button. When rows were added, onAdd
       // has already put the keyboard on the first one; when none were, the
       // keyboard would be left on a disabled button, so it goes back to the
       // list it came from.
-      if (!added) picker.trigger.focus();
-      say(added
-        ? `Added ${added} folder${added === 1 ? '' : 's'}.`
-        : 'Already in the list.');
+      if (!added.size) current().picker.trigger.focus();
+      const tidy = window.VPS_UTILS?.tidyInstallPath || (path => path);
+      const count = kind => (ticked.find(entry => entry.kind === kind)?.paths || [])
+        .filter(path => added.has(tidy(path))).length;
+      const parts = [];
+      const folders = count('folders');
+      const files = count('files');
+      if (folders) parts.push(`${folders} folder${folders === 1 ? '' : 's'}`);
+      if (files) parts.push(`${files} file${files === 1 ? '' : 's'}`);
+      say(parts.length ? `Added ${parts.join(' and ')}.` : 'Already in the list.');
     });
 
-    row.append(picker.element, add);
+    row.append(...lists.map(list => list.picker.element), add);
     // The status shares the label's line, right-aligned (Jason, 2026-10-29),
     // so a message appearing or clearing never changes the window's height.
     const head = element('div', 'archive-folder-adder-head');
-    head.append(label, status);
+    head.append(...[label, switcher, status].filter(Boolean));
     wrapper.append(head, row);
+    show('folders');
 
     function refresh(values) {
-      picker.setGroups(archiveFolderGroups(values), { collapse: true });
-      picker.clearSelection();
+      const stored = values?.[ARCHIVE_LISTS_KEY] || {};
+      filesCleared = Object.keys(stored).some(key => listsFiles(key)
+        && archiveFileLists.get(key)?.name !== stored[key]?.name);
+      lists.forEach(list => {
+        list.picker.setGroups(list.groups(values), { collapse: true });
+        list.picker.clearSelection();
+      });
+      show('folders');
       add.disabled = true;
       say('');
     }
@@ -1707,19 +1929,20 @@
     return `__${stepId}ArchiveDirectories`;
   }
 
-  // Separately, every archive dropped on ANY checksum field leaves its folder
-  // list here, keyed by that field, for the VPX Renames and Extract windows'
-  // folder lists (Jason, 2026-10-29). Screen-only state, never in the YML. A
-  // drop that yields no folders (a plain file, a failed read) removes the
-  // field's entry, so a replaced archive never leaves its folders behind.
+  // Separately, every archive dropped on ANY checksum field leaves its
+  // listing here, keyed by that field, for the VPX Renames and Extract
+  // windows (Jason, 2026-10-29). Screen-only state, never in the YML.
+  //
+  // The folders go in state, so they come back with the draft after a
+  // reload. The files stay in this page's memory only: a big PUP pack lists
+  // thousands, and the draft is saved whole to localStorage, where a full
+  // quota fails silently and would quietly stop autosave. After a reload the
+  // Files list is empty until the archives are dropped again.
+  //
+  // A drop with nothing to list (a plain file, a failed read) removes the
+  // field's entry, so a replaced archive never leaves anything behind.
   const ARCHIVE_LISTS_KEY = '__archiveDirectoryLists';
-
-  function rememberArchiveDirectories(values, onChange, fieldKey, fileName, directories) {
-    const lists = { ...(values?.[ARCHIVE_LISTS_KEY] || {}) };
-    if (Array.isArray(directories) && directories.length) lists[fieldKey] = { name: fileName, directories };
-    else delete lists[fieldKey];
-    onChange(ARCHIVE_LISTS_KEY, Object.keys(lists).length ? lists : undefined, { uiOnly: true });
-  }
+  const archiveFileLists = new Map();
 
   // An Additional ROM is dropped in its editor before Save, and its rows can
   // be edited or removed later, so its list is keyed by the row's checksum:
@@ -1727,11 +1950,30 @@
   // carries that checksum, so a cancelled, removed or retyped row never shows.
   const ADDITIONAL_ROM_PREFIX = 'additionalRoms:';
 
-  // Every stored list as one group per archive, for the pickers (Jason,
+  // The ROM tab's own archive and Additional ROMs offer no files (Jason,
+  // 2026-10-29); their folders are still offered. The Additional ROM editor
+  // reads only folders today, so its half of this guards the rule, not a path.
+  function listsFiles(fieldKey) {
+    return fieldKey !== 'romChecksum' && !String(fieldKey).startsWith(ADDITIONAL_ROM_PREFIX);
+  }
+
+  function rememberArchiveDirectories(values, onChange, fieldKey, fileName, directories, files) {
+    const folders = Array.isArray(directories) ? directories : [];
+    const kept = listsFiles(fieldKey) && Array.isArray(files) ? files : [];
+    const lists = { ...(values?.[ARCHIVE_LISTS_KEY] || {}) };
+    if (folders.length || kept.length) lists[fieldKey] = { name: fileName, directories: folders };
+    else delete lists[fieldKey];
+    if (kept.length) archiveFileLists.set(fieldKey, { name: fileName, files: kept });
+    else archiveFileLists.delete(fieldKey);
+    onChange(ARCHIVE_LISTS_KEY, Object.keys(lists).length ? lists : undefined, { uiOnly: true });
+  }
+
+  // Every stored listing as one group per archive, for the pickers (Jason,
   // 2026-10-29): headed "<tab> · <file name>", in tab order with Additional
-  // ROMs straight after the ROM tab's own checksum, each group's folders in
-  // the order it stored them (shallow first).
-  function archiveFolderGroups(values) {
+  // ROMs straight after the ROM tab's own checksum, each group's paths in
+  // the order they were stored (shallow first). itemsOf picks the folders or
+  // the files out of a listing.
+  function archiveGroups(values, itemsOf) {
     const lists = values?.[ARCHIVE_LISTS_KEY] || {};
     const order = new Map();
     (window.VPS_YML_FIELDS?.WIZARD_STEPS || []).forEach(step => {
@@ -1752,12 +1994,25 @@
           position: place ? place.position : Number.MAX_SAFE_INTEGER,
           stored,
           label: entry?.name ? `${tab} · ${entry.name}` : tab,
-          directories: Array.isArray(entry?.directories) ? entry.directories : []
+          directories: itemsOf(key, entry)
         };
       })
       .filter(group => group && group.directories.length)
       .sort((left, right) => (left.position - right.position) || (left.stored - right.stored))
       .map(({ label, directories }) => ({ label, directories }));
+  }
+
+  function archiveFolderGroups(values) {
+    return archiveGroups(values, (key, entry) => (Array.isArray(entry?.directories) ? entry.directories : []));
+  }
+
+  // Only files from the same drop as the stored entry: after a reload the
+  // entry comes back with the draft but the files do not.
+  function archiveFileGroups(values) {
+    return archiveGroups(values, (key, entry) => {
+      const kept = archiveFileLists.get(key);
+      return kept && kept.name === entry?.name ? kept.files : [];
+    });
   }
 
   function createFieldControl(field, values, onChange, stepId) {
@@ -1994,7 +2249,7 @@
         if (isColorArchiveDrop) {
           // Only for the Renames and Extract folder lists, so a failed read
           // stays quiet and never marks a good checksum drop as an error.
-          const directoryTask = readArchiveDirectories(file, collectVpxMagic(values)).catch(error => {
+          const listingTask = readArchiveListing(file, collectVpxMagic(values)).catch(error => {
             console.warn('Archive browse failed:', error);
             return null;
           });
@@ -2043,9 +2298,9 @@
             console.warn('Color ROM archive scan failed:', error);
           }
           // After the mode switch above, which clears this field's old list.
-          const directories = await directoryTask;
+          const listing = await listingTask;
           if (!isChecksumGenerationCurrent(controlId, generation)) return;
-          rememberArchiveDirectories(values, onChange, field.yml_field, file.name, directories);
+          rememberArchiveDirectories(values, onChange, field.yml_field, file.name, listing?.directories, listing?.files);
           return;
         }
 
@@ -2098,8 +2353,14 @@
         // Extract windows; a bundled drop's list also fills the DMD tab's
         // picker, though the VPX checksum field is not itself an archive browser.
         const isArchiveBrowser = Boolean(field.archiveBrowser || pairing);
+        // The task settles on the folders, as every reader below expects; the
+        // files from the same read are kept aside for the Renames Files list.
+        let archiveFiles = null;
         const archiveTask = ARCHIVE_EXTENSIONS.includes(extension)
-          ? readArchiveDirectories(file, collectVpxMagic(values))
+          ? readArchiveListing(file, collectVpxMagic(values)).then(listing => {
+            archiveFiles = listing.files;
+            return listing.directories;
+          })
           : Promise.resolve(null);
         // The whole archive's own MD5, alongside the .vpx extracted from it.
         const pairedHashTask = pairing ? calculateMd5FromBlob(file) : Promise.resolve(null);
@@ -2110,7 +2371,8 @@
         if (!isChecksumGenerationCurrent(controlId, generation)) return;
 
         rememberArchiveDirectories(values, onChange, field.yml_field, file.name,
-          archiveResult.status === 'fulfilled' ? archiveResult.value : null);
+          archiveResult.status === 'fulfilled' ? archiveResult.value : null,
+          archiveResult.status === 'fulfilled' ? archiveFiles : null);
         // A field that does not browse folders only reads them for the two
         // windows, so a failed read stays quiet and never marks a good
         // checksum drop as an error; an archive browser reports it below.

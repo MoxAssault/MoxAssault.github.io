@@ -205,8 +205,11 @@ if (!PRINT) {
     check(`${which}: with no archive dropped the list is greyed out`, empty.triggerDisabled === true && empty.addDisabled === true, JSON.stringify(empty));
     check(`${which}: and says how to fill it`,
       empty.triggerText === 'Drop an archive on a checksum field to list its folders', empty.triggerText);
-    check(`${which}: the visible label names the control, and matches its spoken name`,
-      empty.labelText === 'Add from archive folders' && empty.triggerName === empty.labelText
+    // Renames' label is shortened to sit beside its Folders | Files switch;
+    // the spoken name still starts with the visible words.
+    check(`${which}: the visible label names the control, and its spoken name starts with it`,
+      empty.labelText === (which === 'renames' ? 'Add from archive' : 'Add from archive folders')
+      && empty.triggerName === 'Add from archive folders' && empty.triggerName.startsWith(empty.labelText)
       && empty.labelFor === (which === 'renames' ? 'vpxRenamesFolders' : 'vpxExtractFolders'), JSON.stringify(empty));
     await closeWindows();
   }
@@ -618,6 +621,20 @@ if (!PRINT) {
     result.list = [...document.querySelectorAll('#vpxExtractList input')].map(input => input.value);
     return result;
   }, settleSource);
+  await closeWindows();
+  const romFiles = await app.run(async settleText => {
+    const settle = eval(settleText);
+    document.getElementById('vpxRenamesBtn').click();
+    await settle();
+    document.getElementById('vpxRenamesFolders-show-files').click();
+    document.getElementById('vpxRenamesFolders-files').click();
+    await settle();
+    const labels = [...document.querySelectorAll('#vpxRenamesFolders-files-panel .archive-directory-group-label')].map(header => header.textContent);
+    document.querySelector('#vpxRenamesDialog .dialog-close').click();
+    return labels;
+  }, settleSource);
+  check('files: no files from the ROM tab or Additional ROMs; the Alt Sound archive offers its own',
+    JSON.stringify(romFiles) === JSON.stringify(['Alt Sound · pup-test.zip']), JSON.stringify(romFiles));
   check('three archives, three groups, sorted by tab though dropped out of order',
     JSON.stringify(shared.labels) === JSON.stringify(['ROM · pup-test.zip', 'Additional ROM · pup-normal.zip', 'Alt Sound · pup-test.zip']),
     JSON.stringify(shared.labels));
@@ -662,6 +679,320 @@ if (!PRINT) {
   }, settleSource);
   check('a long archive name wraps instead of being cut',
     longName.text.endsWith('Final.zip') && longName.uncut === true && longName.lines >= 2, JSON.stringify(longName));
+
+  // 17. The Files list in Renames (Jason, 2026-10-29). Every file from every
+  //     dropped archive but the ROM tab's and Additional ROMs', behind a
+  //     Folders | Files switch; each list keeps its ticks across a switch, and
+  //     Add Selected takes both. Extract has no switch.
+  await play([...SETUP, ['override', 'specialDMD', true], ['dmdType', 'FlexDMD']]);
+  await drop('rom', 'romChecksum', 'pup-test.zip');
+  const romOnly = await app.run(async settleText => {
+    const settle = eval(settleText);
+    document.getElementById('config-tab-vpx').click();
+    await settle();
+    document.getElementById('vpxRenamesBtn').click();
+    await settle();
+    document.getElementById('vpxRenamesFolders-show-files').click();
+    const trigger = document.getElementById('vpxRenamesFolders-files');
+    const result = { disabled: trigger.disabled, text: trigger.textContent.replace('▾', '').trim() };
+    document.querySelector('#vpxRenamesDialog .dialog-close').click();
+    return result;
+  }, settleSource);
+  check('files: a ROM archive alone lists no files, and the list says how to fill it',
+    romOnly.disabled === true && romOnly.text === 'Drop a non-ROM archive to list its files', JSON.stringify(romOnly));
+
+  await drop('altSound', 'altSoundChecksum', 'pup-normal.zip');
+  // A .7z goes through libarchive, which lists each file as { path, file: { name } }.
+  await drop('dmd', 'specialDMDChecksum', 'pup-test.7z');
+  const files = await app.run(async settleText => {
+    const settle = eval(settleText);
+    const ids = {
+      folders: 'vpxRenamesFolders', files: 'vpxRenamesFolders-files', add: 'vpxRenamesFolders-add',
+      showFolders: 'vpxRenamesFolders-show-folders', showFiles: 'vpxRenamesFolders-show-files'
+    };
+    const $ = key => document.getElementById(ids[key]);
+    // What a screen reader hears: the count is spoken as "Files, 1 ticked".
+    const pressed = () => [$('showFolders'), $('showFiles')].map(button =>
+      `${button.getAttribute('aria-label') || button.textContent}:${button.getAttribute('aria-pressed')}`);
+    const shownCount = key => $(key).querySelector('.archive-folder-adder-switch-count')?.textContent || '';
+    const visible = node => getComputedStyle(node).display !== 'none';
+    const shown = () => ({ folders: visible($('folders').closest('.archive-directory-picker')), files: visible($('files').closest('.archive-directory-picker')) });
+    const label = () => document.querySelector('#vpxRenamesDialog .archive-folder-adder-label');
+    const tick = async (key, value) => {
+      $(key).click();
+      await settle();
+      const row = [...document.querySelectorAll(`#${ids[key]}-panel .archive-directory-option`)].find(item => item.dataset.value === value);
+      row?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      await settle();
+      return Boolean(row);
+    };
+    const panelState = key => ({
+      groups: [...document.querySelectorAll(`#${ids[key]}-panel .archive-directory-group-label`)].map(header => header.textContent),
+      offered: [...document.querySelectorAll(`#${ids[key]}-panel .archive-directory-option`)].map(row => row.dataset.value),
+      more: document.querySelector(`#${ids[key]}-panel .archive-directory-more`)?.textContent || '',
+      ticked: [...document.querySelectorAll(`#${ids[key]}-panel .archive-directory-option[aria-selected="true"]`)].map(row => row.dataset.value)
+    });
+
+    document.getElementById('config-tab-vpx').click();
+    await settle();
+    document.getElementById('vpxExtractBtn').click();
+    await settle();
+    const extractSwitch = Boolean(document.querySelector('#vpxExtractDialog .archive-folder-adder-switch'));
+    const extractLabel = document.querySelector('#vpxExtractDialog .archive-folder-adder-label').textContent;
+    document.querySelector('#vpxExtractDialog .dialog-close').click();
+    document.getElementById('vpxRenamesBtn').click();
+    await settle();
+
+    const r = { extractSwitch, extractLabel };
+    r.opened = {
+      label: label().textContent, labelFor: label().htmlFor, pressed: pressed(), shown: shown(),
+      switchName: document.querySelector('#vpxRenamesDialog .archive-folder-adder-switch')?.getAttribute('aria-label') || '',
+      filesName: $('files').getAttribute('aria-label')
+    };
+    $('showFiles').click();
+    await settle();
+    r.switched = { labelFor: label().htmlFor, pressed: pressed(), shown: shown(), trigger: $('files').textContent.replace('▾', '').trim() };
+    r.tickedFile = await tick('files', 'Top/root.txt');
+    r.filesPanel = panelState('files');
+    r.fileTrigger = $('files').textContent.replace('▾', '').trim();
+    $('showFolders').click();
+    await settle();
+    r.afterFirstSwitch = { pressed: pressed(), shown: shown(), addDisabled: $('add').disabled,
+      countShown: shownCount('showFiles'), word: $('showFiles').firstChild?.textContent || '' };
+    r.tickedFolder = await tick('folders', 'Another');
+    $('showFiles').click();
+    await settle();
+    $('files').click();
+    await settle();
+    r.filesKept = panelState('files').ticked;
+    r.bothCounted = pressed();
+    $('files').click();
+    $('add').click();
+    await settle();
+    const rows = () => [...document.querySelectorAll('#vpxRenamesList .vpx-renames-row')].map(row => [...row.querySelectorAll('input')].map(input => input.value));
+    const status = () => document.getElementById('vpxRenamesFolders-status').textContent;
+    r.added = { rows: rows(), status: status(), pressed: pressed(), addDisabled: $('add').disabled, focus: document.activeElement?.id || '' };
+    await tick('files', 'Top/root.txt');
+    $('add').click();
+    await settle();
+    r.again = { rows: rows().length, status: status(), focus: document.activeElement?.id || '' };
+    document.getElementById('vpxRenamesSave').click();
+    await settle();
+    r.saved = JSON.stringify(window.VPS_FEATURE_RUNTIME.state.values.postInstallRename ?? null);
+    return r;
+  }, settleSource);
+  check('files: Extract has no switch and keeps its folders label',
+    files.extractSwitch === false && files.extractLabel === 'Add from archive folders', JSON.stringify(files));
+  check('files: Renames opens on Folders, its label shortened to fit the switch',
+    files.opened.label === 'Add from archive' && files.opened.labelFor === 'vpxRenamesFolders'
+    && JSON.stringify(files.opened.pressed) === '["Folders:true","Files:false"]'
+    && files.opened.shown.folders === true && files.opened.shown.files === false, JSON.stringify(files.opened));
+  check('files: the switch is a named group, and the files list is named for what it holds',
+    files.opened.switchName === 'Which list' && files.opened.filesName === 'Add from archive files', JSON.stringify(files.opened));
+  check('files: the switch shows the Files list and points the label at it',
+    files.switched.labelFor === 'vpxRenamesFolders-files' && JSON.stringify(files.switched.pressed) === '["Folders:false","Files:true"]'
+    && files.switched.shown.folders === false && files.switched.shown.files === true, JSON.stringify(files.switched));
+  check('files: the trigger counts files, not directories, deep ones behind LOAD MORE',
+    files.switched.trigger === 'Showing 3 of 9 archive files…', files.switched.trigger);
+  check('files: no ROM group; every other archive\'s files, grouped, in tab order',
+    JSON.stringify(files.filesPanel.groups) === JSON.stringify(['Alt Sound · pup-normal.zip', 'DMD · pup-test.7z']),
+    JSON.stringify(files.filesPanel));
+  check('files: full paths, shallow first, the rest behind LOAD MORE',
+    JSON.stringify(files.filesPanel.offered) === JSON.stringify(['TheMatrixPup/readme.txt', 'Another/file.txt', 'Top/root.txt'])
+    && /LOAD MORE \(6 deeper\)/.test(files.filesPanel.more), JSON.stringify(files.filesPanel));
+  check('files: ticking a file counts it as a file', files.tickedFile && files.fileTrigger === '1 of 9 files selected', files.fileTrigger);
+  check('files: switching back keeps the tick, shows it on the switch, and Add Selected stays ready',
+    JSON.stringify(files.afterFirstSwitch.pressed) === '["Folders:true","Files, 1 ticked:false"]'
+    && files.afterFirstSwitch.word === 'Files' && files.afterFirstSwitch.countShown === '1'
+    && files.afterFirstSwitch.shown.folders === true && files.afterFirstSwitch.addDisabled === false, JSON.stringify(files.afterFirstSwitch));
+  check('files: a folder ticked in the other list leaves the file tick alone',
+    files.tickedFolder && JSON.stringify(files.filesKept) === '["Top/root.txt"]', JSON.stringify(files.filesKept));
+  check('files: both lists\' ticks show on the switch', JSON.stringify(files.bothCounted) === '["Folders, 1 ticked:false","Files, 1 ticked:true"]',
+    JSON.stringify(files.bothCounted));
+  check('files: Add Selected takes both, one mirrored row each, folders first',
+    JSON.stringify(files.added.rows) === JSON.stringify([['Another', 'Another'], ['Top/root.txt', 'Top/root.txt']]), JSON.stringify(files.added));
+  check('files: and says what it added of each', files.added.status === 'Added 1 folder and 1 file.', files.added.status);
+  check('files: both lists\' ticks clear, and the keyboard lands on the first new destination',
+    JSON.stringify(files.added.pressed) === '["Folders:false","Files:true"]' && files.added.addDisabled === true
+    && files.added.focus === 'vpxRenameDestination0', JSON.stringify(files.added));
+  check('files: a file already a row is skipped, the keyboard back on the Files list',
+    files.again.rows === 2 && files.again.status === 'Already in the list.' && files.again.focus === 'vpxRenamesFolders-files', JSON.stringify(files.again));
+  check('files: Save writes the file rows like any other',
+    files.saved === JSON.stringify([{ source: 'Another', destination: 'Another' }, { source: 'Top/root.txt', destination: 'Top/root.txt' }]), files.saved);
+
+  // 19. The switch reads as a control, not more of the label (Jason,
+  //     2026-10-29), and the Files list has a search (real keys throughout).
+  {
+    const look = await app.run(async settleText => {
+      const settle = eval(settleText);
+      document.getElementById('config-tab-vpx').click();
+      await settle();
+      document.getElementById('vpxRenamesBtn').click();
+      await settle();
+      const node = document.getElementById('vpxRenamesDialog');
+      const label = node.querySelector('.archive-folder-adder-label');
+      const pill = node.querySelector('.archive-folder-adder-switch');
+      const button = node.querySelector('.archive-folder-adder-switch-btn');
+      return {
+        labelCase: getComputedStyle(label).textTransform,
+        buttonCase: getComputedStyle(button).textTransform,
+        pillBorder: getComputedStyle(pill).borderTopWidth,
+        pillRound: parseFloat(getComputedStyle(pill).borderTopLeftRadius) >= 10,
+        gap: Math.round(pill.getBoundingClientRect().left - label.getBoundingClientRect().right),
+      target: Math.round(button.getBoundingClientRect().height),
+      fits: pill.getBoundingClientRect().height <= pill.parentElement.getBoundingClientRect().height
+      };
+    }, settleSource);
+    check('switch: a bordered pill in normal case, apart from the uppercase label',
+      look.labelCase === 'uppercase' && look.buttonCase === 'none' && look.pillBorder === '1px' && look.pillRound && look.gap >= 12,
+    JSON.stringify(look));
+  check('switch: each side is a 24px target, and the pill fits inside its line',
+    look.target >= 24 && look.fits === true,
+      JSON.stringify(look));
+
+    const opened = await app.run(async settleText => {
+      const settle = eval(settleText);
+      document.getElementById('vpxRenamesFolders-show-files').click();
+      document.getElementById('vpxRenamesFolders-files').click();
+      await settle();
+      const panel = document.getElementById('vpxRenamesFolders-files-panel');
+      const list = panel.querySelector('.archive-directory-list');
+      const search = document.getElementById('vpxRenamesFolders-files-search');
+      return {
+        focus: document.activeElement?.id || '',
+        value: search?.value,
+        placeholder: search?.placeholder || '',
+        name: search?.getAttribute('aria-label') || '',
+        panelRole: panel.getAttribute('role'),
+        listRole: list?.getAttribute('role'),
+        listMulti: list?.getAttribute('aria-multiselectable'),
+        controls: document.getElementById('vpxRenamesFolders-files').getAttribute('aria-controls') === list?.id,
+        searchControls: search?.getAttribute('aria-controls') === list?.id,
+        sticky: search ? getComputedStyle(search.parentElement).position : '',
+      tickBox: (() => {
+        const row = list?.querySelector('.archive-directory-option');
+        return row ? getComputedStyle(row, '::before').content : 'no row';
+      })(),
+        more: Boolean(panel.querySelector('.archive-directory-more'))
+      };
+    }, settleSource);
+    check('search: opening the Files list puts the keyboard in an empty search box',
+      opened.focus === 'vpxRenamesFolders-files-search' && opened.value === '' && opened.placeholder === 'Search files'
+      && opened.name === 'Search files', JSON.stringify(opened));
+    check('search: the box sits above the list, not inside it, pinned at the top',
+      opened.panelRole === null && opened.listRole === 'listbox' && opened.listMulti === 'true'
+      && opened.controls && opened.searchControls && opened.sticky === 'sticky', JSON.stringify(opened));
+  check('search: the Files rows keep their tick boxes inside the separate list',
+    opened.tickBox === '""', JSON.stringify(opened));
+
+    const state = () => app.run(() => {
+      const panel = document.getElementById('vpxRenamesFolders-files-panel');
+      const search = document.getElementById('vpxRenamesFolders-files-search');
+      const active = document.getElementById(search.getAttribute('aria-activedescendant') || '');
+      const noMatch = panel.querySelector('.archive-directory-nomatch');
+      return {
+        value: search.value,
+        open: !panel.hidden,
+        windowOpen: document.getElementById('vpxRenamesDialog').open,
+        focus: document.activeElement?.id || '',
+        groups: [...panel.querySelectorAll('.archive-directory-group-label')].map(header => header.textContent),
+        offered: [...panel.querySelectorAll('.archive-directory-option')].map(row => row.dataset.value),
+        ticked: [...panel.querySelectorAll('.archive-directory-option[aria-selected="true"]')].map(row => row.dataset.value),
+        active: active?.dataset.value || '',
+        more: Boolean(panel.querySelector('.archive-directory-more')),
+        noMatch: noMatch && !noMatch.hidden ? noMatch.querySelector('.archive-directory-nomatch-text').textContent : ''
+      };
+    });
+
+    await app.typeText('MP4');
+    const narrowed = await state();
+    check('search: typing narrows every depth at once, ignoring case, with no LOAD MORE',
+      JSON.stringify(narrowed.offered) === JSON.stringify(['TheMatrixPup/PUPVideos/Attract/intro.mp4', 'TheMatrixPup/PUPVideos/Attract/loop.mp4',
+        'TheMatrixPup/PUPVideos/BackGlass/bg.mp4', 'TheMatrixPup/PUPVideos/DMD/dmd.mp4']) && narrowed.more === false, JSON.stringify(narrowed));
+    check('search: a group with no matches drops out, header and all',
+      JSON.stringify(narrowed.groups) === JSON.stringify(['Alt Sound · pup-normal.zip']), JSON.stringify(narrowed.groups));
+    check('search: the first match is highlighted', narrowed.active === 'TheMatrixPup/PUPVideos/Attract/intro.mp4', narrowed.active);
+
+    await app.pressKey('ArrowDown');
+    await app.pressKey('Enter');
+    const ticked = await state();
+    check('search: Down moves and Enter ticks, the list staying open on the search',
+      JSON.stringify(ticked.ticked) === '["TheMatrixPup/PUPVideos/Attract/loop.mp4"]' && ticked.open && ticked.value === 'MP4'
+      && ticked.focus === 'vpxRenamesFolders-files-search', JSON.stringify(ticked));
+
+    await app.pressKey('Escape');
+    const cleared = await state();
+    check('search: Escape clears the search first, the full list back, the window and list still open',
+      cleared.value === '' && cleared.open && cleared.windowOpen && cleared.more === true
+      && cleared.offered.includes('Another/file.txt'), JSON.stringify(cleared));
+
+    await app.typeText('zzz');
+    const none = await state();
+    check('search: no matches says so', none.offered.length === 0 && none.noMatch === 'No files match "zzz"', JSON.stringify(none));
+    await app.run(() => document.querySelector('#vpxRenamesFolders-files-panel .archive-directory-nomatch-clear').click());
+    const back = await state();
+    check('search: Clear search brings the list back, the keyboard in the box',
+      back.value === '' && back.noMatch === '' && back.offered.length > 0 && back.focus === 'vpxRenamesFolders-files-search', JSON.stringify(back));
+
+    await app.pressKey('Escape');
+    const closed = await state();
+    check('search: a second Escape closes the list, not the window, the keyboard back on the list button',
+      closed.open === false && closed.windowOpen && closed.focus === 'vpxRenamesFolders-files', JSON.stringify(closed));
+
+    const reopened = await app.run(async settleText => {
+      const settle = eval(settleText);
+      document.getElementById('vpxRenamesFolders-files').click();
+      await settle();
+      const panel = document.getElementById('vpxRenamesFolders-files-panel');
+      return {
+        value: document.getElementById('vpxRenamesFolders-files-search').value,
+        ticked: [...panel.querySelectorAll('.archive-directory-option[aria-selected="true"]')].map(row => row.dataset.value),
+        hiddenTickCounted: document.getElementById('vpxRenamesFolders-show-files').getAttribute('aria-label') || '',
+        trigger: document.getElementById('vpxRenamesFolders-files').textContent.replace('▾', '').trim()
+      };
+    }, settleSource);
+    check('search: reopening starts empty, and the tick made while searching is kept and counted',
+      reopened.value === '' && reopened.hiddenTickCounted === 'Files, 1 ticked' && reopened.trigger === '1 of 9 files selected',
+      JSON.stringify(reopened));
+
+    await app.pressKey('Tab');
+    const tabbed = await state();
+    check('search: Tab closes the list and returns to its button',
+      tabbed.open === false && tabbed.windowOpen && tabbed.focus === 'vpxRenamesFolders-files', JSON.stringify(tabbed));
+    await app.run(() => document.querySelector('#vpxRenamesDialog .dialog-close').click());
+  }
+
+  // 18. The file lists stay out of the autosaved draft, so a big PUP pack can
+  //     never fill browser storage and stop autosave. After a reload the
+  //     folders come back with the draft; the files wait for a fresh drop.
+  await new Promise(resolve => setTimeout(resolve, 800));
+  const draftText = await app.run(() => localStorage.getItem('vpxs-yml-current-draft-v2') || '');
+  check('reload: the draft holds the folder lists but no file paths',
+    draftText.includes('__archiveDirectoryLists') && draftText.includes('TheMatrixPup/PUPVideos')
+    && !draftText.includes('TheMatrixPup/readme.txt') && !draftText.includes('Attract/intro.mp4'), draftText.slice(0, 300));
+  await app.reload();
+  const reloaded = await app.run(async settleText => {
+    const settle = eval(settleText);
+    const started = Date.now();
+    while (Date.now() - started < 10000 && !document.getElementById('vpxRenamesBtn')) {
+      document.getElementById('config-tab-vpx')?.click();
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    await settle();
+    document.getElementById('vpxRenamesBtn').click();
+    await settle();
+    const result = {
+      foldersLive: document.getElementById('vpxRenamesFolders').disabled === false,
+      filesEmpty: document.getElementById('vpxRenamesFolders-files').disabled === true,
+      filesText: document.getElementById('vpxRenamesFolders-files').textContent.replace('▾', '').trim()
+    };
+    document.querySelector('#vpxRenamesDialog .dialog-close').click();
+    return result;
+  }, settleSource);
+  check('reload: the folders are back, the files list waits for a fresh drop',
+    reloaded.foldersLive === true && reloaded.filesEmpty === true, JSON.stringify(reloaded));
+  check('reload: and says to drop the archives again, not as if the first drop failed',
+    reloaded.filesText === 'Drop the archives again to list their files', JSON.stringify(reloaded));
 
   check('no page errors', app.errors.filter(error => !/Unable to preload the VPS database/.test(error)).length === 0, app.errors.join('\n'));
 }
