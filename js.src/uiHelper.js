@@ -1365,7 +1365,7 @@
     function refresh(values) {
       const stored = values?.[ARCHIVE_LISTS_KEY] || {};
       filesCleared = Object.keys(stored).some(key => listsFiles(key)
-        && archiveFileLists.get(key)?.name !== stored[key]?.name);
+        && archiveFileLists.get(key)?.drop !== stored[key]?.drop);
       lists.forEach(list => {
         list.picker.setGroups(list.groups(values), { collapse: true });
         list.picker.clearSelection();
@@ -1943,6 +1943,12 @@
   // field's entry, so a replaced archive never leaves anything behind.
   const ARCHIVE_LISTS_KEY = '__archiveDirectoryLists';
   const archiveFileLists = new Map();
+  // Each drop's mark, kept on its stored entry and on its file list alike, so
+  // a file list is only ever shown with the entry from the same drop: a
+  // draft loaded later with an archive of the same name never borrows it.
+  // Unique across page loads, because a draft's entries outlive the page.
+  let archiveDropCount = 0;
+  const nextArchiveDrop = () => `${Date.now().toString(36)}-${(archiveDropCount += 1)}`;
 
   // An Additional ROM is dropped in its editor before Save, and its rows can
   // be edited or removed later, so its list is keyed by the row's checksum:
@@ -1961,9 +1967,10 @@
     const folders = Array.isArray(directories) ? directories : [];
     const kept = listsFiles(fieldKey) && Array.isArray(files) ? files : [];
     const lists = { ...(values?.[ARCHIVE_LISTS_KEY] || {}) };
-    if (folders.length || kept.length) lists[fieldKey] = { name: fileName, directories: folders };
+    const drop = nextArchiveDrop();
+    if (folders.length || kept.length) lists[fieldKey] = { name: fileName, directories: folders, drop };
     else delete lists[fieldKey];
-    if (kept.length) archiveFileLists.set(fieldKey, { name: fileName, files: kept });
+    if (kept.length) archiveFileLists.set(fieldKey, { drop, files: kept });
     else archiveFileLists.delete(fieldKey);
     onChange(ARCHIVE_LISTS_KEY, Object.keys(lists).length ? lists : undefined, { uiOnly: true });
   }
@@ -2011,7 +2018,7 @@
   function archiveFileGroups(values) {
     return archiveGroups(values, (key, entry) => {
       const kept = archiveFileLists.get(key);
-      return kept && kept.name === entry?.name ? kept.files : [];
+      return kept && entry?.drop && kept.drop === entry.drop ? kept.files : [];
     });
   }
 

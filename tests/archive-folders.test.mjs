@@ -994,6 +994,58 @@ if (!PRINT) {
   check('reload: and says to drop the archives again, not as if the first drop failed',
     reloaded.filesText === 'Drop the archives again to list their files', JSON.stringify(reloaded));
 
+  // 20. pr-checker's two finds on a3184e7 (2026-10-29), on a standalone
+  //     adder with enough files to scroll.
+  {
+    await app.run(async settleText => {
+      const settle = eval(settleText);
+      document.querySelectorAll('dialog[open]').forEach(node => node.close());
+      const values = {};
+      const onChange = (key, value) => { if (value === undefined) delete values[key]; else values[key] = value; };
+      const files = Array.from({ length: 40 }, (_, index) => `Pack/file${String(index).padStart(2, '0')}.txt`);
+      window.VPS_UI.rememberArchiveDirectories(values, onChange, 'altSoundChecksum', 'pack.zip', ['Pack'], files);
+      const adder = window.VPS_UI.createArchiveFolderAdder({ id: 'probeTall', onAdd: () => [], withFiles: true });
+      Object.assign(adder.element.style, { position: 'fixed', top: '10px', left: '10px', width: '400px', zIndex: 2000 });
+      document.body.appendChild(adder.element);
+      window.__probeTall = { adder, values };
+      adder.refresh(values);
+      document.getElementById('probeTall-show-files').click();
+      document.getElementById('probeTall-files').click();
+      await settle();
+    }, settleSource);
+    for (let step = 0; step < 30; step += 1) await app.pressKey('ArrowDown');
+    for (let step = 0; step < 10; step += 1) await app.pressKey('ArrowUp');
+    const seen = await app.run(() => {
+      const search = document.getElementById('probeTall-files-search');
+      const active = document.getElementById(search.getAttribute('aria-activedescendant') || '');
+      const panel = document.getElementById('probeTall-files-panel');
+      const searchBottom = search.parentElement.getBoundingClientRect().bottom;
+      return {
+        active: active?.dataset.value || '',
+        scrolled: panel.scrollTop > 0,
+        clear: active ? Math.round(active.getBoundingClientRect().top - searchBottom) : null
+      };
+    });
+    check('search: Up never parks the highlighted row under the search box',
+      seen.active === 'Pack/file20.txt' && seen.scrolled && seen.clear >= 0, JSON.stringify(seen));
+
+    // A draft loaded later whose archive has the same name, from another drop.
+    const borrowedName = await app.run(async settleText => {
+      const settle = eval(settleText);
+      const { adder } = window.__probeTall;
+      document.getElementById('probeTall-files').click();
+      await settle();
+      adder.refresh({ __archiveDirectoryLists: { altSoundChecksum: { name: 'pack.zip', directories: ['Pack'], drop: 'from-a-draft' } } });
+      const trigger = document.getElementById('probeTall-files');
+      const result = { disabled: trigger.disabled, text: trigger.textContent.replace('▾', '').trim() };
+      adder.element.remove();
+      delete window.__probeTall;
+      return result;
+    }, settleSource);
+    check('files: a same-named archive from another drop never shows these files',
+      borrowedName.disabled === true && borrowedName.text === 'Drop the archives again to list their files', JSON.stringify(borrowedName));
+  }
+
   check('no page errors', app.errors.filter(error => !/Unable to preload the VPS database/.test(error)).length === 0, app.errors.join('\n'));
 }
 

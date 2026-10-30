@@ -669,7 +669,10 @@
 /* The count is a bold number in the button's own colour: a coloured
    bubble was measured and failed for text in the light theme (3.30:1). */
 .archive-folder-adder-switch-count { font-weight: 800; font-variant-numeric: tabular-nums; }
-/* The Files list's search box, pinned at the top of the open panel. */
+/* The Files list's search box, pinned at the top of the open panel. The
+   panel keeps that much room clear when it scrolls a highlighted row into
+   view, or Up would park the row under the box. */
+.archive-directory-panel:has(> .archive-directory-search) { scroll-padding-top: 44px; }
 .archive-directory-search {
   position: sticky;
   top: 0;
