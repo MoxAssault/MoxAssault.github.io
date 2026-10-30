@@ -53,6 +53,9 @@
       .finally(() => {
         loading = null;
         render();
+        // An ID typed while the index loaded was written to the YML as
+        // unchecked; now that it can fail, the YML and the counts follow.
+        window.VPS_MAIN?.refreshOutput?.();
         window.VPS_PRODUCTION_UI_EXTENSIONS?.scheduleControlCorrections?.();
       });
   }
@@ -81,7 +84,10 @@
 
   // { state: 'empty' | 'pending' | 'ok' | 'error', message, record, item }
   function check(category) {
-    const id = manualId(category);
+    return checkId(category, manualId(category));
+  }
+
+  function checkId(category, id) {
     if (!id) return { state: 'empty' };
     ensureIndex();
     if (failed) return { state: 'error', message: 'The VPS database has not loaded, so this ID cannot be checked.' };
@@ -97,6 +103,29 @@
     return check(category).state === 'ok';
   }
 
+  // For the YML import (Jason, 2026-10-28, decision 2 in the queue note): an
+  // ID that is not on the loaded table but is a real VPS asset of this row's
+  // type imports as Override with that Manual VPSID. Waits for the index the
+  // first time; false for a row without the box, an unknown ID, the wrong
+  // type, or a database that would not load.
+  async function isAssetOfType(category, id) {
+    if (!CATEGORIES.includes(category) || !String(id || '').trim()) return false;
+    // A load that failed earlier is tried again, as a commit does: the import
+    // has just loaded the database itself, and a stale failure would refuse
+    // a good ID and blame the ID for it.
+    failed = false;
+    ensureIndex();
+    if (loading) await loading;
+    return checkId(category, String(id).trim()).state === 'ok';
+  }
+
+  // Writes the ID as the row's Manual VPSID, as leaving the box does, but
+  // leaves the keyboard where it is: nobody tabbed out of this box. Override
+  // must already be ticked, or the row has no box to own it.
+  function apply(category, id) {
+    commit(category, String(id || '').trim(), { quiet: true });
+  }
+
   // For the rulebook: one error per bad ID, on its tab's ID field.
   function issues() {
     return CATEGORIES.flatMap(category => {
@@ -106,7 +135,7 @@
     });
   }
 
-  function commit(category, value, { refocus = false } = {}) {
+  function commit(category, value, { refocus = false, quiet = false } = {}) {
     const callbacks = runtime.state.assetCallbacks;
     if (typeof callbacks?.onChange !== 'function') return;
     // A load that failed is tried again on the next commit, so a dropped
@@ -122,6 +151,7 @@
     // Enter keeps the keyboard in the new box; leaving by Tab lands on the
     // row's first checkbox, the next stop, instead of the page body.
     const box = () => document.getElementById(`manualVpsId-${category}`);
+    if (quiet) return;
     if (refocus) {
       box()?.focus();
       return;
@@ -229,8 +259,9 @@
         ? `${result.record?.name || 'Unknown table'} · ${tabLabel(category)}`
         : result.state === 'pending' ? 'Checking…'
           : result.state === 'error' ? result.message : '';
+      // No title: nativeTooltipCleanup.js strips any set on a live element.
+      // The label wraps instead, so a long table name stays readable.
       if (label.textContent !== text) label.textContent = text;
-      label.title = result.state === 'ok' || result.state === 'error' ? text : '';
       label.classList.toggle('is-error', result.state === 'error');
       presentDot(box, result.state === 'error' ? result.message : '');
       // Verified, the box is described by the name beside it, so a screen
@@ -240,5 +271,5 @@
     });
   }
 
-  window.VPS_MANUAL_VPSID = Object.freeze({ CATEGORIES, check, verified, issues, render });
+  window.VPS_MANUAL_VPSID = Object.freeze({ CATEGORIES, check, verified, issues, render, isAssetOfType, apply });
 })();

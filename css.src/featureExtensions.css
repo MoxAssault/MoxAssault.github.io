@@ -858,7 +858,13 @@
 }
 /* The dot sits on the box's corner, not the label's. */
 .manual-vpsid > .field-error-dot { left: 112px; right: auto; }
+/* Wraps rather than cutting off (Jason, 2026-10-30): up to three lines fit
+   the 52px row, so a long table name stays readable; a name longer still
+   ends in an ellipsis on the third line. */
 .manual-vpsid-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -867,6 +873,6 @@
   color: var(--text-muted);
   font-size: 11.5px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }

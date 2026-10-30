@@ -524,22 +524,38 @@
     return record;
   }
 
-  function validateImportedAssetIds(record, values) {
+  // Returns the borrowed IDs, { category: id }: IDs not on this table that
+  // are real VPS assets of their row's type, on a row with a Manual VPSID box
+  // (Jason, 2026-10-28, decision 2). Each imports as Override with that
+  // Manual VPSID, so Override is set on `values` here. Any other ID off the
+  // table still refuses the import: one found nowhere, of the wrong type, on
+  // a row without the box (VPX, VPU Patch), or marked Bundled, which must be
+  // the table's own asset.
+  async function validateImportedAssetIds(record, values) {
     const selections = {};
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
       const importedId = String(values[config.idField] ?? '').trim();
       if (importedId) selections[category] = importedId;
     });
 
-    Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+    const manual = window.VPS_MANUAL_VPSID;
+    const borrowed = {};
+    for (const [category, config] of Object.entries(CATEGORY_CONFIG)) {
       const importedId = selections[category];
-      if (!importedId) return;
+      if (!importedId) continue;
       const items = window.VPS_UTILS.getCategoryItems(record, category, config, { selections });
       const item = items.find(candidate => String(candidate?.id || '') === importedId);
-      if (!item || window.VPS_UTILS.isItemBroken(item)) {
-        throw new Error(`${config.label} VPS ID “${importedId}” is not available for this table.`);
+      if (item && !window.VPS_UTILS.isItemBroken(item)) continue;
+      const bundled = Boolean(config.bundleField) && values[config.bundleField] === true;
+      if (!item && !bundled && config.overrideField
+        && await manual?.isAssetOfType?.(category, importedId)) {
+        values[config.overrideField] = true;
+        borrowed[category] = importedId;
+        continue;
       }
-    });
+      throw new Error(`${config.label} VPS ID “${importedId}” is not available for this table.`);
+    }
+    return borrowed;
   }
 
   async function clearCurrentBuild() {
@@ -580,10 +596,12 @@
     });
   }
 
-  async function selectImportedAssets(values) {
+  async function selectImportedAssets(values, borrowed = {}) {
     for (const [category, config] of categoryOrder()) {
       const importedId = String(values[config.idField] ?? '').trim();
       if (!importedId) continue;
+      // Not in this table's dropdown; written into the Manual VPSID box below.
+      if (borrowed[category]) continue;
 
       const row = await waitFor(
         () => document.querySelector(`#assetMatrix .asset-row[data-category="${category}"]`),
@@ -631,6 +649,22 @@
         checkbox.dispatchEvent(new Event('change', { bubbles: true }));
         await nextPaint();
       }
+    }
+
+    // A borrowed ID goes into its row's Manual VPSID box, which the Override
+    // ticked just above has opened, as if typed and left.
+    for (const [category, id] of Object.entries(borrowed)) {
+      const config = CATEGORY_CONFIG[category];
+      await waitFor(
+        () => document.getElementById(`manualVpsId-${category}`),
+        `The ${config.label} Manual VPSID box is unavailable.`
+      );
+      window.VPS_MANUAL_VPSID.apply(category, id);
+      await waitFor(
+        () => window.VPS_MANUAL_VPSID.verified(category),
+        `${config.label} VPS ID “${id}” could not be set as a Manual VPSID.`
+      );
+      await nextPaint();
     }
 
     // The DMD row's dropdown holds a TYPE, not a VPS ID, so the idField loop at
@@ -783,10 +817,10 @@
 
       showToast('loading', 'Loading table data', `Finding ${tableId} and matching its selected assets…`);
       const record = await findTableRecord(tableId);
-      validateImportedAssetIds(record, values);
+      const borrowed = await validateImportedAssetIds(record, values);
       await clearCurrentBuild();
       await loadTable(tableId);
-      await selectImportedAssets(values);
+      await selectImportedAssets(values, borrowed);
       await loadImportedFields(values);
       restoreListValues(values);
       // The password keys are customRenderer fields with no DOM control, so

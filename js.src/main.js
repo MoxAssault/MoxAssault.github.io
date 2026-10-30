@@ -801,7 +801,16 @@
 
   // The inputs every rule reads, for the scripts that draw from the rulebook
   // outside this file (the field dots, the jump to the first error).
-  window.VPS_MAIN = Object.freeze({ validationContext });
+  // For a controller whose check finishes later than the edit that started
+  // it (the Manual VPSID index loads on first use): the YML and the counts
+  // are written again from the same state.
+  function refreshOutput() {
+    updatePreview();
+    updateValidationSummary();
+    refreshTabStatuses();
+  }
+
+  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput });
 
   function updateValidationSummary() {
     refreshValidation();
@@ -921,9 +930,22 @@
     return keys;
   }
 
+  // A Manual VPSID that fails its check in any way (no such asset, the wrong
+  // type, or a database that would not load) stays in its box, keeps its
+  // red dot and still blocks Copy and Download, but is left out of the YML
+  // (Jason, 2026-10-30). Taken out of a copy, so the typed ID is never lost.
+  function yamlValues() {
+    const manual = window.VPS_MANUAL_VPSID;
+    const failing = (manual?.CATEGORIES || []).filter(category => manual.check(category).state === 'error');
+    if (!failing.length) return state.values;
+    const values = { ...state.values };
+    failing.forEach(category => { delete values[CATEGORY_CONFIG[category].idField]; });
+    return values;
+  }
+
   function updatePreview() {
     inactiveFieldKeys().forEach(key => { delete state.values[key]; });
-    state.yaml = buildYaml(state.values, { omit: OMIT_FROM_YAML });
+    state.yaml = buildYaml(yamlValues(), { omit: OMIT_FROM_YAML });
     dom.previewYaml.innerHTML = highlightYaml(state.yaml);
     const lineCount = state.yaml.trimEnd().split('\n').length;
     dom.previewLineCount.textContent = `${lineCount} ${lineCount === 1 ? 'LINE' : 'LINES'}`;
