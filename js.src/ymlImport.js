@@ -289,6 +289,16 @@
       else values.vpxMagic = plain[0] || '';
     }
 
+    // Bundled, the DMD's archive format is written as vpxArchiveFormat and the
+    // DMD key is left out (yamlFeatureSupport.js, Jason's call 2026-08-26). It
+    // is edited on the DMD tab, so the import puts it back there: without
+    // this the format was lost on import, and every later export left it out
+    // (found by Jason, 2026-10-30). A DMD key the file does carry wins.
+    if (values.specialDMDBundled === true && valuePresent(values.vpxArchiveFormat)
+      && !valuePresent(values.specialDMDArchiveFormat)) {
+      values.specialDMDArchiveFormat = String(values.vpxArchiveFormat).trim().toLowerCase();
+    }
+
     // Preserve `enabled: false` from the imported YAML (checkbox will render
     // as checked). Anything else (missing, or `enabled: true`) is normalised
     // to "not disabled" and left absent from `values`, so it never round-trips
