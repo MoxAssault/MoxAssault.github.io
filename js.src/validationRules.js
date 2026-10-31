@@ -324,6 +324,11 @@
     window.VPS_MANUAL_VPSID?.issues?.().forEach(({ stepId, fieldName, message }) => {
       add(stepId, fieldName, 'Manual VPSID needs attention', message);
     });
+    // A URL Override that VPS lists only as another kind of asset blocks
+    // (Jason, 2026-10-30: better stopped than a table broken on install).
+    window.VPS_URL_OVERRIDE_LOOKUP?.issues?.(ctx.isStepEnabled).forEach(({ stepId, fieldName, message }) => {
+      add(stepId, fieldName, 'URL Override is for another asset type', message);
+    });
     // Extract Extra Paths, under the same rule, drawn on its own button.
     window.VPS_EXTRACT_EXTRA?.issues?.(ctx.isStepEnabled).forEach(({ index, message }) => {
       add('vpx', 'vpxExtractExtra', `Extract Extra Path ${index + 1} needs attention`, message);

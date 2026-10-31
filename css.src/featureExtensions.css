@@ -876,3 +876,108 @@
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
+
+/* The URL Override check (2026-10-30, redesigned with Jason the same day):
+   a link an asset of the row's own type carries opens this pop-up; a link
+   only other types carry is a blocking error, its message under the box. */
+.url-vps-match-dialog { width: min(480px, calc(100% - 28px)); }
+.url-vps-match-titlebox { min-width: 0; }
+.url-vps-match-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.url-vps-match-title-row h2 { overflow-wrap: anywhere; }
+/* The ID as the table card shows one (.table-id): plain monospace. In
+   --text-muted, not the card's --text-faint, which measured 3.60:1 (dark)
+   and 3.42:1 (light) on --panel, under the 4.5:1 text this size needs. */
+.url-vps-match-id {
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  font-weight: 400;
+}
+/* The drawn close icon, as #checksumAdditionalDialog's. */
+.url-vps-match-dialog .dialog-close svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.url-vps-match-title-actions:empty { display: none; }
+.url-vps-match-title-actions { display: flex; flex-shrink: 0; gap: 4px; }
+.url-vps-match-body { display: grid; gap: 14px; color: var(--text); }
+.url-vps-match-intro,
+.url-vps-match-advice { margin: 0; font-size: 13px; line-height: 1.4; }
+.url-vps-match-advice { color: var(--text-muted); }
+/* The picture on the left when VPS has one, the text beside it. */
+.url-vps-match-asset {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.url-vps-match-asset + .url-vps-match-asset {
+  padding-top: 14px;
+  border-top: 1px solid var(--panel-line);
+}
+.url-vps-match-thumb {
+  flex-shrink: 0;
+  width: 72px;
+  max-height: 72px;
+  object-fit: contain;
+  border: 1px solid var(--panel-line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+}
+.url-vps-match-text { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.url-vps-match-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.url-vps-match-heading {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.url-vps-match-actions { display: flex; flex-shrink: 0; gap: 4px; }
+/* 24px, the WCAG 2.2 target minimum; the header card's copy button stays
+   18px. Solid, not the header button's 0.72 opacity. Tooltips open below:
+   above the first asset the dialog body would cut them off. */
+.url-vps-match-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  color: var(--text-muted);
+  opacity: 1;
+}
+.url-vps-match-icon svg { width: 14px; height: 14px; }
+.url-vps-match-icon::after { top: calc(100% + 6px); bottom: auto; }
+.url-vps-match-use:hover,
+.url-vps-match-use:focus-visible { color: var(--state-orange); }
+/* --state-orange, not --accent: light --accent measured 2.98:1 on the
+   hovered button's --panel-soft, under the 3:1 an icon needs; --state-orange
+   is 5.02:1 there (light) and the same orange as --accent in dark. */
+.url-vps-match-name { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.url-vps-match-details {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+/* The wrong-type message, mirrored from the field's dot so it is seen at
+   once, as the Manual VPSID box does. */
+.url-vps-match-error {
+  margin: 2px 0 0;
+  color: var(--state-red);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
