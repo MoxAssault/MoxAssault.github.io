@@ -12,6 +12,23 @@
   // The dots stay quiet until a Save ROM fails. From then until the editor
   // reopens, every edit re-checks the entry, so each dot clears as it is fixed.
   let liveDots = false;
+  // The URL Override check, piece 2 (Jason, 2026-10-30; queue note "URL
+  // override lookup against VPSDB"). A link a VPS ROM carries shows a card
+  // under the box; its Use swaps the ROM dropdown for a Manual VPSID box
+  // holding the ID. The ID is saved in the entry's own vpsId, so an entry
+  // whose ID is not one of this table's ROMs opens in that box.
+  let manualMode = false;
+  // The link whose card was closed: leaving the box again with it does not
+  // bring the card back, until the link changes or the editor reopens.
+  let dismissedUrlKey = '';
+  // A check still waiting on the database is dropped when the editor reopens.
+  let urlCheckGeneration = 0;
+  const URL_SPEC = Object.freeze({
+    name: 'additionalRomUrlOverride',
+    category: 'romFiles',
+    tab: 'Additional ROM',
+    useLabel: id => `Use VPSID ${id} as the Additional ROM Manual VPSID and remove the URL and Version Override`
+  });
 
   // This dialog renders its own checksum drop field, so it resolves the same
   // manufacturer rules from the same field definition rather than keeping a
@@ -79,11 +96,21 @@
     else if (!isMd5Hash(entry.checksum)) add('checksum', 'Checksum must contain exactly 32 hexadecimal characters.');
     if (entry.urlOverride && !entry.versionOverride) add('versionOverride', 'Version Override is required when URL Override is used.');
     if (entry.versionOverride && !entry.urlOverride) add('urlOverride', 'URL Override is required when Version Override is used.');
+    // A link VPS lists only as another kind of asset, as on the main tabs.
+    if (entry.urlOverride) {
+      const found = window.VPS_URL_OVERRIDE_LOOKUP?.lookupUrl?.(entry.urlOverride, 'romFiles');
+      if (found?.state === 'wrong') add('urlOverride', found.message);
+    }
 
     const primary = String(runtime.state.selections?.romFiles || runtime.state.values?.romVPSId || '');
     if (entry.vpsId && entry.vpsId === primary) add('vpsId', 'The primary ROM cannot also be an Additional ROM.');
+    // An ID off this table is a Manual VPSID: fine when VPS has it as a ROM
+    // (decision 2 of piece 2). Unchecked while the database loads, as on the
+    // asset rows; the rulebook runs again once it is in.
     if (entry.vpsId && !allRoms().some(item => String(item?.id || '') === entry.vpsId)) {
-      add('vpsId', 'The selected Additional ROM is not available for this table.');
+      const manual = window.VPS_MANUAL_VPSID?.checkId?.('romFiles', entry.vpsId);
+      if (!manual) add('vpsId', 'The selected Additional ROM is not available for this table.');
+      else if (manual.state === 'error') add('vpsId', manual.message);
     }
     if (entry.vpsId && entries().some((candidate, candidateIndex) => (
       candidateIndex !== index && String(candidate?.vpsId || '') === entry.vpsId
@@ -101,6 +128,12 @@
     versionOverride: 'additionalRomVersionOverride',
     urlOverride: 'additionalRomUrlOverride'
   };
+
+  // The box a field's error is about: the Manual VPSID box stands in for the
+  // dropdown while it is shown.
+  function controlId(field) {
+    return field === 'vpsId' && manualMode ? 'additionalRomManualVpsId' : FIELD_CONTROL_IDS[field];
+  }
 
   function clearFieldErrorPresentation(node) {
     node.querySelectorAll('.field.has-field-error').forEach(field => {
@@ -187,7 +220,7 @@
       </div>
       <div class="dialog-body additional-rom-body">
         <div class="field-grid additional-rom-grid">
-          <div class="field field-wide"><label for="additionalRomVpsId"><span>VPS ID</span></label><select id="additionalRomVpsId"></select></div>
+          <div class="field field-wide additional-rom-vps-field" id="additionalRomVpsField"><label for="additionalRomVpsId"><span>VPS ID</span></label><select id="additionalRomVpsId"></select><div class="additional-rom-manual"><input id="additionalRomManualVpsId" type="text" placeholder="Manual VPSID" autocomplete="off" spellcheck="false" aria-label="VPS ID, Manual VPSID for the Additional ROM. Empty it and leave the box to pick from this table's ROMs again." aria-describedby="additionalRomManualLabel"><span class="additional-rom-manual-label" id="additionalRomManualLabel"></span></div></div>
           <div class="field field-wide checksum-drop-field" id="additionalRomChecksumField">
             <label for="additionalRomChecksum"><span>Checksum</span></label>
             <input id="additionalRomChecksum" type="text" maxlength="32" placeholder="ROM Checksum" autocomplete="off">
@@ -201,6 +234,7 @@
             <div class="field field-wide"><label for="additionalRomUrlOverride"><span>URL Override</span></label><input id="additionalRomUrlOverride" type="url" placeholder="ROM URL Override"></div>
           </div>
         </details>
+        <p class="visually-hidden" id="additionalRomUrlStatus" role="status"></p>
         <div class="additional-rom-dialog-actions">
           <button class="text-btn danger-btn" id="additionalRomRemove" type="button" hidden>Remove</button>
           <button class="text-btn" data-additional-rom-close type="button">Cancel</button>
@@ -240,7 +274,190 @@
     node.addEventListener('cancel', () => cancelDrop(node));
     node.addEventListener('close', () => cancelDrop(node));
     bindDrop(node);
+    bindManualBox(node);
+    bindUrlCheck(node);
     return node;
+  }
+
+  // ---- Manual VPSID (piece 2) ----
+
+  function manualBox(node) {
+    return node.querySelector('#additionalRomManualVpsId');
+  }
+
+  function setManualMode(node, on, id = '') {
+    manualMode = on;
+    node.querySelector('#additionalRomVpsField').classList.toggle('is-manual', on);
+    // The visible "VPS ID" label names whichever box is shown (ui-checker).
+    node.querySelector('#additionalRomVpsField > label')
+      .setAttribute('for', on ? 'additionalRomManualVpsId' : 'additionalRomVpsId');
+    manualBox(node).value = on ? String(id || '') : '';
+    updateManualLabel(node);
+  }
+
+  // The asset's table and type beside the box, or a bad ID's message, as on
+  // the asset rows. Checked on leaving the box, not on every keystroke.
+  function updateManualLabel(node, waited = false) {
+    const label = node.querySelector('#additionalRomManualLabel');
+    const id = manualBox(node).value.trim();
+    const api = window.VPS_MANUAL_VPSID;
+    const result = !manualMode || !id ? { state: 'empty' }
+      : (api?.checkId ? api.checkId('romFiles', id) : { state: 'empty' });
+    const text = result.state === 'ok' ? `${result.record?.name || 'Unknown table'} · ROM`
+      : result.state === 'pending' ? 'Checking…'
+        : result.state === 'error' ? result.message : '';
+    if (label.textContent !== text) label.textContent = text;
+    label.classList.toggle('is-error', result.state === 'error');
+    // First use: the index is still loading. Once, so a database that never
+    // starts loading cannot loop.
+    if (result.state === 'pending' && !waited && typeof api?.ready === 'function') {
+      api.ready().then(() => {
+        if (!node.open || !manualMode) return;
+        updateManualLabel(node, true);
+        revalidate();
+      });
+    }
+  }
+
+  function bindManualBox(node) {
+    const box = manualBox(node);
+    box.addEventListener('change', () => {
+      if (box.value.trim()) {
+        updateManualLabel(node);
+        return;
+      }
+      // Emptied and left: back to this table's ROMs (decision 6). The
+      // keyboard follows to the dropdown only if it was still in the box,
+      // which hiding it would otherwise drop on the page.
+      const wasHere = document.activeElement === box || !node.contains(document.activeElement);
+      setManualMode(node, false);
+      // Nothing picked: the dropdown comes back on its placeholder.
+      node.querySelector('#additionalRomVpsId').value = '';
+      if (wasHere) node.querySelector('#additionalRomVpsId').focus();
+      revalidate();
+    });
+  }
+
+  // ---- URL Override check (piece 2) ----
+
+  function urlBox(node) {
+    return node.querySelector('#additionalRomUrlOverride');
+  }
+
+  function urlField(node) {
+    return urlBox(node).closest('.field');
+  }
+
+  function announce(node, text) {
+    const status = node.querySelector('#additionalRomUrlStatus');
+    if (status) status.textContent = text;
+  }
+
+  function removeCard(node) {
+    urlField(node).querySelector(':scope > .url-vps-match-card')?.remove();
+  }
+
+  function clearUrlFinding(node) {
+    removeCard(node);
+    urlField(node).querySelector(':scope > .url-vps-match-error')?.remove();
+    urlBox(node).removeAttribute('aria-describedby');
+  }
+
+  // Wrong type: the red line under the box, and Save ROM refuses it
+  // (validateEntryDetailed). Right type: the card, unless it was closed for
+  // this link or only the wrong-type line was asked for (opening an entry).
+  function showUrlFinding(node, result, allowCard) {
+    const lookupApi = window.VPS_URL_OVERRIDE_LOOKUP;
+    const wrapper = urlField(node);
+    const box = urlBox(node);
+    let error = wrapper.querySelector(':scope > .url-vps-match-error');
+    if (result.state === 'wrong') {
+      removeCard(node);
+      if (!error) {
+        error = document.createElement('p');
+        error.className = 'url-vps-match-error';
+        error.id = 'additionalRomUrlError';
+        wrapper.appendChild(error);
+      }
+      if (error.textContent !== result.message) {
+        error.textContent = result.message;
+        // Said aloud as it appears: the keyboard has usually moved on by
+        // then (ui-checker, 2026-10-31). Only when new, so a repeat check
+        // does not repeat it.
+        announce(node, result.message);
+      }
+      box.setAttribute('aria-describedby', error.id);
+      return;
+    }
+    error?.remove();
+    box.removeAttribute('aria-describedby');
+    if (result.state !== 'match' || result.key === dismissedUrlKey || !allowCard) {
+      if (result.state !== 'match' || result.key === dismissedUrlKey) removeCard(node);
+      return;
+    }
+    const existing = wrapper.querySelector(':scope > .url-vps-match-card');
+    if (existing?.dataset.key === result.key) return;
+    const card = lookupApi.card(URL_SPEC, result, {
+      onUse: (_, id) => useUrlMatch(node, id),
+      onClose: () => {
+        dismissedUrlKey = result.key;
+        removeCard(node);
+        urlBox(node).focus();
+      }
+    });
+    card.dataset.key = result.key;
+    if (existing) existing.replaceWith(card);
+    else wrapper.appendChild(card);
+    // The card appears without taking the keyboard, so it is said aloud.
+    const first = result.matches[0];
+    announce(node, result.matches.length > 1
+      ? `${result.matches.length} VPS entries found for this link, under the URL Override box.`
+      : `VPS entry found for this link: ${first.record?.name || 'Unknown table'} ROM, VPSID ${first.item.id}. It is under the URL Override box.`);
+  }
+
+  async function checkUrl(node, { allowCard = true } = {}) {
+    const lookupApi = window.VPS_URL_OVERRIDE_LOOKUP;
+    if (!lookupApi?.lookupUrl || !node.open) return;
+    const raw = urlBox(node).value;
+    if (!lookupApi.urlKey(raw)) {
+      clearUrlFinding(node);
+      return;
+    }
+    const generation = urlCheckGeneration;
+    await lookupApi.ready();
+    // Reopened, closed or typed over while the database loaded.
+    if (generation !== urlCheckGeneration || !node.open || urlBox(node).value !== raw) return;
+    showUrlFinding(node, lookupApi.lookupUrl(raw, 'romFiles'), allowCard);
+  }
+
+  // Use: the ID into a Manual VPSID box in the dropdown's place, and the URL
+  // gone with its Version Override (decision 5: they are a pair here, and
+  // the VPS entry carries its own version). Saved only by Save ROM.
+  function useUrlMatch(node, id) {
+    urlBox(node).value = '';
+    node.querySelector('#additionalRomVersionOverride').value = '';
+    clearUrlFinding(node);
+    dismissedUrlKey = '';
+    setManualMode(node, true, id);
+    manualBox(node).focus();
+    announce(node, `VPSID ${id} is now the Manual VPSID. URL Override and Version Override were cleared.`);
+    revalidate();
+  }
+
+  function bindUrlCheck(node) {
+    const box = urlBox(node);
+    // On leaving the box, and on pasting or dropping a link into it, as on
+    // the main tabs; the timeout lets the pasted text land first.
+    ['focusout', 'paste', 'drop'].forEach(type => box.addEventListener(type, () => {
+      window.setTimeout(() => checkUrl(node), 0);
+    }));
+    // While typing, the finding steps aside; a different link may show its
+    // own card again.
+    box.addEventListener('input', () => {
+      const key = window.VPS_URL_OVERRIDE_LOOKUP?.urlKey?.(box.value) || '';
+      if (key !== dismissedUrlKey) dismissedUrlKey = '';
+      clearUrlFinding(node);
+    });
   }
 
   // This modal writes its hint node directly instead of going through
@@ -387,21 +604,30 @@
     // and not populated (see validateEntryDetailed for the matching
     // not-required change).
     const overrideActive = runtime.state.values?.romOverride === true;
+    // An ID that is not one of this table's ROMs is a Manual VPSID, and
+    // opens in its box (decision 1 of piece 2).
+    const borrowed = Boolean(current.vpsId)
+      && !allRoms().some(item => String(item?.id || '') === String(current.vpsId));
     select.replaceChildren(new Option(
       overrideActive ? 'Not needed — ROM Override is enabled' : 'Select an additional ROM', ''
     ));
     if (!overrideActive) {
       const items = choices(index);
-      if (current.vpsId && !items.some(item => String(item?.id || '') === String(current.vpsId))) {
+      if (current.vpsId && !borrowed && !items.some(item => String(item?.id || '') === String(current.vpsId))) {
         items.unshift({ id: current.vpsId });
       }
       items.forEach(item => select.add(new Option(getItemLabel(item), String(item?.id || ''))));
     }
-    select.value = String(current.vpsId || '');
+    select.value = borrowed ? '' : String(current.vpsId || '');
     select.disabled = overrideActive;
+    urlCheckGeneration += 1;
+    dismissedUrlKey = '';
+    clearUrlFinding(node);
+    announce(node, '');
     node.querySelector('#additionalRomChecksum').value = String(current.checksum || '');
     node.querySelector('#additionalRomVersionOverride').value = String(current.versionOverride || '');
     node.querySelector('#additionalRomUrlOverride').value = String(current.urlOverride || '');
+    setManualMode(node, borrowed, current.vpsId);
     // The dialog is created once and cached, so this cannot live in the markup:
     // the accepted list depends on the currently loaded table's manufacturer.
     // Reopening the modal abandons any drop still running from last time, so
@@ -419,8 +645,12 @@
     utils.resetTwoClick(node.querySelector('#additionalRomRemove'));
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', '');
-    if (overrideActive) node.querySelector('#additionalRomChecksum').focus();
+    if (borrowed) manualBox(node).focus();
+    else if (overrideActive) node.querySelector('#additionalRomChecksum').focus();
     else select.focus();
+    // A saved link of the wrong type says so at once; a matching one waits
+    // for the user to leave the box, as the card is an offer, not an error.
+    if (current.urlOverride) checkUrl(node, { allowCard: false });
   }
 
   function removeEditing() {
@@ -436,7 +666,7 @@
 
   function readEntry(node) {
     return {
-      vpsId: node.querySelector('#additionalRomVpsId').value.trim(),
+      vpsId: (manualMode ? manualBox(node) : node.querySelector('#additionalRomVpsId')).value.trim(),
       checksum: node.querySelector('#additionalRomChecksum').value.trim(),
       versionOverride: node.querySelector('#additionalRomVersionOverride').value.trim(),
       urlOverride: node.querySelector('#additionalRomUrlOverride').value.trim()
@@ -449,10 +679,34 @@
     presentFieldErrors(node, validateEntryDetailed(readEntry(node), editingIndex));
   }
 
-  function save() {
+  let saveWaiting = false;
+
+  async function save() {
     // Disabled while a drop loads; guarded here too, for any caller but the button.
-    if (dropLoading) return;
+    if (dropLoading || saveWaiting) return;
     const node = dialog();
+    // A link or a Manual VPSID is checked against VPS before it is saved. On
+    // first use the database may still be loading, and both checks pass
+    // while it is, so a quick Save would let a wrong one through
+    // (ui-checker, 2026-10-31). Once it is in, this wait is instant.
+    const first = readEntry(node);
+    if (first.urlOverride || manualMode) {
+      saveWaiting = true;
+      node.querySelector('#additionalRomSave').disabled = true;
+      try {
+        await Promise.all([
+          window.VPS_URL_OVERRIDE_LOOKUP?.ready?.(),
+          window.VPS_MANUAL_VPSID?.ready?.()
+        ]);
+      } finally {
+        saveWaiting = false;
+        node.querySelector('#additionalRomSave').disabled = dropLoading;
+      }
+      if (!node.open || dropLoading) return;
+      // The red line under the URL box follows too, not only the dot.
+      if (first.urlOverride) await checkUrl(node, { allowCard: false });
+      if (manualMode) updateManualLabel(node, true);
+    }
     const entry = readEntry(node);
     const detailedErrors = validateEntryDetailed(entry, editingIndex);
     if (detailedErrors.length) {
@@ -460,7 +714,7 @@
       presentFieldErrors(node, detailedErrors);
       const firstInvalid = ['vpsId', 'checksum', 'versionOverride', 'urlOverride']
         .find(name => detailedErrors.some(error => error.field === name));
-      if (firstInvalid) node.querySelector(`#${FIELD_CONTROL_IDS[firstInvalid]}`)?.focus();
+      if (firstInvalid) node.querySelector(`#${controlId(firstInvalid)}`)?.focus();
       return;
     }
     clearFieldErrorPresentation(node);

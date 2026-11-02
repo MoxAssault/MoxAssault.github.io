@@ -135,7 +135,13 @@
 
     const items = assetItems('romFiles');
     const item = items.find(candidate => optionId(candidate) === String(entry.vpsId || ''));
-    const name = additionalRomName(item, entry, 0);
+    // A Manual VPSID from another table is named with that table (piece 2 of
+    // the URL Override check), not left as a bare ID.
+    const borrowed = item ? null
+      : window.VPS_MANUAL_VPSID?.checkId?.('romFiles', String(entry.vpsId || '').trim());
+    const name = borrowed?.state === 'ok'
+      ? `${additionalRomName(borrowed.item, entry, 0)} (${borrowed.record?.name || 'another table'})`
+      : additionalRomName(item, entry, 0);
     const detail = String(entry.checksum || '').trim() || 'Checksum missing';
     const tooltip = `${name} · ${detail}`;
     if (indicator.dataset.tooltip !== tooltip) indicator.dataset.tooltip = tooltip;

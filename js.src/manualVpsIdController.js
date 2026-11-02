@@ -271,5 +271,13 @@
     });
   }
 
-  window.VPS_MANUAL_VPSID = Object.freeze({ CATEGORIES, check, verified, issues, render, isAssetOfType, apply });
+  // For a box outside the asset rows (the Additional ROM editor): resolves
+  // once the index is in, retrying a failed load as a commit does.
+  function ready() {
+    failed = false;
+    ensureIndex();
+    return loading ? loading.then(() => undefined) : Promise.resolve();
+  }
+
+  window.VPS_MANUAL_VPSID = Object.freeze({ CATEGORIES, check, checkId, verified, issues, render, isAssetOfType, apply, ready });
 })();

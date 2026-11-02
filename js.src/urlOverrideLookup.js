@@ -131,16 +131,29 @@
     return step?.label || EXTRA_LABELS[category] || CATEGORY_CONFIG[category]?.label || category;
   }
 
+  // For a box outside the main tabs (the Additional ROM editor): resolves
+  // once the index is in, loading it first if need be, and again after a
+  // failed load, as leaving a main-tab box does.
+  function ready() {
+    failed = false;
+    ensureIndex();
+    return loading ? loading.then(() => undefined) : Promise.resolve();
+  }
+
   // { state: 'none' | 'match' | 'wrong', matches, message }. The row's own
   // type wins: a link VPS lists as both is a match, not an error.
   function lookup(spec) {
-    const key = urlKey(runtime.state.values?.[spec.name]);
+    return lookupUrl(runtime.state.values?.[spec.name], spec.category);
+  }
+
+  function lookupUrl(raw, category) {
+    const key = urlKey(raw);
     if (!key) return { state: 'none', key };
     ensureIndex();
     if (!index) return { state: 'none', key };
     const all = index.get(key) || [];
     const tableId = runtime.state.record?.id;
-    const matches = all.filter(match => match.category === spec.category)
+    const matches = all.filter(match => match.category === category)
       .sort((a, b) => (a.record?.id === tableId ? 0 : 1) - (b.record?.id === tableId ? 0 : 1)
         || String(a.record?.name || '').localeCompare(String(b.record?.name || '')));
     if (matches.length) return { state: 'match', key, matches };
@@ -224,10 +237,14 @@
     return `by ${names.slice(0, 3).join(', ')}${more > 0 ? ` and ${more} more` : ''}`;
   }
 
-  // Copy and "Use this Asset ID?", side by side.
-  function actionButtons(spec, id) {
-    const use = iconButton('url-vps-match-use', 'Use this Asset ID?', `Use VPSID ${id} as the ${spec.tab} Manual VPSID and remove the URL`, USE_ICON);
-    use.addEventListener('click', () => useId(spec, id));
+  // Copy and "Use this Asset ID?", side by side. onUse is the main tabs' own
+  // unless a caller (the Additional ROM editor) brings its own.
+  function actionButtons(spec, id, onUse = useId) {
+    const label = typeof spec.useLabel === 'function'
+      ? spec.useLabel(id)
+      : `Use VPSID ${id} as the ${spec.tab} Manual VPSID and remove the URL`;
+    const use = iconButton('url-vps-match-use', 'Use this Asset ID?', label, USE_ICON);
+    use.addEventListener('click', () => onUse(spec, id));
     const actions = element('div', 'url-vps-match-actions');
     actions.append(copyButton(id), use);
     return actions;
@@ -248,7 +265,7 @@
   // One asset: its picture, then table and type, version and authors. With
   // several assets, each carries its own ID and buttons; with one, the title
   // does.
-  function assetBlock(spec, match, several) {
+  function assetBlock(spec, match, several, onUse) {
     const id = String(match.item.id);
     const block = element('section', 'url-vps-match-asset');
     const image = thumbnail(match.item);
@@ -258,7 +275,7 @@
       const head = element('div', 'url-vps-match-head');
       const heading = element('h3', 'url-vps-match-heading', 'VPSID ');
       heading.appendChild(idText(id));
-      head.append(heading, actionButtons(spec, id));
+      head.append(heading, actionButtons(spec, id, onUse));
       text.appendChild(head);
     }
     text.appendChild(element('p', 'url-vps-match-name', `${match.record?.name || 'Unknown table'} · ${typeLabel(match.category)}`));
@@ -270,6 +287,46 @@
     if (details) text.appendChild(element('p', 'url-vps-match-details', details));
     block.appendChild(text);
     return block;
+  }
+
+  // Where the link was found, the assets, and what to do about it: the
+  // pop-up's body and the card's.
+  function findingBody(spec, result, onUse) {
+    const several = result.matches.length > 1;
+    return [
+      element('p', 'url-vps-match-intro', 'The link provided was found in VPSDB.'),
+      ...result.matches.map(match => assetBlock(spec, match, several, onUse)),
+      element('p', 'url-vps-match-advice', several
+        ? 'If one of these is the correct asset, please use its VPSID instead of the URL.'
+        : 'If this is the correct asset, please use the associated VPSID instead of the URL.')
+    ];
+  }
+
+  // The same finding as a card, for a box already inside a dialog: the
+  // Additional ROM editor (Jason, 2026-10-30). Copy and Use come before the
+  // close button in the tab order (his step 5 from the first test), so the
+  // button is the card's last child, drawn in its corner by CSS.
+  function card(spec, result, { onUse, onClose } = {}) {
+    const several = result.matches.length > 1;
+    const node = element('section', 'url-vps-match-card');
+    node.setAttribute('aria-label', several ? 'VPS entries found for this link' : 'VPS entry found for this link');
+    const row = element('div', 'url-vps-match-title-row');
+    const title = element('h3', 'url-vps-match-card-title');
+    row.appendChild(title);
+    if (several) {
+      title.textContent = 'VPS Entries Found';
+    } else {
+      const id = String(result.matches[0].item.id);
+      title.append('VPS Entry Found | ', idText(id));
+      row.appendChild(actionButtons(spec, id, onUse));
+    }
+    const close = element('button', 'dialog-close url-vps-match-card-close');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close and keep the URL');
+    close.innerHTML = CLOSE_ICON;
+    close.addEventListener('click', () => onClose?.());
+    node.append(row, ...findingBody(spec, result, onUse), close);
+    return node;
   }
 
   // Built once and kept: dialogs bind their handlers once, never per open
@@ -321,12 +378,7 @@
       title.replaceChildren('VPS Entry Found | ', idText(id));
       titleActions.replaceChildren(actionButtons(spec, id));
     }
-    node.querySelector('#urlVpsMatchBody').replaceChildren(
-      element('p', 'url-vps-match-intro', 'The link provided was found in VPSDB.'),
-      ...result.matches.map(match => assetBlock(spec, match, several)),
-      element('p', 'url-vps-match-advice', several
-        ? 'If one of these is the correct asset, please use its VPSID instead of the URL.'
-        : 'If this is the correct asset, please use the associated VPSID instead of the URL.'));
+    node.querySelector('#urlVpsMatchBody').replaceChildren(...findingBody(spec, result));
     returnFocus = document.activeElement && document.activeElement !== document.body
       ? document.activeElement
       : document.getElementById(`field-${spec.name}`);
@@ -412,5 +464,5 @@
     if (spec && urlKey(event.target.value) !== shown.get(spec.name)) shown.delete(spec.name);
   });
 
-  window.VPS_URL_OVERRIDE_LOOKUP = Object.freeze({ URL_FIELDS, urlKey, lookup, issues, render });
+  window.VPS_URL_OVERRIDE_LOOKUP = Object.freeze({ URL_FIELDS, urlKey, lookup, lookupUrl, issues, render, card, ready });
 })();

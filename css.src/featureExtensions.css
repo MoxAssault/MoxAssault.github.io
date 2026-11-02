@@ -899,7 +899,8 @@
   font-weight: 400;
 }
 /* The drawn close icon, as #checksumAdditionalDialog's. */
-.url-vps-match-dialog .dialog-close svg {
+.url-vps-match-dialog .dialog-close svg,
+.url-vps-match-card-close svg {
   width: 14px;
   height: 14px;
   fill: none;
@@ -980,4 +981,56 @@
   font-weight: 700;
   line-height: 1.3;
   overflow-wrap: anywhere;
+}
+
+/* The URL Override check, piece 2 (2026-10-31): the Additional ROM editor.
+   The finding is a card under the URL box (Jason: the editor is already a
+   dialog). Transparent, so its text sits on the dialog's --panel exactly as
+   the pop-up's does, at the contrast measured there. The close button is the
+   card's last child, for the tab order (Copy, Use, then close), and drawn in
+   its corner here; the title row leaves it room. */
+.url-vps-match-card {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  color: var(--text);
+}
+.url-vps-match-card > .url-vps-match-title-row { padding-right: 34px; }
+.url-vps-match-card-title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.url-vps-match-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+}
+/* The editor's Manual VPSID: Use swaps the ROM dropdown for this box, with
+   the asset's table and type beside it, as on the asset rows. The dropdown is
+   hidden, not removed: readEntry and the presentation script read it. */
+.additional-rom-manual { display: none; align-items: center; gap: 10px; min-width: 0; }
+.additional-rom-vps-field.is-manual > select { display: none; }
+.additional-rom-vps-field.is-manual > .additional-rom-manual { display: flex; }
+.additional-rom-manual input[type="text"] { flex: 0 0 180px; width: 180px; }
+.additional-rom-manual-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* --text-muted on the dialog's --panel, as the pop-up's details. */
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.additional-rom-manual-label.is-error { color: var(--state-red); }
+#additionalRomDialog .field.has-field-error .additional-rom-manual input {
+  border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line));
 }

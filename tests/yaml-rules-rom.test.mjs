@@ -477,17 +477,30 @@ await scenario('Additional ROM is the primary ROM', imported([{ vpsId: 's-4c6Gqa
   ],
   download: 'blocked'
 });
+// Since 2026-10-31 (the URL Override check, piece 2) an ID off this table is
+// a Manual VPSID: accepted when VPS has it as a ROM, so this one, which VPS
+// does not have at all, fails with the Manual VPSID box's own message.
 await scenario('Additional ROM not on this table', imported([{ vpsId: 'notAnEntry', checksum: MD5_ADD }]), {
   rule: 'Additional ROM 1 needs attention',
   keys: ['additionalRoms', 'vpsId', 'checksum', 'fps', 'romChecksum', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
   dialog: [
-    'error: Additional ROM 1 needs attention | The selected Additional ROM is not available for this table.'
+    'error: Additional ROM 1 needs attention | No VPS asset has this ID.'
   ],
   tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: 1 error', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
   dots: [
-    'rom additionalRoms: Additional ROM 1 needs attention. The selected Additional ROM is not available for this table.'
+    'rom additionalRoms: Additional ROM 1 needs attention. No VPS asset has this ID.'
   ],
   download: 'blocked'
+});
+// And a ROM VPS does have, from another table (Pink Floyd's), is clean.
+await scenario('Additional ROM borrowed from another table', imported([{ vpsId: 'jgo91P3SSp', checksum: MD5_ADD }]), {
+  keys: ['additionalRoms', 'vpsId', 'checksum', 'fps', 'romChecksum', 'romVPSId', 'tableVPSId', 'testers', 'vpxChecksum', 'vpxVPSId'],
+  dialog: [
+    'success: Everything looks good. | The build is ready to copy or download.'
+  ],
+  tabs: ['main: ready', 'vpx: ready', 'b2s: disabled', 'rom: ready', 'coloredRom: disabled', 'pup: disabled', 'altSound: disabled', 'vpuPatch: disabled', 'dmd: disabled'],
+  dots: [],
+  download: 'fXaQ33KC_table-config.yml'
 });
 await scenario('Additional ROM listed twice', imported([{ vpsId: 'WshhKlRf', checksum: MD5_ADD }, { vpsId: 'WshhKlRf', checksum: MD5_ADD }]), {
   rule: 'Additional ROM 2 needs attention',
