@@ -150,6 +150,37 @@ if (!PRINT) {
     widths.extract.box === widths.password.box && widths.extract.box > 400, JSON.stringify(widths));
   check('its remove button sits at the same right edge',
     widths.extract.removeRight === widths.password.removeRight, JSON.stringify(widths));
+  // Fonts that run wider (GitHub's Linux runner measured 20px) must not widen
+  // the window's column: the archive folder row is made 45px wider here.
+  const wide = await app.run(async settleText => {
+    const settle = eval(settleText);
+    const style = document.createElement('style');
+    style.textContent = '.vpx-magic-dialog .archive-folder-adder-add { padding-right: 45px !important; }';
+    document.head.appendChild(style);
+    const measure = (buttonId, dialogId, boxId) => {
+      document.getElementById(buttonId).click();
+      const node = document.getElementById(dialogId);
+      const body = node.querySelector('.vpx-magic-body');
+      const result = {
+        box: Math.round(node.querySelector(boxId).getBoundingClientRect().width),
+        removeRight: Math.round(node.querySelector('.vpx-magic-remove').getBoundingClientRect().right),
+        overflow: body.scrollWidth - body.clientWidth
+      };
+      node.querySelector('.dialog-close').click();
+      return result;
+    };
+    await settle();
+    const result = {
+      password: measure('vpxPasswordsBtn', 'vpxMagicDialog', '#vpxMagicEntry0'),
+      extract: measure('vpxExtractBtn', 'vpxExtractDialog', '#vpxExtractPath0'),
+      renames: measure('vpxRenamesBtn', 'vpxRenamesDialog', '#vpxRenamesList input')
+    };
+    style.remove();
+    return result;
+  }, settleSource);
+  check('with wider fonts the path box and remove button still match Passwords, nothing overflowing',
+    wide.extract.box === wide.password.box && wide.extract.removeRight === wide.password.removeRight
+    && wide.extract.overflow === 0 && wide.renames.overflow === 0, JSON.stringify(wide));
   const addLabel = await app.run(() => document.getElementById('vpxExtractAddRow').textContent);
   check('the add button reads "+ Add Path"', addLabel === '+ Add Path', addLabel);
   check('Save closes the window', first.open === false, JSON.stringify(first));
