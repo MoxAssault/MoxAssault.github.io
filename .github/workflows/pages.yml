@@ -47,23 +47,24 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # main's latest commit, never a ref taken from the event: nothing the
+      # triggering run names is ever checked out (semgrep's
+      # workflow-run-target-code-checkout rule).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The exact commit the checks passed, not whatever main is now.
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      # Re-running an old green checks run fires this again with the old
-      # commit; publishing it would put old code over new (pr-checker,
-      # 2026-11-02). Only main's latest commit goes live.
-      - name: refuse anything but main's latest commit
+      # Publish only if main's latest commit is the one the checks passed.
+      # That also stops a re-run of an old green checks run from putting old
+      # code over new (pr-checker, 2026-11-02): main has moved on, so the
+      # two differ and nothing is published.
+      - name: refuse anything the checks did not pass
         env:
           CHECKED: ${{ github.event.workflow_run.head_sha }}
         run: |
-          git fetch --quiet origin main
-          tip="$(git rev-parse origin/main)"
-          if [ "$tip" != "$CHECKED" ]; then
-            echo "Not publishing $CHECKED: main is now at $tip."
+          here="$(git rev-parse HEAD)"
+          if [ "$here" != "$CHECKED" ]; then
+            echo "Not publishing: the checks passed $CHECKED, main is at $here."
             exit 1
           fi
 
