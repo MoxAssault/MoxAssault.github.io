@@ -152,8 +152,8 @@ if (!PRINT) {
     widths.extract.removeRight === widths.password.removeRight, JSON.stringify(widths));
   // Fonts that run wider (GitHub's Linux runner measured 20px) must not widen
   // the window's column. At normal size nothing overflows; with the archive
-  // folder row made 45px wider the boxes still line up with Passwords (the row
-  // itself may then spill: its Add Selected button cannot shrink).
+  // folder row made 45px wider the boxes still line up with Passwords and the
+  // folder picker gives way, so nothing spills.
   const fit = await app.run(async settleText => {
     const settle = eval(settleText);
     const measure = (buttonId, dialogId, boxId) => {
@@ -163,7 +163,11 @@ if (!PRINT) {
       const result = {
         box: Math.round(node.querySelector(boxId).getBoundingClientRect().width),
         removeRight: Math.round(node.querySelector('.vpx-magic-remove').getBoundingClientRect().right),
-        overflow: body.scrollWidth - body.clientWidth
+        // How far anything reaches past the body's content edge: scrolling
+        // only starts once it clears the padding, too late to notice.
+        spill: Math.max(0, ...[...body.querySelectorAll('*')].map(el => el.getBoundingClientRect())
+          .filter(r => r.width > 0).map(r => Math.ceil(r.right - (body.getBoundingClientRect().right
+            - parseFloat(getComputedStyle(body).paddingRight) - parseFloat(getComputedStyle(body).borderRightWidth)) - 0.5)))
       };
       node.querySelector('.dialog-close').click();
       return result;
@@ -182,11 +186,12 @@ if (!PRINT) {
     style.remove();
     return { normal, wide };
   }, settleSource);
-  check('nothing overflows the Extract or Renames window',
-    fit.normal.extract.overflow === 0 && fit.normal.renames.overflow === 0, JSON.stringify(fit.normal));
-  check('with wider fonts the path box and remove button still match Passwords',
+  check('nothing reaches past the edge of the Extract or Renames window',
+    fit.normal.extract.spill === 0 && fit.normal.renames.spill === 0, JSON.stringify(fit.normal));
+  check('with wider fonts the path box and remove button still match Passwords, and nothing spills',
     fit.wide.extract.box === fit.wide.password.box
-    && fit.wide.extract.removeRight === fit.wide.password.removeRight, JSON.stringify(fit.wide));
+    && fit.wide.extract.removeRight === fit.wide.password.removeRight
+    && fit.wide.extract.spill === 0 && fit.wide.renames.spill === 0, JSON.stringify(fit.wide));
   const addLabel = await app.run(() => document.getElementById('vpxExtractAddRow').textContent);
   check('the add button reads "+ Add Path"', addLabel === '+ Add Path', addLabel);
   check('Save closes the window', first.open === false, JSON.stringify(first));

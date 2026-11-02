@@ -627,7 +627,9 @@
    mode, the Add Selected button beside it, and what was added said on the
    label's own line, right-aligned. --text-muted, not --text-faint, for small
    text (contrast). */
-.archive-folder-adder { display: grid; gap: 6px; }
+/* minmax(0, 1fr): the default column grows to the row's content, which
+   spilled past the window on Linux fonts (see .vpx-magic-body). */
+.archive-folder-adder { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 /* A fixed-height line the message never resizes: it is always there, empty
    or not, so nothing below it moves when one appears or clears. */
 .archive-folder-adder-head {
