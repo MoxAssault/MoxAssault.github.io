@@ -1,0 +1,89 @@
+# Publishes the site to GitHub Pages, but only after every check passed.
+#
+# Until 2026-11-02 Pages published main straight from the branch, alongside
+# the checks, so a red run could not stop a broken site going live (and one
+# sat unnoticed from 2026-10-30). Now this runs when the `checks` workflow
+# finishes for a push to main, and deploys only if all of it succeeded:
+# tests, gitleaks and semgrep.
+#
+# It also writes version.json, which the footer reads (js.src/versionLabel.js):
+# the version from package.json, the commit, and whether that commit carries
+# the tag v<version>. The full history is fetched so the tags are there.
+#
+# Needs the repository's Pages source set to "GitHub Actions"
+# (Settings > Pages > Build and deployment). The custom domain stays in
+# Settings. Undo: set the source back to "Deploy from a branch", main, /.
+
+name: pages
+
+on:
+  workflow_run:
+    workflows: [checks]
+    types: [completed]
+    branches: [main]
+# No manual trigger on purpose: it would publish without the checks. To
+# redeploy, re-run the checks on main's latest commit.
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one halfway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: publish
+    # A push to main whose checks all passed. A pull request's run never
+    # deploys, even from a fork whose branch is also called main.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The exact commit the checks passed, not whatever main is now.
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      # Re-running an old green checks run fires this again with the old
+      # commit; publishing it would put old code over new (pr-checker,
+      # 2026-11-02). Only main's latest commit goes live.
+      - name: refuse anything but main's latest commit
+        env:
+          CHECKED: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git fetch --quiet origin main
+          tip="$(git rev-parse origin/main)"
+          if [ "$tip" != "$CHECKED" ]; then
+            echo "Not publishing $CHECKED: main is now at $tip."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: write version.json
+        run: |
+          node tools/version-info.mjs . > version.json
+          cat version.json
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      # The whole repo, as the branch publish served it, minus .git, .github
+      # and dot-folders (.claude is dev-only; .nojekyll only mattered to the
+      # branch publish's Jekyll step, which this route never runs).
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

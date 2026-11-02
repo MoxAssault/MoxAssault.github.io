@@ -1,8 +1,9 @@
 # Automatic checks on every push to main and every PR into it.
 #
-# This repo publishes to GitHub Pages straight from main, so these checks
-# run alongside the publish - they report a problem, they cannot stop one
-# going live. Run `npm test` before pushing.
+# The site is published by pages.yml, which runs only after this workflow
+# succeeds for a push to main, so a red check now stops the deploy (since
+# 2026-11-02; before that Pages published main directly and these checks
+# could only report). Run `npm test` before pushing anyway.
 #
 # Deterministic tools only - no AI service is called from here.
 # The judgment half of review (logic, performance, authorization) is the
