@@ -5,7 +5,9 @@ Usage: python .claude/no_cache_server.py [port]
 import errno
 import http.server
 import ipaddress
+import os
 import socket
+import subprocess
 import sys
 
 # Tailscale gives out IPv4 addresses from the CGNAT range, which ipaddress
@@ -15,6 +17,27 @@ TAILSCALE_V4 = ipaddress.ip_network('100.64.0.0/10')
 
 
 class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # The footer's version.json, worked out from git on every request so
+        # the dev page always names the exact commit and any local edits. The
+        # same script writes the file the Pages workflow publishes.
+        if self.path.split('?', 1)[0] == '/version.json':
+            try:
+                body = subprocess.run(
+                    ['node', os.path.join('tools', 'version-info.mjs'), '.'],
+                    capture_output=True, check=True, timeout=10
+                ).stdout
+            except (OSError, subprocess.SubprocessError):
+                self.send_error(404, 'version.json unavailable')
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
     def end_headers(self):
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
         self.send_header('Pragma', 'no-cache')

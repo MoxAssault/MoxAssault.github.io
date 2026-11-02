@@ -184,6 +184,11 @@ kbd {
   color: var(--text-faint);
   font-size: 11px;
 }
+/* The version (js.src/versionLabel.js). --text-muted, not the footer's
+   --text-faint: a number someone reads back to report a problem must pass
+   AA contrast. */
+.app-version { color: var(--text-muted); }
+
 
 
 .visually-hidden {

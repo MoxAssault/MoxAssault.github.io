@@ -9,3 +9,5 @@ node_modules/
 minify-JS.js
 CLAUDE.md
 .claude/settings.local.json
+# Written by tools/version-info.mjs at publish time; never committed.
+version.json
