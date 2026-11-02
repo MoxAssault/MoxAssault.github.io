@@ -690,6 +690,9 @@
     // while it is, so a quick Save would let a wrong one through
     // (ui-checker, 2026-10-31). Once it is in, this wait is instant.
     const first = readEntry(node);
+    // Cancel and reopen while this waits must not save the new form: the
+    // counter moves on every open (pr-checker, 2026-11-01).
+    const generation = urlCheckGeneration;
     if (first.urlOverride || manualMode) {
       saveWaiting = true;
       node.querySelector('#additionalRomSave').disabled = true;
@@ -702,7 +705,7 @@
         saveWaiting = false;
         node.querySelector('#additionalRomSave').disabled = dropLoading;
       }
-      if (!node.open || dropLoading) return;
+      if (generation !== urlCheckGeneration || !node.open || dropLoading) return;
       // The red line under the URL box follows too, not only the dot.
       if (first.urlOverride) await checkUrl(node, { allowCard: false });
       if (manualMode) updateManualLabel(node, true);

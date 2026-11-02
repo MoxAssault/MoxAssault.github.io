@@ -410,4 +410,63 @@ if (!PRINT) {
   await slow.close();
 }
 
+// 14. A fresh slow page: Save ROM pressed, then Cancel and a reopen while the
+// database is still loading. The waiting Save must not save the reopened
+// form, which nobody pressed Save on (pr-checker, 2026-11-01).
+if (!PRINT) {
+  const { readFileSync } = await import('node:fs');
+  const { repoPath } = await import('./harness.mjs');
+  const { openApp } = await import('./browser.mjs');
+  const db = JSON.parse(readFileSync(repoPath('fixtures', 'vpsdb-five.json'), 'utf8'));
+  const slow = await openApp({ db, windowSize: [1400, 900] });
+  const raced = await slow.run(async ([settleText, md5]) => {
+    const settle = eval(settleText);
+    const wait = async test => { for (let i = 0; i < 200 && !test(); i += 1) await new Promise(r => setTimeout(r, 25)); };
+    document.getElementById('idInput').value = 'Lgi1JLk0Vf';
+    document.getElementById('searchForm').requestSubmit();
+    await wait(() => !document.getElementById('workspace').hidden);
+    await settle();
+    const vpx = document.querySelector('#assetMatrix .asset-row[data-category="tableFiles"] select');
+    vpx.value = 'qV3Z3oQ8md';
+    vpx.dispatchEvent(new Event('change', { bubbles: true }));
+    await settle();
+    // ROM Override, so an entry needs no ID and both forms are valid.
+    const override = document.querySelector('#assetMatrix .asset-row[data-category="romFiles"] .override-toggle input');
+    if (!override.checked) override.click();
+    await settle();
+    document.getElementById('config-tab-rom').click();
+    await settle();
+    const realFetch = window.fetchVPSDB;
+    window.fetchVPSDB = () => new Promise(resolve => setTimeout(resolve, 800)).then(() => realFetch());
+    const fill = (checksum, url) => {
+      document.getElementById('additionalRomChecksum').value = checksum;
+      document.getElementById('additionalRomVersionOverride').value = '1.0';
+      document.getElementById('additionalRomUrlOverride').value = url;
+    };
+    const node = document.getElementById('additionalRomDialog');
+    document.querySelector('#config-panel-rom .additional-rom-add').click();
+    await settle();
+    fill(md5, 'https://example.com/first-rom.zip');
+    document.getElementById('additionalRomSave').click();
+    await settle();
+    node.querySelector('[data-additional-rom-close]').click();
+    await settle();
+    const closed = node.open === false;
+    document.querySelector('#config-panel-rom .additional-rom-add').click();
+    await settle();
+    fill('FEDCBA9876543210FEDCBA9876543210', 'https://example.com/second-rom.zip');
+    await new Promise(r => setTimeout(r, 1500));
+    await settle();
+    return {
+      closed,
+      open: node.open,
+      saved: window.VPS_FEATURE_RUNTIME.state.values.additionalRoms || []
+    };
+  }, [settleSource, MD5_ADD]);
+  check('a Save left waiting through Cancel and a reopen saves nothing, the reopened editor still open',
+    raced.closed === true && raced.open === true && raced.saved.length === 0, JSON.stringify(raced));
+  check('no page errors on the second slow page', slow.errors.length === 0, slow.errors.join(' | '));
+  await slow.close();
+}
+
 report('additional-rom-url-override');
