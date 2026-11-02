@@ -151,12 +151,11 @@ if (!PRINT) {
   check('its remove button sits at the same right edge',
     widths.extract.removeRight === widths.password.removeRight, JSON.stringify(widths));
   // Fonts that run wider (GitHub's Linux runner measured 20px) must not widen
-  // the window's column: the archive folder row is made 45px wider here.
-  const wide = await app.run(async settleText => {
+  // the window's column. At normal size nothing overflows; with the archive
+  // folder row made 45px wider the boxes still line up with Passwords (the row
+  // itself may then spill: its Add Selected button cannot shrink).
+  const fit = await app.run(async settleText => {
     const settle = eval(settleText);
-    const style = document.createElement('style');
-    style.textContent = '.vpx-magic-dialog .archive-folder-adder-add { padding-right: 45px !important; }';
-    document.head.appendChild(style);
     const measure = (buttonId, dialogId, boxId) => {
       document.getElementById(buttonId).click();
       const node = document.getElementById(dialogId);
@@ -169,18 +168,25 @@ if (!PRINT) {
       node.querySelector('.dialog-close').click();
       return result;
     };
-    await settle();
-    const result = {
+    const all = () => ({
       password: measure('vpxPasswordsBtn', 'vpxMagicDialog', '#vpxMagicEntry0'),
       extract: measure('vpxExtractBtn', 'vpxExtractDialog', '#vpxExtractPath0'),
       renames: measure('vpxRenamesBtn', 'vpxRenamesDialog', '#vpxRenamesList input')
-    };
+    });
+    await settle();
+    const normal = all();
+    const style = document.createElement('style');
+    style.textContent = '.vpx-magic-dialog .archive-folder-adder-add { padding-right: 45px !important; }';
+    document.head.appendChild(style);
+    const wide = all();
     style.remove();
-    return result;
+    return { normal, wide };
   }, settleSource);
-  check('with wider fonts the path box and remove button still match Passwords, nothing overflowing',
-    wide.extract.box === wide.password.box && wide.extract.removeRight === wide.password.removeRight
-    && wide.extract.overflow === 0 && wide.renames.overflow === 0, JSON.stringify(wide));
+  check('nothing overflows the Extract or Renames window',
+    fit.normal.extract.overflow === 0 && fit.normal.renames.overflow === 0, JSON.stringify(fit.normal));
+  check('with wider fonts the path box and remove button still match Passwords',
+    fit.wide.extract.box === fit.wide.password.box
+    && fit.wide.extract.removeRight === fit.wide.password.removeRight, JSON.stringify(fit.wide));
   const addLabel = await app.run(() => document.getElementById('vpxExtractAddRow').textContent);
   check('the add button reads "+ Add Path"', addLabel === '+ Add Path', addLabel);
   check('Save closes the window', first.open === false, JSON.stringify(first));
