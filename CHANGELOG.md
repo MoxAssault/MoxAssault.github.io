@@ -4,7 +4,9 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
-Everything below becomes version 1.0.0 when it is released. It covers the work since 0.11.0, all of it tested live, piece by piece, before it shipped.
+## [1.0.0] - 2026-11-02
+
+The first live-tested release. It covers the work since 0.11.0, all of it tested live, piece by piece, before it shipped.
 
 ### Added
 - The VPX tab's Advanced Config has three windows: Passwords, Post-install Renames and Extract Extra Paths. Renames and Extract can fill themselves from the folders and files of any archive you dropped, with a search box for long file lists.
