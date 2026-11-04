@@ -7,6 +7,12 @@
   padding: 0 0 10px;
 }
 
+/* The table's folder name in vpx-standalone-alp4k, for the Wizard README
+   link. Spans both button columns. */
+.readme-actions .readme-short-name {
+  grid-column: 1 / -1;
+}
+
 .readme-actions .text-btn {
   min-width: 0;
   min-height: 34px;

@@ -810,7 +810,17 @@
     refreshTabStatuses();
   }
 
-  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput });
+  // For builder-only values kept outside the tabs (the Short Table Name in
+  // the preview panel). Only `__` keys: those are saved with the draft and
+  // never reach the YML. The runtime's onChange is not used because it only
+  // exists once a VPX is picked, and the name can be typed before that.
+  function setUiValue(key, value) {
+    if (!state.record || !String(key).startsWith('__')) return false;
+    handleFieldChange(key, value);
+    return true;
+  }
+
+  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue });
 
   function updateValidationSummary() {
     refreshValidation();

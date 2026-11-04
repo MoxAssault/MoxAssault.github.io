@@ -5,9 +5,15 @@
   if (!UI) return;
 
   const TEMPLATE_URLS = {
-    manual: 'https://raw.githubusercontent.com/TheOminousOsie/VPXS_4KP_Readme_Gen/main/Content/man_README.md',
-    wizard: 'https://raw.githubusercontent.com/TheOminousOsie/VPXS_4KP_Readme_Gen/main/Content/wiz_README.md'
+    manual: 'https://raw.githubusercontent.com/TheOminousOsie/VPXS_4KP_Readme_Gen/main/Content/man_README.md'
   };
+
+  // The Wizard README is one fixed line since 2026-11-04 (Jason): no
+  // template, no preview image. It links the table's catalog page by its
+  // folder name in vpx-standalone-alp4k, which is the Short Table Name.
+  const WIZARD_CATALOG_URL = 'https://vpxtablemanager.com/catalog/#table=';
+  const SHORT_NAME_KEY = '__shortTableName';
+  const SHORT_NAME_PREFIX = 'vpx-';
 
   const FILE_ARRAYS = ['tableFiles', 'b2sFiles', 'romFiles', 'pupPackFiles', 'altColorFiles'];
   const snapshot = { record: null, selections: null, values: null };
@@ -21,11 +27,13 @@
   let toastHideTimer = null;
   let toastRemoveTimer = null;
   let generating = false;
+  let shortNameValues = null;
 
   UI.renderTableStrip = function renderTableStripWithReadmeSnapshot(container, record, selections, values, ...rest) {
     snapshot.record = record || null;
     snapshot.selections = selections || null;
     snapshot.values = values || null;
+    syncShortName(values);
     return baseRenderTableStrip(container, record, selections, values, ...rest);
   };
 
@@ -161,12 +169,10 @@
     };
   }
 
-  function commonReplacements(record, values, mode) {
+  function commonReplacements(record, values) {
     const table = tableDisplayName(record, values);
     const testers = normalizeArray(values.testers);
-    const testerText = mode === 'wizard'
-      ? testers.map(name => `  - ${name === 'OminousOsie' ? 'Ominous Osie 🌸' : name}`).join('\n')
-      : testers.map(name => name === 'OminousOsie' ? 'Ominous Osie 🌸' : name).join(', ');
+    const testerText = testers.map(name => name === 'OminousOsie' ? 'Ominous Osie 🌸' : name).join(', ');
 
     return {
       name: table.name,
@@ -198,12 +204,33 @@
     return template;
   }
 
-  function buildWizardReadme(template, record, values) {
-    return replaceTokens(template, commonReplacements(record, values, 'wizard'));
+  // The folder name, with the prefix added once whatever case it was typed
+  // in ("4aces", "vpx-4aces" and "VPX-4aces" all give "vpx-4aces"). An empty
+  // box stays empty rather than becoming a bare prefix. The rest is kept as
+  // typed: two of the repo's folders are not all lowercase.
+  function normalizeShortName(value) {
+    const name = String(value ?? '').trim();
+    if (!name) return '';
+    const rest = name.toLowerCase().startsWith(SHORT_NAME_PREFIX) ? name.slice(SHORT_NAME_PREFIX.length) : name;
+    return rest ? `${SHORT_NAME_PREFIX}${rest}` : '';
+  }
+
+  // Every folder in the repo is letters, numbers, "-" and "_". Anything else
+  // (a space, "#", "/") would break the catalog link without a warning.
+  function shortNameProblem(shortName) {
+    if (!shortName) return { title: 'Short Table Name required', message: 'Enter the table\'s folder name (ex. 4aces) to make a Wizard README.' };
+    if (!/^[A-Za-z0-9_-]+$/.test(shortName)) {
+      return { title: 'Short Table Name not valid', message: 'Use only letters, numbers, - and _. It is the table\'s folder name (ex. 4aces).' };
+    }
+    return null;
+  }
+
+  function wizardReadmeText(shortName) {
+    return `This table is in the Table Manager Wizard. To view its details visit ${WIZARD_CATALOG_URL}${shortName}\n`;
   }
 
   function buildManualReadme(template, record, values) {
-    let readme = replaceTokens(template, commonReplacements(record, values, 'manual'));
+    let readme = replaceTokens(template, commonReplacements(record, values));
 
     readme = applyFileMetadata(readme, 'table', fileMetadata(record, values.vpxVPSId));
 
@@ -306,6 +333,95 @@
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
   }
 
+  function shortNameElements() {
+    return {
+      field: document.getElementById('shortTableNameField'),
+      input: document.getElementById('shortTableNameInput')
+    };
+  }
+
+  // Saved under a `__` key: kept with the draft, never written to the YML,
+  // and gone on Clear or a new table, because it names one table's folder.
+  function storeShortName(value) {
+    window.VPS_MAIN?.setUiValue?.(SHORT_NAME_KEY, value);
+  }
+
+  function clearShortNameError() {
+    const { field, input } = shortNameElements();
+    field?.classList.remove('has-field-error');
+    field?.querySelector(':scope > .field-error-dot')?.remove();
+    input?.removeAttribute('aria-invalid');
+    input?.removeAttribute('aria-describedby');
+  }
+
+  // Drawn the same way as every other field's dot (a real element, the
+  // shared tooltip), but only when a button that needs the name is pressed:
+  // Copy and Download never check it.
+  function showShortNameError(entry) {
+    const { field, input } = shortNameElements();
+    if (!field || !input) return;
+    const { message } = entry;
+    field.classList.add('has-field-error');
+    let dot = field.querySelector(':scope > .field-error-dot');
+    if (!dot) {
+      dot = document.createElement('span');
+      dot.className = 'field-error-dot';
+      dot.id = 'shortTableNameError';
+      dot.setAttribute('role', 'img');
+      dot.tabIndex = 0;
+      field.appendChild(dot);
+    }
+    dot.dataset.tooltip = `${entry.title}. ${message}`;
+    dot.setAttribute('aria-label', dot.dataset.tooltip);
+    window.VPS_ERROR_DOTS?.setTip?.(dot, [entry]);
+    input.setAttribute('aria-invalid', 'true');
+    input.setAttribute('aria-describedby', dot.id);
+    input.focus();
+  }
+
+  // The box sits outside the tabs, so it is refilled from the build on every
+  // table-strip render: a restored draft brings its name back, and a new
+  // table or a Clear empties it. Left alone while the user is typing in it.
+  function syncShortName(values) {
+    const { input } = shortNameElements();
+    if (!input) return;
+    // main.js replaces the values object only for a different build (a new
+    // table, Clear, an import, a restored draft), so a new object means any
+    // earlier "required" dot belongs to a build that is gone.
+    if (values !== shortNameValues) {
+      shortNameValues = values || null;
+      clearShortNameError();
+    }
+    if (document.activeElement === input) return;
+    const stored = normalizeShortName(values?.[SHORT_NAME_KEY]);
+    if (input.value !== stored) input.value = stored;
+  }
+
+  function currentShortName() {
+    const { input } = shortNameElements();
+    const shortName = normalizeShortName(input ? input.value : snapshot.values?.[SHORT_NAME_KEY]);
+    if (input && input.value !== shortName) input.value = shortName;
+    if (String(snapshot.values?.[SHORT_NAME_KEY] ?? '') !== shortName) storeShortName(shortName);
+    return shortName;
+  }
+
+  function generateWizardReadme() {
+    if (generating) return;
+    if (!snapshot.record || !snapshot.values) {
+      showToast('error', 'No build loaded', 'Load a table before generating a README.');
+      return;
+    }
+    const shortName = currentShortName();
+    const problem = shortNameProblem(shortName);
+    if (problem) {
+      showShortNameError(problem);
+      showToast('error', problem.title, problem.message);
+      return;
+    }
+    downloadTextFile(wizardReadmeText(shortName), 'README.md');
+    showToast('success', 'Wizard README downloaded', `README.md for ${shortName} was sent to your Downloads folder.`);
+  }
+
   function ensureToast() {
     if (toast?.isConnected) return toast;
 
@@ -398,15 +514,13 @@
     }
 
     setGenerating(true, button);
-    const label = mode === 'manual' ? 'Manual README' : 'Wizard README';
+    const label = 'Manual README';
     showToast('loading', `Generating ${label}`, 'Preparing table details, links, and preview artwork.');
 
     try {
       const template = await fetchTemplate(mode);
       const image = previewImage(record, values);
-      let readme = mode === 'manual'
-        ? buildManualReadme(template, record, values)
-        : buildWizardReadme(template, record, values);
+      let readme = buildManualReadme(template, record, values);
 
       if (image.name) readme = replaceToken(readme, 'previewImageName', image.name);
 
@@ -440,7 +554,21 @@
     if (!manualButton || !wizardButton) return;
 
     manualButton.addEventListener('click', () => generateReadme('manual', manualButton));
-    wizardButton.addEventListener('click', () => generateReadme('wizard', wizardButton));
+    wizardButton.addEventListener('click', generateWizardReadme);
+
+    const { input } = shortNameElements();
+    if (!input) return;
+    // Saved as typed, so a reload mid-word keeps it; the prefix is added
+    // when focus leaves the box.
+    input.addEventListener('input', () => {
+      storeShortName(input.value);
+      if (input.value.trim()) clearShortNameError();
+    });
+    input.addEventListener('blur', () => {
+      const shortName = normalizeShortName(input.value);
+      if (input.value !== shortName) input.value = shortName;
+      storeShortName(shortName);
+    });
   }
 
   if (document.readyState === 'loading') {

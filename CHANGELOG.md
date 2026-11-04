@@ -4,6 +4,12 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+### Added
+- A Short Table Name box above the README buttons, for the table's folder name in the Legends Unchained repo. Type `4aces` and it becomes `vpx-4aces` when you leave the box. It is saved with your build but never written to the YML.
+
+### Changed
+- Wizard README now downloads as `README.md` holding the single line the Table Manager Wizard uses, with a link to the table's catalog page. It needs the Short Table Name, and no longer downloads a preview image.
+
 ## [1.1.0] - 2026-11-04
 
 ### Added
