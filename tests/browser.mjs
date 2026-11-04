@@ -413,11 +413,24 @@ export async function openApp({ page = 'index.html', db = null, downloads = fals
 
   // The next finished download, read back from disk. A download that Chrome
   // cancels or fails rejects rather than returning nothing.
+  //
+  // A wait that times out takes itself out of the queue. Until 2026-11-04 it
+  // stayed there, so the next real download resolved the abandoned wait and
+  // was lost to whoever asked next.
   async function nextDownload(ms = 10000) {
     if (!downloads) throw new Error('openApp was not given downloads: true');
-    const entry = finished.shift() || await withTimeout(
-      new Promise(resolve => waiting.push(resolve)), ms, 'download'
-    );
+    let entry = finished.shift();
+    if (!entry) {
+      let resolver;
+      const arrived = new Promise(resolve => { resolver = resolve; waiting.push(resolve); });
+      try {
+        entry = await withTimeout(arrived, ms, 'download');
+      } catch (error) {
+        const index = waiting.indexOf(resolver);
+        if (index !== -1) waiting.splice(index, 1);
+        throw error;
+      }
+    }
     if (entry.state !== 'completed') throw new Error('download of ' + entry.filename + ' ended ' + entry.state);
     const text = await readFile(path.join(downloadDir, entry.filename), 'utf8');
     return { filename: entry.filename, text };
