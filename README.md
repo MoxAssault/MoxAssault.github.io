@@ -46,7 +46,7 @@ The builder is designed for repeat use: search for a table or reopen an existing
 
 ## Instructions
 
-1. Search for a table by VPS table ID or name, or drop an existing `.yml` file into **Drop YML to Edit**.
+1. Search for a table by VPS table ID or name, or drop an existing `.yml` file on the top bar.
 2. Choose the correct table from the search results when starting a new build.
 3. Select a VPX file and any additional assets that apply to the build.
 4. Open the enabled Configuration Panel tabs and complete the required fields.
@@ -66,9 +66,17 @@ The builder is designed for repeat use: search for a table or reopen an existing
 
 The active build autosaves in the current browser. Recent copied and downloaded builds can be reopened from **Recent Build History**.
 
+## Test a table folder
+
+**Test Folder** in the header builds a table's `manifest.json` and config zip with the Legends Unchained release scripts, so the result can go straight into the Manifest Tester. Pick a table folder holding a `table.yml`. A missing `launcher.png` gets a placeholder in the zip only.
+
+**Test This YML** in the preview panel does the same for the build on screen. It validates first, like Download, and needs the Short Table Name. The on-screen YML is used in place of any `table.yml` in the folder you pick, and the window says which one was tested.
+
+The folder is read in the browser and nothing is uploaded, whatever the browser's folder picker says. The scripts come from the Legends Unchained repository at test time and run in a locked Web Worker, so this needs an internet connection. Folders over 200 MB are refused.
+
 ## Edit an existing YML
 
-Use the compact **Drop YML to Edit** area in the header to reopen a generated VPXS configuration.
+Drop a generated VPXS configuration anywhere on the top bar, or use the **Import YML** button after Search, to reopen it.
 
 - Only one file ending in `.yml` can be opened at a time.
 - Files larger than 2 MB are rejected.
@@ -105,7 +113,7 @@ The Configuration Panel contains tabs for Main, VPX, Backglass, ROM, Color ROM, 
 
 - **Main** contains the Game VPS ID, FPS, tagline, notes, testers, and table metadata overrides.
 - The selected-game header card includes a copy icon beside the Game VPS ID without changing the ID text color.
-- **Disable for Wizard** is unchecked by default. Checking it writes `enabled: false` to the YAML; leaving it unchecked omits the key entirely. Its tooltip appears only while hovering or focusing the checkbox and text.
+- **Wizard Disabled** is unchecked by default. Checking it writes `enabled: false` to the YAML; leaving it unchecked omits the key entirely. Its tooltip appears only while hovering or focusing the checkbox and text.
 - Asset-specific tabs become available when their asset is selected or marked as bundled.
 - Advanced Config sections contain optional metadata and override fields.
 - URL and Version Override fields must be supplied together for ROM, Color ROM, Alt Sound, and VPU Patch entries.
@@ -167,7 +175,7 @@ Files are processed by the browser and are not uploaded by this application.
 
 - YAML keys are emitted in alphabetical order.
 - Empty strings and empty arrays are omitted.
-- `enabled: false` is emitted only when Disable for Wizard is checked; otherwise the key is omitted entirely.
+- `enabled: false` is emitted only when Wizard Disabled is checked; otherwise the key is omitted entirely.
 - FPS and `tableYearOverride` are emitted as integers.
 - Testers and Backglass author overrides are emitted as YAML arrays.
 - A single checksum is emitted as a string.
@@ -257,6 +265,7 @@ README.md
 - `js.src/uiEnhancements.js` contains image containment, field error markers, Advanced Config spacing, and combined preview status behavior.
 - `js.src/v090Enhancements.js` manages Help tabs, additional validation, Color ROM behavior, clickable asset badges, and refined preview status behavior.
 - `js.src/v091Corrections.js` contains follow-up field, tooltip, and validation-display corrections.
+- `js.src/testManifestController.js` runs the Test Folder and Test This YML buttons and their results window.
 - `js.src/testManifestWorker.js` runs the Legends Unchained manifest scripts in a Web Worker with Pyodide, and `js.src/testManifestLockdown.js` removes that worker's network, storage, and run-new-code routes first.
 - `js.src/main.js` manages application state, validation, drafts, history, keyboard shortcuts, and output actions.
 - `js.src/ymlImport.js` parses and loads supported `.yml` files into the existing interface.
@@ -344,7 +353,7 @@ Availability alone does not require action. The Preview breakdown counts assets 
 
 Asset-specific tabs become available only when their asset is selected or marked as bundled.
 
-### Is Disable for Wizard enabled by default?
+### Is Wizard Disabled enabled by default?
 
 No. It's unchecked by default, meaning the table stays enabled for Wizard. Check it only when you specifically want this table disabled for Wizard; that writes `enabled: false` to the YAML.
 

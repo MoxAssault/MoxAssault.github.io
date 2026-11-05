@@ -134,9 +134,9 @@
       // Guided puts this last, as a sign-off. The standard tour meets it second,
       // where "coming back later" would read like an ending.
       title: () => (mode === 'guided' ? 'Coming back to edit this later' : 'Or reopen a YML you already made'),
-      target: '#ymlImportDrop',
+      target: '#ymlImportButton',
       prefer: 'bottom',
-      body: `<p>You never have to start from scratch again. Drag a finished <strong>.yml</strong> back onto here and it loads into the builder ready to edit.</p>
+      body: `<p>You never have to start from scratch again. Drag a finished <strong>.yml</strong> onto the top bar, or use this button, and it loads into the builder ready to edit.</p>
              <p>The file is read inside your browser. Nothing is uploaded.</p>
              <p>If it holds fields the builder no longer supports, you get the chance to strip them out before it loads.</p>`
     },

@@ -30,7 +30,7 @@
 </head>
 <body>
   <main class="app" id="app">
-    <header class="app-header">
+    <header class="app-header" id="ymlImportDrop">
       <a class="brand" href="./" aria-label="YML Builder home">
         <img class="brand-logo" src="images/legends-unchained-logo.svg" alt="" width="70" height="34">
         <span>YML Builder</span>
@@ -52,16 +52,21 @@
             aria-expanded="false"
           >
           <button id="searchBtn" type="submit">Search</button>
+          <label class="yml-import-button" id="ymlImportButton" for="ymlImportInput" data-tooltip="Import YML">
+            <input class="visually-hidden" id="ymlImportInput" type="file" accept=".yml" aria-label="Import YML">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path>
+            </svg>
+          </label>
         </form>
         <div id="suggestions" class="suggestions" role="listbox" aria-label="Search suggestions"></div>
       </div>
 
       <div class="header-side">
-        <label class="yml-import-drop" id="ymlImportDrop" for="ymlImportInput">
-          <input class="visually-hidden" id="ymlImportInput" type="file" accept=".yml" aria-label="Choose a YML file to edit">
-          <span class="yml-import-icon" aria-hidden="true">⇧</span>
-          <span>Drop YML to Edit</span>
-        </label>
+        <div class="header-tool-slot" id="headerToolSlot">
+          <button class="icon-btn test-folder-btn" id="testFolderBtn" type="button">Test Folder</button>
+          <input class="visually-hidden" id="testFolderInput" type="file" webkitdirectory tabindex="-1" aria-hidden="true">
+        </div>
 
         <div class="header-actions">
           <button class="icon-btn" id="recentBtn" type="button" aria-haspopup="dialog">Recent</button>
@@ -78,6 +83,7 @@
       <h1>Build VPS YML files without the screen marathon.</h1>
       <p>Search for a table above, choose its assets, then edit everything in one compact workspace.</p>
       <span class="shortcut-hint"><kbd>/</kbd> focuses search</span>
+      <span class="shortcut-hint">Drop a YML on the top bar to edit it, or use Import YML.</span>
     </section>
 
     <section class="workspace" id="workspace" hidden aria-live="polite">
@@ -125,7 +131,8 @@
           <div class="field readme-short-name" id="shortTableNameField">
             <input id="shortTableNameInput" type="text" placeholder="Short Table Name (ex. 4aces)" aria-label="Short Table Name" autocomplete="off" spellcheck="false">
           </div>
-          <button class="text-btn readme-action-btn" id="manualReadmeBtn" type="button">Manual README</button>
+          <button class="text-btn readme-action-btn" id="testYmlBtn" type="button">Test This YML</button>
+          <input class="visually-hidden" id="testYmlInput" type="file" webkitdirectory tabindex="-1" aria-hidden="true">
           <button class="text-btn readme-action-btn" id="wizardReadmeBtn" type="button">Wizard README</button>
         </div>
         <div class="preview-yaml-frame">
@@ -284,7 +291,7 @@
             <div class="help-doc-body">
               <ul>
                 <li><strong>FPS</strong> sets the frame rate the table should run at. Numbers only.</li>
-                <li><strong>Wizard Disabled</strong> is ticked by default on a new table and after Clear section. Leave it as you find it unless you specifically want the installer wizard turned off for this table. Imported files and restored drafts keep whatever they arrived with.</li>
+                <li><strong>Wizard Disabled</strong> is unticked by default on a new table and after Clear section. Tick it only when you specifically want the installer wizard turned off for this table, which writes <code>enabled: false</code>. Imported files and restored drafts keep whatever they arrived with.</li>
                 <li><strong>Tagline</strong> is the one line description shown alongside the table.</li>
                 <li><strong>Testers</strong> is a comma separated list of who tested the build.</li>
                 <li><strong>Tutorial VPS ID</strong> links a tutorial entry from the database, chosen from a dropdown.</li>
@@ -353,6 +360,8 @@
       <section class="help-tab-panel" id="helpPanelFaq" role="tabpanel" aria-labelledby="helpTabFaq" data-help-panel="faq" hidden>
         <div class="help-faq-list">
           <details><summary>Why is Copy or Download blocked?</summary><p>At least one validation error remains. Warnings are allowed, but errors must be corrected. Click the colored dot in the preview panel to jump straight to the first one.</p></details>
+          <details><summary>What is the difference between Test Folder and Test This YML?</summary><p>Test Folder tests the <code>table.yml</code> already in the folder you pick, and names the table after the folder. Test This YML tests the build on screen, named from the Short Table Name, and uses it in place of any <code>table.yml</code> in the folder. Your folder is never changed.</p></details>
+          <details><summary>Why does Test Folder say "Upload" when I pick a folder?</summary><p>That is your browser's standard wording for picking a folder. Nothing leaves your computer: the folder is read here and the manifest and zip are built in this tab, using Legends Unchained's own release scripts, then offered as downloads. Your folder is not changed. A missing <code>launcher.png</code> gets a placeholder in the zip only.</p></details>
           <details><summary>Are dropped files uploaded anywhere?</summary><p>No. Checksums, archive folder lists, and imported YML files are all processed inside your browser. Nothing leaves your machine.</p></details>
           <details><summary>Why are some configuration tabs disabled?</summary><p>A tab unlocks once you give the builder a reason to write that section: select a version for it, tick Bundled, or tick Override.</p></details>
           <details><summary>Why is the VPU Patch row always empty?</summary><p>Usually because of the VPX you picked, not a fault. Patches are stored among a table's VPX files rather than as their own category, and each one names the VPX it applies to. The row fills in only when that exact VPX is selected. Tales from the Crypt is a good example: choose VPX <code>uVgZUZdK</code> and the patch appears; choose any other and it does not.</p></details>
@@ -424,6 +433,7 @@
   <script src="js.src/productionFieldPresentation.js"></script>
   <script src="js.src/altSoundArchiveController.js"></script>
   <script src="js.src/readmeGenerator.js"></script>
+  <script src="js.src/testManifestController.js"></script>
   <script src="js.src/main.js"></script>
   <script src="js.src/secretTheme.js"></script>
   <script src="js.src/ymlFeatureImportBridge.js"></script>

@@ -12,7 +12,6 @@
 
   let dropZone = null;
   let fileInput = null;
-  let dragDepth = 0;
   let toast = null;
   let toastTitle = null;
   let toastMessage = null;
@@ -843,9 +842,13 @@
     } finally {
       importing = false;
       dropZone?.classList.remove(DROP_LOADING_CLASS, DROP_ACTIVE_CLASS);
-      dragDepth = 0;
       if (fileInput) fileInput.value = '';
     }
+  }
+
+  // A drag of selected text over the search box is not an import.
+  function carriesFiles(event) {
+    return [...(event.dataTransfer?.types || [])].includes('Files');
   }
 
   function bindDropArea() {
@@ -867,27 +870,46 @@
       if (file) importYmlFile(file);
     });
 
+    // Toasts sit over the middle of the header, so during a file drag they stand
+    // aside or a drop on one would miss the bar.
+    const setFileDrag = active => document.body.classList.toggle('is-file-dragging', active);
+    document.addEventListener('dragenter', event => {
+      if (carriesFiles(event)) setFileDrag(true);
+    }, true);
+    // Some browsers leave relatedTarget empty between elements, so dragover
+    // turns it back on if that happens.
+    document.addEventListener('dragover', event => {
+      if (carriesFiles(event)) setFileDrag(true);
+    }, true);
+    document.addEventListener('dragleave', event => {
+      if (!event.relatedTarget) setFileDrag(false);
+    }, true);
+    document.addEventListener('drop', () => setFileDrag(false), true);
+    document.addEventListener('dragend', () => setFileDrag(false), true);
+
     dropZone.addEventListener('dragenter', event => {
+      if (!carriesFiles(event)) return;
       event.preventDefault();
-      dragDepth += 1;
       dropZone.classList.add(DROP_ACTIVE_CLASS);
     });
 
     dropZone.addEventListener('dragover', event => {
+      if (!carriesFiles(event)) return;
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
       dropZone.classList.add(DROP_ACTIVE_CLASS);
     });
 
     dropZone.addEventListener('dragleave', event => {
+      if (!carriesFiles(event)) return;
       event.preventDefault();
-      dragDepth = Math.max(0, dragDepth - 1);
-      if (!dragDepth) dropZone.classList.remove(DROP_ACTIVE_CLASS);
+      // The header has many children, so moving between them is not leaving it.
+      if (!dropZone.contains(event.relatedTarget)) dropZone.classList.remove(DROP_ACTIVE_CLASS);
     });
 
     dropZone.addEventListener('drop', event => {
+      if (!carriesFiles(event)) return;
       event.preventDefault();
-      dragDepth = 0;
       dropZone.classList.remove(DROP_ACTIVE_CLASS);
       const files = [...(event.dataTransfer?.files || [])];
       if (files.length !== 1) {

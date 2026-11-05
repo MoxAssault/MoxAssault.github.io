@@ -139,12 +139,12 @@ if (!PRINT) {
   // above the two buttons, which stay side by side as before.
   const layout = await app.run(() => {
     const box = el => { const r = document.querySelector(el).getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; };
-    return { row: box('.readme-actions'), field: box('#shortTableNameField'), manual: box('#manualReadmeBtn'), wizard: box('#wizardReadmeBtn') };
+    return { row: box('.readme-actions'), field: box('#shortTableNameField'), testYml: box('#testYmlBtn'), wizard: box('#wizardReadmeBtn') };
   });
   check('the box spans the README row',
     Math.abs(layout.field.left - layout.row.left) < 1 && Math.abs(layout.field.right - layout.row.right) < 1, JSON.stringify(layout));
   check('the buttons sit below it, side by side',
-    layout.manual.top >= layout.field.bottom && layout.manual.top === layout.wizard.top && layout.manual.right < layout.wizard.left, JSON.stringify(layout));
+    layout.testYml.top >= layout.field.bottom && layout.testYml.top === layout.wizard.top && layout.testYml.right < layout.wizard.left, JSON.stringify(layout));
 
   // 2. The prefix is added when focus leaves, once, whatever the case.
   const typed = await typeName('4aces', { leave: false });
@@ -209,11 +209,11 @@ if (!PRINT) {
   // real download (it did until 2026-11-04).
   check('waiting for it times out', (await downloadWithin(800)) === null);
   check('it says why', refused.title === 'Short Table Name required'
-    && refused.message === 'Enter the table\'s folder name (ex. 4aces) to make a Wizard README.', JSON.stringify(refused));
+    && refused.message === 'Enter the table\'s folder name (ex. 4aces). Wizard README and Test This YML both use it.', JSON.stringify(refused));
   check('the box gets a red dot, marked invalid, and the cursor',
     after.dot && after.fieldError && after.invalid === 'true' && after.focused, JSON.stringify(after));
   check('the dot carries the message for hover and screen readers',
-    after.dotLabel === 'Short Table Name required. Enter the table\'s folder name (ex. 4aces) to make a Wizard README.'
+    after.dotLabel === 'Short Table Name required. Enter the table\'s folder name (ex. 4aces). Wizard README and Test This YML both use it.'
       && after.dotTip.includes('Short Table Name required'), JSON.stringify(after));
   check('the box points screen readers at the dot\'s message',
     after.dotId && after.describedBy === after.dotId, JSON.stringify(after));
@@ -225,17 +225,27 @@ if (!PRINT) {
   check('typing a name clears the dot', !typing.dot && !typing.fieldError && typing.invalid === null
     && typing.describedBy === null, JSON.stringify(typing));
 
-  // A name that could not be a folder would break the link: refused too.
-  for (const bad of ['4 aces', '4aces#2', 'tables/4aces']) {
-    await typeName(bad);
-    const beforeBad = await downloadsStarted();
-    const said = await clickWizard();
+  // Anything a folder name cannot hold becomes "-", one per run (Jason, 2026-11-05).
+  for (const [typedName, expected] of [
+    ['4 aces', 'vpx-4-aces'],
+    ['4aces#2', 'vpx-4aces-2'],
+    ['tables/4aces', 'vpx-tables-4aces'],
+    ["  Bob's   Table!  ", 'vpx-Bob-s-Table'],
+    ['VPX-Big Trouble', 'vpx-Big-Trouble'],
+    ['big_trouble-2', 'vpx-big_trouble-2'],
+    ['Café', 'vpx-Caf']
+  ]) {
+    await typeName(typedName);
     const shown = await boxState();
-    check(`"${bad}" is refused, with its dot`, (await downloadsStarted()) === beforeBad
-      && said.title === 'Short Table Name not valid'
-      && said.message === 'Use only letters, numbers, - and _. It is the table\'s folder name (ex. 4aces).'
-      && shown.dot, JSON.stringify({ said, shown }));
+    check(`"${typedName}" becomes ${expected}`, shown.value === expected && !shown.dot, JSON.stringify(shown));
   }
+  await typeName('!!!');
+  const nothing = await boxState();
+  check('a name with nothing usable in it empties the box', nothing.value === '', JSON.stringify(nothing));
+  await typeName('4 aces');
+  await clickWizard();
+  const cleaned = await downloadWithin(5000);
+  check('the link uses the cleaned name', cleaned?.text === README('vpx-4-aces'), JSON.stringify(cleaned));
 
   // 6. Copy and Download never check it.
   await typeName('');
@@ -249,14 +259,9 @@ if (!PRINT) {
   }, settleSource);
   check('the Validate dialog never mentions it', !/short table name/i.test(dialog), dialog);
 
-  // 7. Manual README is unchanged: it still needs a VPX first.
-  const manual = await app.run(async settleText => {
-    const settle = eval(settleText);
-    document.getElementById('manualReadmeBtn').click();
-    await settle();
-    return document.querySelector('#readmeGeneratorToast .vps-db-toast-title')?.textContent || '';
-  }, settleSource);
-  check('Manual README still asks for a VPX', manual === 'VPX selection required', manual);
+  // 7. Manual README is gone; Test This YML took its place.
+  const removed = await app.run(() => ({ manual: document.getElementById('manualReadmeBtn'), test: document.getElementById('testYmlBtn')?.textContent }));
+  check('Test This YML replaced Manual README', removed.manual === null && removed.test === 'Test This YML', JSON.stringify(removed));
 
   // 8. Gone with its build: Clear, and a new table.
   await typeName('4aces');

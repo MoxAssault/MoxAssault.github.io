@@ -774,6 +774,19 @@
 }
 .vpx-renames-status { margin: 0; color: var(--state-red); font-size: 11.5px; }
 .vpx-renames-status:empty { display: none; }
+.test-manifest-dialog { width: min(560px, calc(100% - 28px)); }
+.test-manifest-dialog .dialog-header > div { min-width: 0; }
+.test-manifest-dialog .dialog-header h2 { overflow-wrap: anywhere; }
+.test-manifest-dialog .dialog-close { flex: none; }
+.test-manifest-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.test-manifest-status { margin: 0; color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
+.test-manifest-status.error { color: var(--state-red); }
+.test-manifest-notes { margin: 0; padding-left: 18px; color: var(--text-muted); font-size: 11.5px; overflow-wrap: anywhere; }
+.test-manifest-notes:empty { display: none; }
+.test-manifest-downloads { display: flex; flex-wrap: wrap; gap: 8px; }
+.test-manifest-downloads[hidden] { display: none; }
+.test-manifest-downloads .preview-primary { padding: 6px 10px; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); overflow-wrap: anywhere; white-space: normal; }
+.test-manifest-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .archive-choice-dialog { width: min(560px, calc(100% - 28px)); }
 .archive-choice-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .archive-choice-note { margin: 0; color: var(--text-muted); font-size: 11.5px; overflow-wrap: anywhere; }

@@ -1,26 +1,43 @@
 .header-search-wrap { position: relative; min-width: 0; }
+/* Above the bar, so it never covers Search. It fades after 30 seconds (main.js). */
 .search-status {
   position: absolute;
-  top: 3px;
-  right: 94px;
-  bottom: auto;
+  bottom: calc(100% + 2px);
+  left: 2px;
   z-index: 2;
-  max-width: calc(100% - 112px);
+  max-width: calc(100% - 4px);
   margin: 0;
   padding: 1px 4px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--panel) 78%, transparent);
   overflow: hidden;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: 10px;
   font-weight: 700;
   line-height: 1.2;
-  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
+  transition: opacity 600ms ease;
 }
+.search-status.is-fading { opacity: 0; }
 .search-status:empty { display: none; }
+/* Stacked headers have no gap above the bar, so it rides the bar's top inside
+   edge, clear of the logo row, the typed text and Search. */
+@media (max-width: 900px) {
+  .search-status {
+    top: 2px;
+    bottom: auto;
+    left: 10px;
+    max-width: calc(100% - 146px);
+    padding: 0 2px;
+    background: transparent;
+    font-size: 9.5px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-status { transition: none; }
+}
 .search-status.error { color: var(--danger); }
 .search-box {
   display: flex;

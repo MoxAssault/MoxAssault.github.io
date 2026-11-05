@@ -5,10 +5,17 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 ## [Unreleased]
 
 ### Added
-- A Short Table Name box above the README buttons, for the table's folder name in the Legends Unchained repo. Type `4aces` and it becomes `vpx-4aces` when you leave the box. It is saved with your build but never written to the YML.
+- A Test Folder button in the header builds a table's manifest and config zip in your browser with the Legends Unchained release scripts, ready for the Manifest Tester. Nothing is uploaded.
+- A Test This YML button in the preview panel does the same for the build on screen, using it in place of any `table.yml` in the folder you pick.
+- A Short Table Name box above the README buttons, for the table's folder name in the Legends Unchained repo. Type `4aces` and it becomes `vpx-4aces` when you leave the box. It is saved with your build but never written to the YML. Spaces and special characters become `-`.
 
 ### Changed
+- The whole top bar now takes a dropped YML, and a small Import YML button after Search opens the file chooser. They replace the Drop YML to Edit box.
+- The status line moved above the search bar, so it no longer covers Search, and it fades away after 30 seconds.
 - Wizard README now downloads as `README.md` holding the single line the Table Manager Wizard uses, with a link to the table's catalog page. It needs the Short Table Name, and no longer downloads a preview image.
+
+### Removed
+- The Manual README button. Test This YML takes its place.
 
 ## [1.1.0] - 2026-11-04
 

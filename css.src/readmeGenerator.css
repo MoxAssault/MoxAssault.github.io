@@ -1,4 +1,4 @@
-/* v0.11.0 Manual and Wizard README generation actions */
+/* The README row: Short Table Name, Test This YML and Wizard README */
 
 .readme-actions {
   display: grid;
@@ -26,16 +26,6 @@
   color: var(--accent);
 }
 
-.readme-actions .text-btn.is-loading {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.readme-actions .text-btn:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
 
 .readme-generator-toast {
   top: calc(max(18px, env(safe-area-inset-top)) + var(--readme-toast-offset, 0px));

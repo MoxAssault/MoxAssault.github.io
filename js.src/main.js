@@ -217,7 +217,7 @@
       renderSuggestions();
     } catch (error) {
       closeSuggestions();
-      setSearchStatus(error.message, true);
+      setSearchStatus(error.message, true, { stays: true });
     }
   }
 
@@ -262,7 +262,7 @@
       else if (matches.length > 1) setSearchStatus(`Found ${matches.length} matches. Choose one.`);
       else setSearchStatus(`No VPS table matched “${query}”.`, true);
     } catch (error) {
-      setSearchStatus(error.message, true);
+      setSearchStatus(error.message, true, { stays: true });
     } finally {
       setSearchLoading(false);
     }
@@ -273,9 +273,23 @@
     dom.searchBtn.textContent = loading ? 'Loading…' : 'Search';
   }
 
-  function setSearchStatus(message, isError = false) {
+  const SEARCH_STATUS_VISIBLE_MS = 30000;
+  const SEARCH_STATUS_FADE_MS = 600;
+  let searchStatusTimer = null;
+
+  // A status stays for 30 seconds, then fades and clears. A new one starts over.
+  // A real failure stays until the next status: this line may be the only place
+  // it is shown.
+  function setSearchStatus(message, isError = false, { stays = false } = {}) {
+    clearTimeout(searchStatusTimer);
+    dom.searchStatus.classList.remove('is-fading');
     dom.searchStatus.textContent = message;
     dom.searchStatus.classList.toggle('error', isError);
+    if (!message || stays) return;
+    searchStatusTimer = setTimeout(() => {
+      dom.searchStatus.classList.add('is-fading');
+      searchStatusTimer = setTimeout(() => setSearchStatus(''), SEARCH_STATUS_FADE_MS);
+    }, SEARCH_STATUS_VISIBLE_MS);
   }
 
   function getAvailableCategoryItems(category) {
@@ -820,7 +834,17 @@
     return true;
   }
 
-  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue });
+  // The YML as Download would write it, or '' after showing what blocks it.
+  function readyYaml() {
+    refreshValidation();
+    if (hasBlockingIssues()) {
+      showValidationDialog();
+      return '';
+    }
+    return state.yaml;
+  }
+
+  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue, readyYaml });
 
   function updateValidationSummary() {
     refreshValidation();
@@ -975,7 +999,7 @@
       button.textContent = 'Copied';
       window.setTimeout(() => { button.textContent = previous; }, 1200);
     } catch (error) {
-      setSearchStatus(error.message, true);
+      setSearchStatus(error.message, true, { stays: true });
     }
   }
 
@@ -1067,7 +1091,7 @@
       button.textContent = 'Copied';
       window.setTimeout(() => { button.textContent = previous; }, 1000);
     } catch (error) {
-      setSearchStatus(error.message, true);
+      setSearchStatus(error.message, true, { stays: true });
     }
   }
 

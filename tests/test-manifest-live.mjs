@@ -6,13 +6,19 @@
 //
 // Part 1: the real upstream scripts build a real manifest after the lockdown.
 // Part 2: a hostile stand-in for upstream's script tries every way out it can.
+// Part 3: the real page, end to end: a folder picked through the real input.
+//   LIVE_TABLE=<folder> LIVE_MANIFEST=<reference manifest.json> tests a real
+//   table against a reference; without them a small folder is made on the spot.
+// Part 4, with LIVE_TABLE only: real builder output. The table's table.yml is
+//   imported, the builder writes it back out, and Test This YML must give the
+//   same manifest.
 // A canary route on this server records anything that reaches it, so escaping
 // is measured, not inferred. A control request before the lockdown proves the
 // canary works.
 
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { check, report, repoPath, REPO } from './harness.mjs';
@@ -98,6 +104,7 @@ def main(argv=None):
     return 7
 `;
 
+const TYPES = { '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
 const canaryHits = [];
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -119,7 +126,7 @@ const server = createServer(async (req, res) => {
     const file = path.resolve(repoPath(decodeURIComponent(url.pathname).slice(1)));
     if (!file.startsWith(REPO + path.sep)) throw new Error('outside the repo');
     const body = await readFile(file);
-    res.writeHead(200, { 'content-type': url.pathname.endsWith('.js') ? 'text/javascript' : 'text/plain' });
+    res.writeHead(200, { 'content-type': TYPES[path.extname(url.pathname)] || 'application/octet-stream' });
     res.end(body);
   } catch { res.writeHead(404); res.end(); }
 });
@@ -225,6 +232,114 @@ const notBlocked = Object.entries(tries)
   .filter(([name, outcome]) => !ASYNC_ONLY.has(name) && !name.startsWith('internal ') && !outcome.startsWith('blocked'));
 check('every direct route was refused, storage included', notBlocked.length === 0, JSON.stringify(notBlocked));
 
+
+// Part 3: the real page. Blobs are captured so the downloads can be read back.
+const table = process.env.LIVE_TABLE || path.join(profile, 'vpx-live');
+if (!process.env.LIVE_TABLE) {
+  await mkdir(table, { recursive: true });
+  await writeFile(path.join(table, 'table.yml'), YML);
+}
+await send('DOM.enable');
+await send('Page.navigate', { url: `${base}/index.html` });
+await new Promise(resolve => setTimeout(resolve, 2500));
+await evaluate(`(async () => {
+  window.__blobs = [];
+  const original = URL.createObjectURL.bind(URL);
+  URL.createObjectURL = blob => { window.__blobs.push(blob); return original(blob); };
+  await window.fetchVPSDB();
+})()`);
+const documentNode = await send('DOM.getDocument');
+const inputNode = await send('DOM.querySelector', { nodeId: documentNode.result.root.nodeId, selector: '#testFolderInput' });
+await send('DOM.setFileInputFiles', { nodeId: inputNode.result.nodeId, files: [table] });
+const page = JSON.parse(await evaluate(`(async () => {
+  const status = () => document.getElementById('testManifestStatus')?.textContent || '';
+  const started = Date.now();
+  const finished = () => document.getElementById('testManifestDone')?.textContent === 'Close' && status();
+  while (Date.now() - started < 90000 && !finished()) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  document.getElementById('testManifestSaveManifest')?.click();
+  document.getElementById('testManifestSaveZip')?.click();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const blobs = window.__blobs.slice(-2);
+  return JSON.stringify({
+    status: status(),
+    notes: [...document.querySelectorAll('#testManifestNotes li')].map(item => item.textContent),
+    manifest: blobs[0] ? await blobs[0].text() : '',
+    zipBytes: blobs[1] ? blobs[1].size : 0,
+    zipStart: blobs[1] ? [...new Uint8Array(await blobs[1].slice(0, 2).arrayBuffer())] : []
+  });
+})()`));
+const folderName = path.basename(table);
+console.log('page says:', page.status, JSON.stringify(page.notes));
+check('the real page builds the manifest', page.status === `Manifest built for ${folderName}.`, page.status);
+check('the page offers a real zip', page.zipBytes > 0 && page.zipStart[0] === 80 && page.zipStart[1] === 75, JSON.stringify(page.zipStart));
+const pageManifest = page.manifest ? JSON.parse(page.manifest) : {};
+check('the page\'s manifest is keyed by the folder', Object.keys(pageManifest)[0] === folderName, JSON.stringify(Object.keys(pageManifest)));
+if (process.env.LIVE_MANIFEST) {
+  const reference = JSON.parse(await readFile(process.env.LIVE_MANIFEST, 'utf8'));
+  check('the page\'s manifest matches the reference exactly',
+    JSON.stringify(pageManifest) === JSON.stringify(reference), page.manifest.slice(0, 300));
+}
+
+// Part 4: the builder's own output through Test This YML.
+if (process.env.LIVE_TABLE) {
+  await evaluate(`(async () => { document.getElementById('testManifestDialog').close(); await new Promise(r => setTimeout(r, 100)); })()`);
+  const importDoc = await send('DOM.getDocument');
+  const importNode = await send('DOM.querySelector', { nodeId: importDoc.result.root.nodeId, selector: '#ymlImportInput' });
+  await send('DOM.setFileInputFiles', { nodeId: importNode.result.nodeId, files: [path.join(table, 'table.yml')] });
+  const imported = await evaluate(`(async () => {
+    const title = () => document.querySelector('#ymlImportToast .vps-db-toast-title')?.textContent || '';
+    const started = Date.now();
+    while (Date.now() - started < 15000 && !/YML loaded|could not be loaded|Import cancelled|outdated|Remove/i.test(title())) await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 400));
+    return title() + ' | ' + (document.querySelector('#ymlImportToast .vps-db-toast-message')?.textContent || '');
+  })()`);
+  console.log('import says:', imported);
+  const pressed = JSON.parse(await evaluate(`(async () => {
+    const box = document.getElementById('shortTableNameInput');
+    box.focus();
+    box.value = ${JSON.stringify(folderName)};
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    box.blur();
+    window.__opens = 0;
+    document.getElementById('testYmlInput').click = () => { window.__opens += 1; };
+    document.getElementById('testYmlBtn').click();
+    const dialog = document.getElementById('validationDialog');
+    const blocked = dialog.open ? dialog.textContent.replace(/\\s+/g, ' ').slice(0, 500) : '';
+    return JSON.stringify({ opens: window.__opens, blocked, yml: document.getElementById('previewYaml').textContent });
+  })()`));
+  console.log('builder wrote:\n' + pressed.yml);
+  check('the imported table passes validation', pressed.opens === 1, pressed.blocked);
+  if (pressed.opens === 1) {
+    const ymlDoc = await send('DOM.getDocument');
+    const ymlNode = await send('DOM.querySelector', { nodeId: ymlDoc.result.root.nodeId, selector: '#testYmlInput' });
+    await send('DOM.setFileInputFiles', { nodeId: ymlNode.result.nodeId, files: [table] });
+    const built = JSON.parse(await evaluate(`(async () => {
+      const status = () => document.getElementById('testManifestStatus')?.textContent || '';
+      const started = Date.now();
+      await new Promise(r => setTimeout(r, 300));
+      while (Date.now() - started < 90000 && !(document.getElementById('testManifestDone')?.textContent === 'Close' && status())) await new Promise(r => setTimeout(r, 100));
+      const before = window.__blobs.length;
+      document.getElementById('testManifestSaveManifest')?.click();
+      await new Promise(r => setTimeout(r, 200));
+      const blob = window.__blobs[before];
+      return JSON.stringify({ status: status(), notes: [...document.querySelectorAll('#testManifestNotes li')].map(i => i.textContent), manifest: blob ? await blob.text() : '' });
+    })()`));
+    console.log('page says:', built.status, JSON.stringify(built.notes));
+    check('Test This YML builds it', built.status === `Manifest built for ${folderName}.`, built.status);
+    if (process.env.LIVE_MANIFEST && built.manifest) {
+      const reference = JSON.parse(await readFile(process.env.LIVE_MANIFEST, 'utf8'));
+      const same = JSON.stringify(JSON.parse(built.manifest)) === JSON.stringify(reference);
+      if (!same) {
+        const a = JSON.parse(built.manifest)[folderName] || {}; const b = reference[folderName] || {};
+        const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(key => JSON.stringify(a[key]) !== JSON.stringify(b[key]));
+        console.log('differing keys:', JSON.stringify(keys.map(key => [key, a[key], b[key]])).slice(0, 900));
+      }
+      check('real builder output gives the reference manifest', same);
+    }
+  }
+}
 } finally {
   ws.close(); chrome.kill(); server.closeAllConnections(); server.close();
   await new Promise(resolve => setTimeout(resolve, 1000));
