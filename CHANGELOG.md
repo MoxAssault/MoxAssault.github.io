@@ -4,6 +4,8 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-05
+
 ### Added
 - A Test Folder button in the header builds a table's manifest and config zip in your browser with the Legends Unchained release scripts, ready for the Manifest Tester. Nothing is uploaded.
 - A Test This YML button in the preview panel does the same for the build on screen, using it in place of any `table.yml` in the folder you pick.
