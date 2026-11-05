@@ -68,7 +68,7 @@
         { name: 'FPS', yml_field: 'fps', type: 'int', min: 1, max: 99, maxlength: 2 },
         {
           name: 'Wizard Disabled', yml_field: 'enabled', type: 'bool', invertBoolean: true,
-          tooltip: 'Checked keeps this table disabled for Wizard. Uncheck to explicitly enable it.'
+          tooltip: 'Checked writes enabled: false, so Wizard skips this table. Unchecked leaves the key out.'
         },
         { name: 'Tagline', yml_field: 'tagline', type: 'str', wide: true, responsiveTextarea: true },
         { name: 'Main Notes', yml_field: 'mainNotes', type: 'str', multiline: true, wide: true },
