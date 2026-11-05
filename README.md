@@ -257,6 +257,7 @@ README.md
 - `js.src/uiEnhancements.js` contains image containment, field error markers, Advanced Config spacing, and combined preview status behavior.
 - `js.src/v090Enhancements.js` manages Help tabs, additional validation, Color ROM behavior, clickable asset badges, and refined preview status behavior.
 - `js.src/v091Corrections.js` contains follow-up field, tooltip, and validation-display corrections.
+- `js.src/testManifestWorker.js` runs the Legends Unchained manifest scripts in a Web Worker with Pyodide, and `js.src/testManifestLockdown.js` removes that worker's network, storage, and run-new-code routes first.
 - `js.src/main.js` manages application state, validation, drafts, history, keyboard shortcuts, and output actions.
 - `js.src/ymlImport.js` parses and loads supported `.yml` files into the existing interface.
 - `js.src/v0102Fixes.js` preserves scroll position after imports and removes unused available assets from Preview caution counts.
