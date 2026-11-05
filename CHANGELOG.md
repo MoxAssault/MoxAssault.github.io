@@ -4,6 +4,10 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-05
+
+Everything listed under 1.2.0, which reached the live site with this release. A test failed on the build server, so 1.2.0 itself was never published. Nothing changes for users between the two.
+
 ## [1.2.0] - 2026-11-05
 
 ### Added
