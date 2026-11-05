@@ -7,7 +7,7 @@ import { openApp } from './browser.mjs';
 const DB = [{ id: 'tbl1', name: 'Fixture Table', tableFiles: [] }];
 
 for (const width of [1400, 860, 400]) {
-  const sized = await openApp({ db: DB, windowSize: [width + 16, 900] });
+  const sized = await openApp({ db: DB, windowSize: [width + (process.platform === 'win32' ? 16 : 0), 900] });
   const place = await sized.run(async () => {
     const input = document.getElementById('idInput');
     input.value = 'no such table anywhere at all, with a long search to fill the line';

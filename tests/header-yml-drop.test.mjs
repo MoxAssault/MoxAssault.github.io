@@ -15,8 +15,8 @@ const LAYOUTS = [
 ];
 
 for (const layout of LAYOUTS) {
-  // Headless Chrome keeps 16px of the window for itself.
-  const sized = await openApp({ windowSize: [layout.width + 16, 900] });
+  // Headless Chrome keeps 16px of the window for itself on Windows, none on Linux.
+  const sized = await openApp({ windowSize: [layout.width + (process.platform === 'win32' ? 16 : 0), 900] });
   const measured = await sized.run(() => {
     const header = document.querySelector('.app-header').getBoundingClientRect();
     return {
