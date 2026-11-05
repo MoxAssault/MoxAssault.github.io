@@ -265,7 +265,7 @@
       reveal: 'checksum',
       missing: 'No tab is open yet. Select an asset above to unlock its tab, and its checksum field is the second thing on it.',
       body: `<p>Drag the actual file onto the field and the MD5 is worked out in your browser. Nothing is uploaded. You can also type or paste one.</p>
-             <p>Some fields reach inside an archive for you: drop a zip on VPX and it hashes the <strong>.vpx</strong> within. Backglass does the same for <strong>.directb2s</strong>, VPU Patch for <strong>.dif</strong>.</p>
+             <p>Some fields reach inside an archive for you: drop a zip on VPX and it hashes the <strong>.vpx</strong> within. Backglass does the same for <strong>.directb2s</strong> and <strong>.b2spro</strong>, VPU Patch for <strong>.dif</strong>.</p>
              <p>On a <strong>Stern</strong> table, ROM also takes a bare <strong>.bin</strong> and finds a single .bin inside an archive. The line under the field always says what got hashed.</p>`,
       task: {
         instruction: 'Drop the VPX file onto the highlighted field.<span class="tour-task-aside"><strong><em>No copy of it on hand?</em></strong> Paste any 32-character MD5 instead, so the tour can move on.</span>',

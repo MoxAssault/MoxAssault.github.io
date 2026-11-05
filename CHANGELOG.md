@@ -4,6 +4,9 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+### Added
+- The Backglass Checksum accepts `.b2spro` files as well as `.directb2s`, loose or inside an archive. An archive holding both types asks which one to use.
+
 ## [1.0.0] - 2026-11-02
 
 The first live-tested release. It covers the work since 0.11.0, all of it tested live, piece by piece, before it shipped.

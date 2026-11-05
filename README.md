@@ -149,7 +149,7 @@ Supported checksum fields accept file drag-and-drop and calculate MD5 in the bro
 Accepted file types depend on the field, including:
 
 - VPX files
-- DirectB2S files
+- DirectB2S and B2SPro files, loose or inside a ZIP, RAR, or 7Z archive (an archive holding both types asks which one to use)
 - ROM archives
 - Single Color ROM files using `.crz`, `.pal`, or `.pac`
 - Double Color ROM PAL/VNI pairs using one `.pal` and one `.vni` file in either checksum field

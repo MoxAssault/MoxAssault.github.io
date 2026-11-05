@@ -159,7 +159,7 @@
         { name: 'Backglass ID', yml_field: 'backglassVPSId', type: 'str', readonly: true, wide: true },
         {
           name: 'Backglass Checksum', yml_field: 'backglassChecksum', type: 'str', wide: true, maxlength: 32,
-          checksumExtensions: ['.directb2s', '.zip', '.rar', '.7z'], archiveScanExtension: '.directb2s'
+          checksumExtensions: ['.directb2s', '.b2spro', '.zip', '.rar', '.7z'], archiveScanExtension: ['.directb2s', '.b2spro']
         },
         { name: 'Backglass Notes', yml_field: 'backglassNotes', type: 'str', multiline: true, wide: true },
         { name: 'Backglass Authors Override', yml_field: 'backglassAuthorsOverride', type: 'array', wide: true, placeholder: 'name, name, name', advanced: true },

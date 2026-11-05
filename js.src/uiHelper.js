@@ -621,18 +621,99 @@
   // often carries several .bin files, and silently hashing the first would
   // produce a confident wrong checksum. Without it the original behavior is
   // unchanged: first match wins, no match throws.
+  // targetExtension may be a list. With options.chooseEntry, an archive holding
+  // more than one of the listed types asks which file to use: hashing the first
+  // would be a confident guess between two different formats. The first read
+  // extracts nothing in that case, because the answer is not known yet, and a
+  // second read takes the chosen file. A declined choice returns { cancelled }.
   async function extractArchiveEntryChecksum(file, targetExtension, options = {}) {
-    const wanted = String(targetExtension).toLowerCase();
-    const matches = await extractArchiveEntries(file, names => {
-      const targets = names.filter(name => name.toLowerCase().endsWith(wanted));
+    const wanted = [].concat(targetExtension).map(extension => String(extension).toLowerCase());
+    const typeOf = name => wanted.find(extension => name.toLowerCase().endsWith(extension));
+    let mixed = null;
+    let matches = await extractArchiveEntries(file, names => {
+      const targets = names.filter(typeOf);
       if (options.requireExactlyOne) return targets.length === 1 ? targets : [];
-      if (!targets.length) throw new Error(`No ${targetExtension} file found inside "${file.name}".`);
+      if (!targets.length) throw new Error(`No ${[].concat(targetExtension).join(' / ')} file found inside "${file.name}".`);
+      if (options.chooseEntry && new Set(targets.map(typeOf)).size > 1) {
+        mixed = targets;
+        return [];
+      }
       return [targets[0]];
     }, options);
+    if (mixed) {
+      const chosen = await options.chooseEntry(mixed);
+      if (!chosen) return { cancelled: true };
+      matches = await extractArchiveEntries(file, names => names.filter(name => name === chosen), options);
+    }
     if (!matches.length) return null;
     const { name, blob } = matches[0];
     const checksum = await calculateMd5FromBlob(blob);
     return { checksum, entryName: name.split('/').pop() };
+  }
+
+  // Built once and reused, so its listeners never stack. Every way out other
+  // than picking a file (Cancel, the X, Esc, the backdrop) counts as declining.
+  let settleArchiveChoice = null;
+
+  function archiveChoiceDialog() {
+    let node = document.getElementById('archiveChoiceDialog');
+    if (node) return node;
+    node = document.createElement('dialog');
+    node.id = 'archiveChoiceDialog';
+    node.className = 'app-dialog archive-choice-dialog';
+    node.setAttribute('aria-labelledby', 'archiveChoiceTitle');
+    node.setAttribute('aria-describedby', 'archiveChoiceNote');
+    node.innerHTML = `
+      <div class="dialog-header">
+        <div><p class="eyebrow">Backglass</p><h2 id="archiveChoiceTitle">Choose Which Version</h2></div>
+        <button class="dialog-close" data-archive-choice-close type="button" aria-label="Close without choosing">&times;</button>
+      </div>
+      <div class="dialog-body archive-choice-body">
+        <p class="archive-choice-note" id="archiveChoiceNote"></p>
+        <div class="archive-choice-list" id="archiveChoiceList"></div>
+        <div class="archive-choice-actions">
+          <button class="text-btn" data-archive-choice-close type="button">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(node);
+    const finish = name => {
+      const settle = settleArchiveChoice;
+      settleArchiveChoice = null;
+      node.close?.();
+      settle?.(name);
+    };
+    node.querySelectorAll('[data-archive-choice-close]').forEach(button => {
+      button.addEventListener('click', () => finish(null));
+    });
+    node.addEventListener('click', event => {
+      if (event.target === node) { finish(null); return; }
+      const option = event.target.closest('.archive-choice-option');
+      if (option) finish(option.dataset.entry);
+    });
+    // Esc. close arrives a task late, so a dialog already reopened for the
+    // next drop must not read as this one being declined.
+    node.addEventListener('close', () => { if (!node.open) finish(null); });
+    return node;
+  }
+
+  function chooseArchiveEntry(archiveName, names) {
+    const node = archiveChoiceDialog();
+    settleArchiveChoice?.(null);
+    node.querySelector('#archiveChoiceNote').textContent =
+      `"${archiveName}" holds more than one backglass. Choose the file to calculate the MD5 from.`;
+    node.querySelector('#archiveChoiceList').replaceChildren(...names.map(name => {
+      const option = element('button', 'text-btn archive-choice-option', name);
+      option.type = 'button';
+      option.dataset.entry = name;
+      return option;
+    }));
+    return new Promise(resolve => {
+      settleArchiveChoice = resolve;
+      if (typeof node.showModal === 'function') {
+        if (!node.open) node.showModal();
+      } else node.setAttribute('open', 'open');
+      node.querySelector('.archive-choice-option')?.focus();
+    });
   }
 
   const COLOR_ROM_EXTENSIONS = ['.pal', '.vni', '.crz', '.pac', '.cromc'];
@@ -2254,6 +2335,10 @@
           setChecksumStatus(controlId, { message: `Invalid file type. Allowed: ${accepted.join(', ')}`, error: true });
           return;
         }
+        // A "Processing" line belongs to a drop this one is about to supersede,
+        // and nothing would ever clear it, so it is not worth going back to.
+        const previousStatus = checksumStatuses.get(controlId);
+        const statusBeforeDrop = previousStatus?.loading ? null : previousStatus || null;
         const generation = beginChecksumJob(controlId);
         setChecksumStatus(controlId, { loading: true, message: `Processing ${file.name}…` });
 
@@ -2341,7 +2426,11 @@
         const scanFallback = () => hashWholeFile().then(value => ({ ...value, scannedWhole: scanExtension }));
         const checksumTask = isArchiveScanDrop
           ? extractArchiveEntryChecksum(file, scanExtension,
-            { requireExactlyOne: scanMayFallBack, passwords: collectVpxMagic(values) })
+            {
+              requireExactlyOne: scanMayFallBack,
+              passwords: collectVpxMagic(values),
+              chooseEntry: Array.isArray(scanExtension) ? names => chooseArchiveEntry(file.name, names) : null
+            })
             .then(result => result || scanFallback())
             .catch(error => {
               // An archive that cannot be opened (corrupt, encrypted, too large
@@ -2380,6 +2469,12 @@
         // Cleared, or superseded by a newer drop, while this ran: the build
         // this result belongs to is gone, so none of it may be written back.
         if (!isChecksumGenerationCurrent(controlId, generation)) return;
+
+        // Declining the choice undoes the drop: the field keeps what it had.
+        if (checksumResult.value?.cancelled) {
+          setChecksumStatus(controlId, statusBeforeDrop);
+          return;
+        }
 
         rememberArchiveDirectories(values, onChange, field.yml_field, file.name,
           archiveResult.status === 'fulfilled' ? archiveResult.value : null,
