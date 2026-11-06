@@ -417,7 +417,8 @@
       isDetailOpen: category => state.openAssetDetails.has(category)
     });
 
-    const hasVpx = Boolean(state.selections.tableFiles);
+    // A VPX waiting for its ID opens the panel too, so an import can fill it.
+    const hasVpx = Boolean(state.selections.tableFiles || state.values.__idNeeded?.tableFiles);
     dom.builderSection.hidden = !hasVpx;
     updatePreview();
     updateValidationSummary();
@@ -458,10 +459,32 @@
     });
   }
 
+  // A section whose imported ID was bad (Jason, 2026-11-05): its tab stays open
+  // with its fields filled, and picking the right ID keeps them, where a pick
+  // normally starts the tab over. __idNeeded is { category: true }: saved with
+  // the draft, never written to the YML. Until it clears, validation blocks.
+  function markIdNeeded(categories) {
+    if (!categories.length) return;
+    state.values.__idNeeded = Object.fromEntries(categories.map(category => [category, true]));
+    renderWorkspace();
+    markChanged();
+  }
+
+  function clearIdNeeded(category) {
+    const needed = state.values.__idNeeded;
+    if (!needed?.[category]) return false;
+    const rest = { ...needed };
+    delete rest[category];
+    if (Object.keys(rest).length) state.values.__idNeeded = rest;
+    else delete state.values.__idNeeded;
+    return true;
+  }
+
   function handleAssetSelection(category, itemId) {
     const config = CATEGORY_CONFIG[category];
     if (!config) return;
     const previous = state.selections[category] || '';
+    const keepFields = itemId ? clearIdNeeded(category) : Boolean(state.values.__idNeeded?.[category]);
 
     if (itemId) {
       state.selections[category] = itemId;
@@ -475,11 +498,11 @@
 
     if (category === 'tableFiles') syncVpuPatchSelection();
 
-    if (previous !== itemId) {
+    if (previous !== itemId && !keepFields) {
       const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
       if (step) clearStepData(step, { preserveId: true, preserveBundle: true, preserveOverride: true, rerender: false });
     }
-    if (!itemId && !state.values[config.bundleField]) {
+    if (!itemId && !state.values[config.bundleField] && !keepFields) {
       const step = WIZARD_STEPS.find(candidate => candidate.id === config.stepId);
       if (step) clearStepData(step, { preserveId: false, preserveBundle: true, preserveOverride: true, rerender: false });
     }
@@ -573,6 +596,7 @@
     // Read before the shape moves — see liveMirrors.
     const mirrorsBefore = liveMirrors(step);
     state.values[fieldName] = checked;
+    if (checked && step) clearIdNeeded(step.category);
     // Bundled and Override are mutually exclusive — not native radio inputs
     // (either can be independently unchecked, leaving both off), but turning
     // one on always turns the other off.
@@ -592,6 +616,7 @@
     // Read before the shape moves — see liveMirrors.
     const mirrorsBefore = liveMirrors(step);
     state.values[fieldName] = checked;
+    if (checked && step) clearIdNeeded(step.category);
     // On the rows with a Manual VPSID box, Override replaces the dropdown, so
     // an asset already picked moves into the box rather than vanishing with it.
     // Its ID is already in the asset's ID key; only the selection goes.
@@ -636,6 +661,7 @@
     // be filled in until its type has been picked on the asset row.
     if (step.requiresValue && !String(state.values[step.requiresValue] ?? '').trim()) return false;
     if (step.category && state.selections[step.category]) return true;
+    if (step.category && state.values.__idNeeded?.[step.category]) return true;
     if (step.bundleField && state.values[step.bundleField] === true) return true;
     if (step.overrideField && state.values[step.overrideField] === true) return true;
     return false;
@@ -703,6 +729,7 @@
     const preserveId = options.preserveId === true;
     const preserveBundle = options.preserveBundle === true;
     const preserveOverride = options.preserveOverride === true;
+    if (step.category) clearIdNeeded(step.category);
 
     const checksumSources = { ...(state.values.__checksumSources || {}) };
     // Drop hints and in-flight jobs are keyed by control id and live outside
@@ -844,7 +871,7 @@
     return state.yaml;
   }
 
-  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue, readyYaml });
+  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue, readyYaml, markIdNeeded });
 
   function updateValidationSummary() {
     refreshValidation();

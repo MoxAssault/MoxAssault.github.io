@@ -105,6 +105,15 @@
 
     validateChecksum('vpxChecksum', 'vpx', 'VPX Checksum', { required: true });
 
+    // A section still waiting for the ID its import lost: its fields are in the
+    // build, so without this they could ship with no asset behind them. The VPX
+    // already has its own: "VPX file required", above.
+    Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
+      if (category !== 'tableFiles' && values.__idNeeded?.[category]) {
+        addError(config.stepId, `${config.label} VPS ID needed`, `Pick the right ${config.label} in the Assets Panel, or tick Override.`, config.idField);
+      }
+    });
+
     // Override counts as offered: its tab is open and the checksum dot used to
     // ask for it there with no dialog line or count (decision 5).
     const backglassOffered = Boolean(

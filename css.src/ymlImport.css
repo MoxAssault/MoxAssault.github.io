@@ -117,10 +117,45 @@ body.is-file-dragging .vps-db-toast {
   padding-bottom: 12px;
 }
 
-.yml-import-toast.has-actions .vps-db-toast-message {
-  overflow: visible;
-  white-space: normal;
+.yml-import-toast.has-actions .vps-db-toast-message,
+.yml-import-toast.has-details .vps-db-toast-message {
+  max-height: 45vh;
+  overflow: hidden auto;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
   text-overflow: clip;
+}
+
+/* A prompt lines its content up at the top, so the dot has to sit on the title
+   line: (15.6px title line - 9px dot) / 2. */
+.yml-import-toast.has-actions .vps-db-toast-indicator {
+  margin-top: 3px;
+}
+
+/* The bad ID alert: one row per error, set apart from the sentences around it. */
+.yml-import-issues {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.yml-import-issues li {
+  padding: 5px 8px;
+  border-left: 2px solid var(--danger);
+  border-radius: 3px;
+  background: var(--panel-soft);
+  white-space: normal;
+}
+
+.yml-import-issues strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.yml-import-closing {
+  margin: 0;
 }
 
 .yml-import-toast-actions:empty {

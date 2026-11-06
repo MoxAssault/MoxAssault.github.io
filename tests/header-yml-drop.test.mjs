@@ -133,10 +133,18 @@ check('two files get the existing toast', (await toast()) === 'Choose one YML fi
 await fire('drop', '.header-actions', [{ name: 'notes.txt', body: 'x' }]);
 check('another type gets the existing toast', (await toast()) === 'YML file required');
 
-const good = await app.run(async () => (await (await fetch('fixtures/vpsdb-five.json')).json())[0].id);
-const body = `tableVPSId: "${good}"\n`;
+const good = await app.run(async () => { const table = (await (await fetch('fixtures/vpsdb-five.json')).json())[0]; return { id: table.id, vpx: table.tableFiles[0].id }; });
+const body = `tableVPSId: "${good.id}"
+vpxVPSId: "${good.vpx}"
+`;
 await fire('drop', '.brand', [{ name: 'table.yml', body }]);
-check('a .yml dropped on the brand end of the bar imports', /YML loaded|could not be loaded|Import cancelled/.test(await toast()));
+const dropped = await app.run(async () => {
+  const read = () => document.querySelector('#ymlImportToast .vps-db-toast-title')?.textContent || '';
+  const started = Date.now();
+  while (Date.now() - started < 8000 && !/YML loaded|could not be loaded|bad VPS ID/.test(read())) await new Promise(resolve => setTimeout(resolve, 40));
+  return { title: read(), message: document.querySelector('#ymlImportToast .vps-db-toast-message')?.textContent || '' };
+});
+check('a .yml dropped on the brand end of the bar imports', dropped.title === 'YML loaded for editing', JSON.stringify(dropped));
 const after = await app.run(() => ({
   loading: document.querySelector('.app-header').classList.contains('is-loading'),
   active: document.querySelector('.app-header').classList.contains('is-dragover')

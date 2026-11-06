@@ -79,6 +79,7 @@ The folder is read in the browser and nothing is uploaded, whatever the browser'
 Drop a generated VPXS configuration anywhere on the top bar, or use the **Import YML** button after Search, to reopen it.
 
 - Only one file ending in `.yml` can be opened at a time.
+- A VPS ID this table cannot use, or a missing `vpxVPSId`, brings up an alert listing each one and why, with the choice to load the file without them. Each of those sections keeps its other fields: pick the right ID and they stay, or tick Override. Copy and Download are blocked until then.
 - Files larger than 2 MB are rejected.
 - The file is read and parsed in the browser; it is not uploaded.
 - When a build is already open, the builder asks for confirmation before replacing it.

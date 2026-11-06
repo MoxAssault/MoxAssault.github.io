@@ -40,7 +40,12 @@ async function importYml(text) {
     const toast = () => document.querySelector('#ymlImportToast');
     const title = () => toast()?.querySelector('.vps-db-toast-title')?.textContent || '';
     const started = Date.now();
+    let alert = '';
     while (Date.now() - started < 15000 && !/YML loaded|could not be loaded|Import cancelled/.test(title())) {
+      if (/bad VPS ID/.test(title()) && !alert) {
+        alert = toast().querySelector('.vps-db-toast-message').textContent;
+        [...toast().querySelectorAll('button')].find(button => button.textContent === 'Cancel').click();
+      }
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     await new Promise(resolve => setTimeout(resolve, 150));
@@ -52,6 +57,7 @@ async function importYml(text) {
     const select = category => document.querySelector(`#assetMatrix .asset-row[data-category="${category}"] select`);
     return {
       title: title(),
+      alert,
       message: toast()?.querySelector('.vps-db-toast-message')?.textContent || '',
       values: JSON.parse(JSON.stringify({
         romOverride: values.romOverride, romVPSId: values.romVPSId, romNotes: values.romNotes,
@@ -75,8 +81,8 @@ async function importYml(text) {
   }, [text, settleSource]);
 }
 
-const refused = (result, label, id) => result.title === 'YML could not be loaded'
-  && result.message === `${label} VPS ID “${id}” is not available for this table.`;
+// A bad ID now asks first; these tests answer Cancel.
+const refused = (result, label, id) => result.title === 'Import cancelled' && result.alert.includes(`${label} [${id}]:`);
 
 if (!PRINT) {
   // 1. A ROM from another table imports as Override with that Manual VPSID.
@@ -204,11 +210,8 @@ if (!PRINT) {
   check('the name beside the box wraps, up to three lines, with no native title',
     good.label === 'Tales from the Crypt · ROM' && good.wraps && good.title === null, JSON.stringify(good));
 
-  // A refused import is logged by the app on purpose (ymlImport.js), and
-  // sections 5 and 6 refuse five; anything else is a real error.
-  const unexpected = app.errors.filter(error => !/Unable to preload the VPS database/.test(error)
-    && !/^YML import failed Error: (ROM|VPX) VPS ID .* is not available for this table\./.test(error));
-  check('no page errors beyond the five refusals', unexpected.length === 0, unexpected.join('\n'));
+  const unexpected = app.errors.filter(error => !/Unable to preload the VPS database/.test(error));
+  check('no page errors', unexpected.length === 0, unexpected.join('\n'));
 }
 
 await app.close();

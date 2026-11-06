@@ -6,6 +6,7 @@
   if (!runtime || !fields) return;
 
   const MAX_WAIT_MS = 30000;
+  const PROMPT_WAIT_MS = 30 * 60 * 1000;
   const SUPPORTED_KEYS = new Set(['vpsId', 'checksum', 'versionOverride', 'urlOverride']);
   let fileInput = null;
   let dropZone = null;
@@ -202,7 +203,11 @@
 
   async function waitForOriginalImport(tableId) {
     await waitFor(() => dropZone.classList.contains('is-loading'), 3000);
-    await waitFor(() => !dropZone.classList.contains('is-loading'));
+    // The importer may be waiting on a prompt, for as long as the user takes.
+    await waitFor(() => !dropZone.classList.contains('is-loading'), PROMPT_WAIT_MS);
+    // Cancelled or refused: the build on screen is not this file's, whatever
+    // table it holds, so nothing from the file may be written into it.
+    if (dropZone.dataset.importResult !== 'loaded') throw new Error('The import did not complete.');
     return waitFor(() => {
       const recordId = String(runtime.state.record?.id || '').trim();
       const hasCallbacks = typeof runtime.state.callbacks?.onChange === 'function';

@@ -380,16 +380,20 @@
     }, 320);
   }
 
-  function showToast(state, title, message) {
+  function showToast(state, title, message, { details = false } = {}) {
     ensureToast();
     window.clearTimeout(toastHideTimer);
     window.clearTimeout(toastRemoveTimer);
+    // A toast replacing an open prompt answers it with the safe choice, or the
+    // import would wait forever.
+    pendingPromptResolve?.(pendingPromptFallback);
     pendingPromptResolve = null;
     pendingPromptFallback = null;
 
     const dbToast = document.getElementById('vpsDbToast');
     toast.classList.toggle('is-stacked', Boolean(dbToast && !dbToast.hidden && dbToast.classList.contains('is-visible')));
     toast.classList.remove('has-actions');
+    toast.classList.toggle('has-details', details);
     toast.setAttribute('role', 'status');
     toastActions.replaceChildren();
     toast.dataset.state = state === 'loading' ? 'checking' : state === 'success' ? 'updated' : 'error';
@@ -409,19 +413,41 @@
   // Shows a sticky toast with action buttons and resolves with the clicked
   // choice's value. Dismissing (the × button, or Escape) resolves with the
   // first choice's value, treated as the safe/default outcome.
-  function promptToast(title, message, choices) {
+  // items is an optional list of { tag, text } rows, shown between message and
+  // closing. They hold whatever a file contained, so they only ever go in as text.
+  function promptToast(title, message, choices, { items = [], closing = '' } = {}) {
     ensureToast();
     window.clearTimeout(toastHideTimer);
     window.clearTimeout(toastRemoveTimer);
+    const opener = document.activeElement;
 
     return new Promise(resolve => {
       const dbToast = document.getElementById('vpsDbToast');
       toast.classList.toggle('is-stacked', Boolean(dbToast && !dbToast.hidden && dbToast.classList.contains('is-visible')));
+      toast.classList.remove('has-details');
       toast.classList.add('has-actions');
       toast.setAttribute('role', 'alertdialog');
       toast.dataset.state = 'error';
       toastTitle.textContent = title;
       toastMessage.textContent = message;
+      if (items.length) {
+        const list = document.createElement('ul');
+        list.className = 'yml-import-issues';
+        items.forEach(item => {
+          const row = document.createElement('li');
+          const tag = document.createElement('strong');
+          tag.textContent = `${item.tag}:`;
+          row.append(tag, ` ${item.text}`);
+          list.appendChild(row);
+        });
+        toastMessage.appendChild(list);
+      }
+      if (closing) {
+        const end = document.createElement('p');
+        end.className = 'yml-import-closing';
+        end.textContent = closing;
+        toastMessage.appendChild(end);
+      }
       toastActions.replaceChildren();
 
       let settled = false;
@@ -431,6 +457,7 @@
         pendingPromptResolve = null;
         pendingPromptFallback = null;
         hideToast();
+        if (opener instanceof HTMLElement && opener !== document.body) opener.focus?.();
         resolve(value);
       };
 
@@ -450,6 +477,8 @@
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => toast.classList.add('is-visible'));
       });
+      // The safe choice takes the keyboard, so Tab reaches the rest from here.
+      toastActions.querySelector('button')?.focus();
     });
   }
 
@@ -523,13 +552,24 @@
     return record;
   }
 
-  // Returns the borrowed IDs, { category: id }: IDs not on this table that
-  // are real VPS assets of their row's type, on a row with a Manual VPSID box
-  // (Jason, 2026-10-28, decision 2). Each imports as Override with that
-  // Manual VPSID, so Override is set on `values` here. Any other ID off the
-  // table still refuses the import: one found nowhere, of the wrong type, on
-  // a row without the box (VPX, VPU Patch), or marked Bundled, which must be
-  // the table's own asset.
+  // Why an imported ID cannot be used, in words the alert can show.
+  function badIdReason(record, category, config, id, { broken, bundled }) {
+    if (broken) return 'Its VPS entry has no working link.';
+    if (bundled) return 'It is marked Bundled, but it is not on this table.';
+    const owner = Object.entries(CATEGORY_CONFIG).find(([other]) => other !== category
+      && (record?.[other] || []).some(item => String(item?.id || '') === id));
+    if (owner) return `It is this table's ${owner[1].label}, not a ${config.label}.`;
+    if (!config.overrideField) return `It is not on this table, and a ${config.label} cannot come from another table.`;
+    return `VPS has no ${config.label} with this ID.`;
+  }
+
+  // Returns { borrowed, bad }. borrowed is { category: id }: IDs not on this
+  // table that are real VPS assets of their row's type, on a row with a Manual
+  // VPSID box (Jason, 2026-10-28, decision 2). Each imports as Override with
+  // that Manual VPSID, so Override is set on `values` here. bad lists every
+  // other ID off the table: one found nowhere, of the wrong type, on a row
+  // without the box (VPX, VPU Patch), or marked Bundled, which must be the
+  // table's own asset. The caller decides what happens to those.
   async function validateImportedAssetIds(record, values) {
     const selections = {};
     Object.entries(CATEGORY_CONFIG).forEach(([category, config]) => {
@@ -539,6 +579,11 @@
 
     const manual = window.VPS_MANUAL_VPSID;
     const borrowed = {};
+    const bad = [];
+    if (!selections.tableFiles) {
+      const config = CATEGORY_CONFIG.tableFiles;
+      bad.push({ category: 'tableFiles', label: config.label, id: '', idField: config.idField, reason: 'This file has no VPX ID.' });
+    }
     for (const [category, config] of Object.entries(CATEGORY_CONFIG)) {
       const importedId = selections[category];
       if (!importedId) continue;
@@ -552,9 +597,38 @@
         borrowed[category] = importedId;
         continue;
       }
-      throw new Error(`${config.label} VPS ID “${importedId}” is not available for this table.`);
+      bad.push({
+        category,
+        label: config.label,
+        id: importedId,
+        idField: config.idField,
+        reason: badIdReason(record, category, config, importedId, { broken: Boolean(item), bundled })
+      });
     }
-    return borrowed;
+    return { borrowed, bad };
+  }
+
+  function badIdTag(entry) {
+    return `${entry.label} [${entry.id || 'missing'}]`;
+  }
+
+  // Bad IDs (Jason, 2026-11-05): the file can still load with them taken out, so
+  // the choice is the user's. One step, not the outdated-fields two: each file's
+  // list is different, so "always this session" would hide what is being lost.
+  async function confirmBadIds(fileName, bad) {
+    const choice = await promptToast(
+      `${bad.length} bad VPS ID${bad.length === 1 ? '' : 's'} found`,
+      `${fileName} has IDs this table cannot use:`,
+      [
+        { label: 'Cancel', value: 'cancel', variant: 'danger-btn' },
+        { label: 'Load Without Them', value: 'load', variant: 'preview-primary' }
+      ],
+      {
+        items: bad.map(entry => ({ tag: badIdTag(entry), text: entry.reason })),
+        closing: 'Load it without them? Each section keeps its other fields until you pick the right ID.'
+      }
+    );
+    return choice === 'load';
   }
 
   async function clearCurrentBuild() {
@@ -792,6 +866,9 @@
     }
 
     importing = true;
+    // Read by ymlFeatureImportBridge: it only applies its blocks to a load that
+    // really happened.
+    if (dropZone) dropZone.dataset.importResult = 'pending';
     dropZone?.classList.add(DROP_LOADING_CLASS);
     showToast('loading', 'Opening YML file', `Parsing ${file.name} and preparing the editor…`);
 
@@ -809,17 +886,28 @@
       }
 
       const tableId = String(values.tableVPSId ?? '').trim();
-      const vpxId = String(values.vpxVPSId ?? '').trim();
 
       if (!tableId) throw new Error('The YML file does not contain tableVPSId.');
-      if (!vpxId) throw new Error('The YML file does not contain vpxVPSId, which is required to open the Configuration Panel.');
 
       showToast('loading', 'Loading table data', `Finding ${tableId} and matching its selected assets…`);
       const record = await findTableRecord(tableId);
-      const borrowed = await validateImportedAssetIds(record, values);
+      const { borrowed, bad } = await validateImportedAssetIds(record, values);
+      if (bad.length) {
+        const proceed = await confirmBadIds(file.name, bad);
+        if (!proceed) {
+          showToast('error', 'Import cancelled', `${file.name} was not loaded because it contains bad VPS IDs.`);
+          return;
+        }
+        bad.forEach(entry => { delete values[entry.idField]; });
+        showToast('loading', 'Loading table data', `Matching the remaining assets for ${tableId}…`);
+      }
       await clearCurrentBuild();
       await loadTable(tableId);
       await selectImportedAssets(values, borrowed);
+      // Only the ID goes: these tabs stay open so their other fields load. A
+      // Bundled section's tab is open already.
+      window.VPS_MAIN?.markIdNeeded?.(bad.map(entry => entry.category)
+        .filter(category => values[CATEGORY_CONFIG[category].bundleField] !== true));
       await loadImportedFields(values);
       restoreListValues(values);
       // The password keys are customRenderer fields with no DOM control, so
@@ -835,7 +923,10 @@
       const ignoredMessage = ignored.length
         ? ` Loaded successfully; ${ignored.length} outdated field${ignored.length === 1 ? ' was' : 's were'} removed.`
         : ' The file is ready to continue editing.';
-      showToast('success', 'YML loaded for editing', `${file.name}.${ignoredMessage}`);
+      // The alert already listed them, so this only confirms it.
+      const badMessage = bad.some(entry => entry.id) ? ' All corrupted VPS IDs removed.' : '';
+      if (dropZone) dropZone.dataset.importResult = 'loaded';
+      showToast('success', 'YML loaded for editing', `${file.name}.${ignoredMessage}${badMessage}`, { details: bad.length > 0 });
     } catch (error) {
       console.error('YML import failed', error);
       showToast('error', 'YML could not be loaded', error?.message || 'The file could not be parsed.');
@@ -912,6 +1003,7 @@
       event.preventDefault();
       dropZone.classList.remove(DROP_ACTIVE_CLASS);
       const files = [...(event.dataTransfer?.files || [])];
+      if (importing) return;
       if (files.length !== 1) {
         showToast('error', 'Choose one YML file', 'Drop exactly one .yml file at a time.');
         return;
