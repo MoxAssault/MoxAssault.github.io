@@ -38,9 +38,9 @@ html[data-theme="light"] {
   --text: #1b1f27;
   --text-muted: #5c6270;
   --text-faint: #858b98;
-  --accent: #d9720a;
+  --accent: #ad5506;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(217, 114, 10, 0.12);
+  --accent-soft: rgba(173, 85, 6, 0.12);
   --accent-2: #087f91;
   --accent-2-soft: rgba(8, 127, 145, 0.12);
   --danger: #cf2d43;

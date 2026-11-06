@@ -10,7 +10,26 @@
 /* The table's folder name in vpx-standalone-alp4k, for the Wizard README
    link. Spans both button columns. */
 .readme-actions .readme-short-name {
+  position: relative;
   grid-column: 1 / -1;
+}
+
+/* Sits on the box's top edge, so the box needs no extra room. It is not in the
+   YML, and this says so. */
+.readme-short-name-tag {
+  position: absolute;
+  z-index: 1;
+  top: -6px;
+  left: 9px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 12px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .readme-actions .text-btn {

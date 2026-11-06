@@ -252,8 +252,8 @@
   line-height: 1.55;
 }
 
-.help-hotkey-note {
-  margin: 14px 0 0;
+#helpPanelHotkeys .help-hotkey-note {
+  margin: 20px 0 0;
 }
 
 .help-tour-outline-label {

@@ -4,6 +4,14 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+### Added
+- A YML with bad VPS IDs can now be opened. An alert lists each bad ID and why, and offers to load the file without them. Each section keeps its other fields, and picking the right ID leaves them in place.
+
+### Changed
+- The light theme orange is darker, so buttons and orange text are easier to read.
+- A small label on the Short Table Name box shows it is only used for manifest testing and the Wizard README, not the YML.
+- More space under the shortcuts in Help.
+
 ## [1.2.1] - 2026-11-05
 
 Everything listed under 1.2.0, which reached the live site with this release. A test failed on the build server, so 1.2.0 itself was never published. Nothing changes for users between the two.

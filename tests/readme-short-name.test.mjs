@@ -135,6 +135,14 @@ if (!PRINT) {
     shape.inReadmeRow && !shape.visibleLabel, JSON.stringify(shape));
   check('screen readers hear Short Table Name', shape.name === 'Short Table Name', shape.name);
   check('its placeholder', shape.placeholder === 'Short Table Name (ex. 4aces)', shape.placeholder);
+  const tag = await app.run(() => {
+    const node = document.querySelector('.readme-short-name-tag');
+    const input = document.getElementById('shortTableNameInput').getBoundingClientRect();
+    const box = node.getBoundingClientRect();
+    return { text: node.textContent, top: box.top, bottom: box.bottom, inputTop: input.top, left: box.left, inputLeft: input.left };
+  });
+  check('the box is labelled as not part of the YML', tag.text === 'Manifest & README Only', tag.text);
+  check('the label sits on the box\'s top edge', tag.top < tag.inputTop && tag.bottom > tag.inputTop && tag.left > tag.inputLeft, JSON.stringify(tag));
   // The 340px desktop preview column: the box takes the row's full width
   // above the two buttons, which stay side by side as before.
   const layout = await app.run(() => {
