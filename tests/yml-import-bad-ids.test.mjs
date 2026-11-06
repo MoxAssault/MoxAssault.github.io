@@ -272,6 +272,27 @@ check('both are listed and both sections wait', both.seen.title === '2 bad VPS I
 const bothNeeded = await app.run(() => window.VPS_FEATURE_RUNTIME.state.values.__idNeeded);
 check('each section waits for its own ID', bothNeeded?.tableFiles === true && bothNeeded?.b2sFiles === true, JSON.stringify(bothNeeded));
 
+// A VPU Patch belongs to one VPX. If that VPX is bad, the patch cannot load
+// either, so it has to be in the alert, not a failure after the build is cleared.
+const CRYPT = 'fXaQ33KC';
+const CRYPT_VPX = 'uVgZUZdK';
+const CRYPT_PATCH = 'TJMo9ycfSP';
+const setBroken = value => app.run(async ([table, id, value]) => {
+  const db = await window.fetchVPSDB();
+  const records = Array.isArray(db) ? db : (db?.tables || []);
+  const item = records.find(record => record.id === table)?.tableFiles?.find(candidate => candidate.id === id);
+  if (item) item.broken = value;
+  return Boolean(item);
+}, [CRYPT, CRYPT_VPX, value]);
+await play([]);
+const markedBroken = await setBroken(true);
+const patched = await importYml(['---', `tableVPSId: "${CRYPT}"`, `vpxVPSId: "${CRYPT_VPX}"`, `diffVPSId: "${CRYPT_PATCH}"`, 'fps: 60'].join('\n') + '\n', 'Load Without Them');
+await setBroken(false);
+check('(setup: the VPX is marked broken)', markedBroken === true);
+check('a patch on a bad VPX is listed in the same alert',
+  patched.seen.title === '2 bad VPS IDs found' && patched.seen.rows?.includes(`VPU Patch [${CRYPT_PATCH}]: It belongs to a VPX this file is not using.`), JSON.stringify(patched.seen));
+check('and the file still loads', patched.title === 'YML loaded for editing' && patched.record === CRYPT, JSON.stringify({ title: patched.title, message: patched.message }));
+
 // Cancel must leave the build on screen alone, even when it is the same table
 // and the file carries an Additional ROM block.
 await play([['search', TABLE], ['asset', 'tableFiles', VPX]]);

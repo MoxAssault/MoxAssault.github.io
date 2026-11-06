@@ -382,13 +382,14 @@
 
   function showToast(state, title, message, { details = false } = {}) {
     ensureToast();
-    window.clearTimeout(toastHideTimer);
-    window.clearTimeout(toastRemoveTimer);
     // A toast replacing an open prompt answers it with the safe choice, or the
-    // import would wait forever.
+    // import would wait forever. First, because answering starts the prompt's
+    // hide timer, cleared just below.
     pendingPromptResolve?.(pendingPromptFallback);
     pendingPromptResolve = null;
     pendingPromptFallback = null;
+    window.clearTimeout(toastHideTimer);
+    window.clearTimeout(toastRemoveTimer);
 
     const dbToast = document.getElementById('vpsDbToast');
     toast.classList.toggle('is-stacked', Boolean(dbToast && !dbToast.hidden && dbToast.classList.contains('is-visible')));
@@ -556,6 +557,10 @@
   function badIdReason(record, category, config, id, { broken, bundled }) {
     if (broken) return 'Its VPS entry has no working link.';
     if (bundled) return 'It is marked Bundled, but it is not on this table.';
+    // VPS files many patches under tableFiles, tied to one VPX.
+    if (category === 'vpuPatchFiles' && (record?.tableFiles || []).some(item => String(item?.id || '') === id)) {
+      return 'It belongs to a VPX this file is not using.';
+    }
     const owner = Object.entries(CATEGORY_CONFIG).find(([other]) => other !== category
       && (record?.[other] || []).some(item => String(item?.id || '') === id));
     if (owner) return `It is this table's ${owner[1].label}, not a ${config.label}.`;
@@ -604,6 +609,8 @@
         idField: config.idField,
         reason: badIdReason(record, category, config, importedId, { broken: Boolean(item), bundled })
       });
+      // Assets that hang off this VPX are judged as they will load: without it.
+      if (category === 'tableFiles') delete selections.tableFiles;
     }
     return { borrowed, bad };
   }
