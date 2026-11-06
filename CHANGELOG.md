@@ -4,6 +4,8 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-05
+
 ### Added
 - A YML with bad VPS IDs can now be opened. An alert lists each bad ID and why, and offers to load the file without them. Each section keeps its other fields, and picking the right ID leaves them in place.
 
