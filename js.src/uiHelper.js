@@ -1810,6 +1810,33 @@
     container.appendChild(row);
   }
 
+  // What a row shows for the VPS asset behind it, or for none: the selected
+  // tint (has-selection) and a title linked to the asset's own download page.
+  // Two owners: renderAssetMatrix for a dropdown pick, and
+  // manualVpsIdController for a verified Manual VPSID (Jason, 2026-11-15),
+  // which it redraws after every matrix render and again once the database it
+  // checks against has loaded. A title that already matches is left alone, so
+  // a focused link keeps the keyboard.
+  function renderRowAsset(row, label, item) {
+    row.classList.toggle('has-selection', Boolean(item));
+    const current = row.querySelector(':scope > .asset-name');
+    const href = item ? getItemUrl(item) : '';
+    if (current && current.textContent === label && (current.getAttribute('href') || '') === href) return;
+    let name;
+    if (href) {
+      name = document.createElement('a');
+      name.className = 'asset-name';
+      name.href = href;
+      name.target = '_blank';
+      name.rel = 'noopener noreferrer';
+      name.textContent = label;
+    } else {
+      name = element('div', 'asset-name', label);
+    }
+    if (current) current.replaceWith(name);
+    else row.prepend(name);
+  }
+
   function renderAssetMatrix(container, record, selections, values, callbacks) {
     container.innerHTML = '';
 
@@ -1826,20 +1853,9 @@
       const overridden = Boolean(config.overrideField && values[config.overrideField]);
       const detailOpen = callbacks.isDetailOpen(category);
 
-      const row = element('div', `asset-row${selectedItem ? ' has-selection' : ''}${detailOpen ? ' details-open' : ''}`);
+      const row = element('div', `asset-row${detailOpen ? ' details-open' : ''}`);
       row.dataset.category = category;
-      const selectedItemUrl = selectedItem ? getItemUrl(selectedItem) : '';
-      if (selectedItemUrl) {
-        const nameLink = document.createElement('a');
-        nameLink.className = 'asset-name';
-        nameLink.href = selectedItemUrl;
-        nameLink.target = '_blank';
-        nameLink.rel = 'noopener noreferrer';
-        nameLink.textContent = config.label;
-        row.appendChild(nameLink);
-      } else {
-        row.appendChild(element('div', 'asset-name', config.label));
-      }
+      renderRowAsset(row, config.label, selectedItem);
 
       const select = document.createElement('select');
       select.setAttribute('aria-label', `Select ${config.singular}`);
@@ -2733,6 +2749,9 @@
     isChecksumGenerationCurrent,
     renderTableStrip,
     renderAssetMatrix,
+    // Shared with manualVpsIdController: a verified Manual VPSID tints the
+    // row and links its title as a dropdown pick does.
+    renderRowAsset,
     renderAccordions,
     syncConditionalFields,
     // Shared with additionalRomsController: it renders its own checksum drop

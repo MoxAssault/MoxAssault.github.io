@@ -201,6 +201,13 @@
       const values = runtime.state.values || {};
       const on = values[config(category).overrideField] === true;
       let box = wrap.querySelector(':scope > .manual-vpsid');
+      // A verified ID tints the row and links its title to the asset, as a
+      // dropdown pick does (Jason, 2026-11-15). Override off, the row draws
+      // its own from the pick.
+      if (on) {
+        const found = check(category);
+        window.VPS_UI?.renderRowAsset?.(row, config(category).label, found.state === 'ok' ? found.item : null);
+      }
       if (!on) {
         box?.remove();
         wrap.classList.remove('has-manual-vpsid');

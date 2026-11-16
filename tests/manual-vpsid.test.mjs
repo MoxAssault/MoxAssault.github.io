@@ -48,7 +48,21 @@ async function look(category = 'romFiles', stepId = 'rom') {
       const l = label.getBoundingClientRect();
       geometry = { inputWidth: Math.round(i.width), labelBeside: l.left >= i.right && Math.abs((l.top + l.height / 2) - (i.top + i.height / 2)) < 3 };
     }
+    const name = row.querySelector(':scope > .asset-name');
+    const found = window.VPS_MANUAL_VPSID.check(category);
+    // Off Override, the asset behind the row is the dropdown's pick.
+    const picked = window.VPS_FEATURE_RUNTIME.state.selections?.[category];
+    const pickedItem = picked ? (window.VPS_FEATURE_RUNTIME.state.record?.[category] || []).find(item => item.id === picked) : null;
     return {
+      tinted: row.classList.contains('has-selection'),
+      pickedUrl: pickedItem ? window.VPS_UTILS.getItemUrl(pickedItem) : '',
+      title: {
+        link: name?.tagName === 'A',
+        href: name?.getAttribute('href') || '',
+        expected: found.state === 'ok' ? window.VPS_UTILS.getItemUrl(found.item) : '',
+        text: name?.textContent || '',
+        newTab: name?.target === '_blank' && /noopener/.test(name?.rel || '')
+      },
       box: !!box,
       selectShown: getComputedStyle(select).display !== 'none',
       placeholder: input?.placeholder || '',
@@ -87,12 +101,19 @@ if (!PRINT) {
   await play(PINK_FLOYD);
   const off = await look();
   check('without Override the row keeps its dropdown and has no box', off.box === false && off.selectShown === true, JSON.stringify(off));
+  check('with nothing picked, the row is not tinted and its title is plain', off.tinted === false && off.title.link === false, JSON.stringify(off));
+  await play([...PINK_FLOYD, ['asset', 'romFiles', 'jgo91P3SSp']]);
+  const picked = await look();
+  check('a dropdown pick tints the row and links its title to the asset',
+    picked.tinted === true && picked.title.link === true && picked.pickedUrl !== '' && picked.title.href === picked.pickedUrl && picked.title.newTab, JSON.stringify(picked));
 
   // 2. Override on, box empty: Override works exactly as before.
   await play([...PINK_FLOYD, ['override', 'romFiles', true]]);
   const empty = await look();
   check('Override shows the box in place of the dropdown', empty.box === true && empty.selectShown === false, JSON.stringify(empty));
   check('the box reads "Manual VPSID"', empty.placeholder === 'Manual VPSID', empty.placeholder);
+  check('empty, the row title is plain text, not a link', empty.title.link === false && empty.title.text === 'ROM', JSON.stringify(empty.title));
+  check('empty, the row is not tinted', empty.tinted === false, JSON.stringify(empty));
   const optional = await app.run(async settleText => {
     const settle = eval(settleText);
     await settle();
@@ -120,6 +141,19 @@ if (!PRINT) {
   const good = await look();
   check('a ROM from another table is verified, with no dot', good.dot === '' && good.value === TFTC_ROM, JSON.stringify(good));
   check('its game name and type show beside the box, not in red', good.label === 'Tales from the Crypt · ROM' && good.labelError === false, JSON.stringify(good));
+  check('verified, the row title links to that asset, as a dropdown pick does',
+    good.title.link === true && good.title.expected !== '' && good.title.href === good.title.expected && good.title.newTab, JSON.stringify(good.title));
+  // A redraw of the boxes (it runs after every change) leaves a focused link alone.
+  const kept = await app.run(() => {
+    const row = document.querySelector('#assetMatrix .asset-row[data-category="romFiles"]');
+    const link = row.querySelector(':scope > a.asset-name');
+    link.focus();
+    window.VPS_MANUAL_VPSID.render();
+    const after = row.querySelector(':scope > .asset-name');
+    return { same: after === link, focused: document.activeElement === link, names: row.querySelectorAll(':scope > .asset-name').length };
+  });
+  check('verified, the row is tinted as a picked one is', good.tinted === true, JSON.stringify(good));
+  check('a redraw keeps the same link, and the keyboard on it', kept.same && kept.focused && kept.names === 1, JSON.stringify(kept));
   check('verified, the box is described by the name beside it', good.describedBy === 'manualVpsIdLabel-romFiles', good.describedBy);
   check('the label sits beside the narrowed box, not under it',
     good.geometry?.labelBeside === true && good.geometry?.inputWidth === 120, JSON.stringify(good.geometry));
@@ -157,6 +191,7 @@ if (!PRINT) {
   check('the wrong type is a blocking error on the ROM tab',
     wrong.issues.includes('Manual VPSID needs attention: This ID is a Backglass, not a ROM.'), wrong.issues.join('\n'));
   check('the box is described by its dot', wrong.describedBy === 'manualVpsId-romFilesError', wrong.describedBy);
+  check('a wrong-type ID takes the link and the tint away again', wrong.title.link === false && wrong.title.text === 'ROM' && wrong.tinted === false, JSON.stringify(wrong));
   check('a bad ID keeps Override\'s own fields required', requiredIssues(wrong.issues).length === 3, wrong.issues.join('\n'));
 
   // 5. An ID found nowhere.
@@ -175,6 +210,7 @@ if (!PRINT) {
   await app.reload();
   const restored = await look();
   check('a reload restores the ID and its label', restored.value === TFTC_ROM && restored.label === 'Tales from the Crypt · ROM', JSON.stringify(restored));
+  check('and the title link, once the database has loaded', restored.title.link === true && restored.title.href === restored.title.expected, JSON.stringify(restored.title));
 
   // 8. Unticking Override takes the box and the ID away.
   await app.run(async settleText => {
@@ -190,6 +226,7 @@ if (!PRINT) {
   await play([...PINK_FLOYD, ['asset', 'romFiles', 'jgo91P3SSp'], ['override', 'romFiles', true]]);
   const moved = await look();
   check('an asset already picked moves into the box', moved.value === 'jgo91P3SSp' && moved.label === 'Pink Floyd · ROM', JSON.stringify(moved));
+  check('and its title link stays', moved.title.link === true && moved.title.href === moved.title.expected, JSON.stringify(moved.title));
   check('and stays in the YML', moved.yaml.includes('romVPSId: "jgo91P3SSp"'), moved.yaml.join('\n'));
   // The hidden dropdown lets go of it: otherwise it would still name this
   // table's ROM while the box names another.
@@ -214,6 +251,7 @@ if (!PRINT) {
   const b2sGood = await look('b2sFiles', 'b2s');
   check('a Backglass from another table is verified on the Backglass row',
     b2sGood.label === 'Tales from the Crypt · Backglass' && b2sGood.dot === '' && requiredIssues(b2sGood.issues).length === 0, JSON.stringify(b2sGood));
+  check('the Backglass row title links to it too', b2sGood.title.link === true && b2sGood.title.href === b2sGood.title.expected && b2sGood.title.text === 'B2S' && b2sGood.tinted === true, JSON.stringify(b2sGood));
 
   check('no page errors', app.errors.filter(error => !/Unable to preload the VPS database/.test(error)).length === 0, app.errors.join('\n'));
 }
