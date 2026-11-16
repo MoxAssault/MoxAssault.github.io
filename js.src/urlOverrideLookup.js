@@ -182,6 +182,8 @@
   // Drawn, not the × character, which sits low in the button (Jason,
   // 2026-10-30); the Additional Checksums dialog closes the same way.
   const CLOSE_ICON = svg('<path d="M6 6l12 12M18 6L6 18"/>');
+  // A tick: a link in an import's run already answered.
+  const CHECK_ICON = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>');
 
   // The ID as the table card shows one: plain monospace, quieter than the
   // words around it.
@@ -262,23 +264,24 @@
     return image;
   }
 
-  // One asset: its picture, then table and type, version and authors. With
-  // several assets, each carries its own ID and buttons; with one, the title
-  // does.
-  function assetBlock(spec, match, several, onUse) {
+  // One asset: its picture, then its ID with Copy and Use on one row, then
+  // table and type, version and authors. One match is laid out exactly as
+  // each of several is (Jason, 2026-11-13: one look, cleaner and uniform).
+  function assetBlock(spec, match, onUse) {
     const id = String(match.item.id);
     const block = element('section', 'url-vps-match-asset');
     const image = thumbnail(match.item);
     if (image) block.appendChild(image);
     const text = element('div', 'url-vps-match-text');
-    if (several) {
-      const head = element('div', 'url-vps-match-head');
-      const heading = element('h3', 'url-vps-match-heading', 'VPSID ');
-      heading.appendChild(idText(id));
-      head.append(heading, actionButtons(spec, id, onUse));
-      text.appendChild(head);
-    }
-    text.appendChild(element('p', 'url-vps-match-name', `${match.record?.name || 'Unknown table'} · ${typeLabel(match.category)}`));
+    const head = element('div', 'url-vps-match-head');
+    const heading = element('h3', 'url-vps-match-heading', 'VPSID ');
+    heading.appendChild(idText(id));
+    head.append(heading, actionButtons(spec, id, onUse));
+    text.appendChild(head);
+    // The table's name alone: every asset on a card is the row's own type,
+    // so the pop-up names the type once, in the badge by its title (Jason,
+    // 2026-11-15). The editor's card sits under the ROM editor's box.
+    text.appendChild(element('p', 'url-vps-match-name', match.record?.name || 'Unknown table'));
     const details = [
       match.item.version ? `v${match.item.version}` : '',
       authorsText(match.item.authors),
@@ -289,13 +292,17 @@
     return block;
   }
 
+  function findingTitle(result) {
+    return result.matches.length > 1 ? 'VPS Entries Found' : 'VPS Entry Found';
+  }
+
   // Where the link was found, the assets, and what to do about it: the
   // pop-up's body and the card's.
   function findingBody(spec, result, onUse) {
     const several = result.matches.length > 1;
     return [
       element('p', 'url-vps-match-intro', 'The link provided was found in VPSDB.'),
-      ...result.matches.map(match => assetBlock(spec, match, several, onUse)),
+      ...result.matches.map(match => assetBlock(spec, match, onUse)),
       element('p', 'url-vps-match-advice', several
         ? 'If one of these is the correct asset, please use its VPSID instead of the URL.'
         : 'If this is the correct asset, please use the associated VPSID instead of the URL.')
@@ -311,15 +318,7 @@
     const node = element('section', 'url-vps-match-card');
     node.setAttribute('aria-label', several ? 'VPS entries found for this link' : 'VPS entry found for this link');
     const row = element('div', 'url-vps-match-title-row');
-    const title = element('h3', 'url-vps-match-card-title');
-    row.appendChild(title);
-    if (several) {
-      title.textContent = 'VPS Entries Found';
-    } else {
-      const id = String(result.matches[0].item.id);
-      title.append('VPS Entry Found | ', idText(id));
-      row.appendChild(actionButtons(spec, id, onUse));
-    }
+    row.appendChild(element('h3', 'url-vps-match-card-title', findingTitle(result)));
     const close = element('button', 'dialog-close url-vps-match-card-close');
     close.type = 'button';
     close.setAttribute('aria-label', 'Close and keep the URL');
@@ -332,79 +331,230 @@
   // Built once and kept: dialogs bind their handlers once, never per open
   // (vault note "VPXS UI Gotchas").
   let returnFocus = null;
+  // An import's run of links (askEach), while it is on screen: the pop-up
+  // stays open from one link to the next, and Close, Esc and a click outside
+  // answer the card shown instead of closing (Jason, 2026-11-15). answer is
+  // set only while a card waits, so a click during the slide does nothing.
+  let run = null;
+  function decide(choice) {
+    const done = run?.answer;
+    if (!done) return;
+    run.answer = null;
+    done(choice);
+  }
+  function dismiss(node) {
+    if (run) decide('close');
+    else node.close();
+  }
   function dialog() {
     let node = document.getElementById('urlVpsMatchDialog');
     if (node) return node;
     node = document.createElement('dialog');
     node.id = 'urlVpsMatchDialog';
     node.className = 'app-dialog url-vps-match-dialog';
-    node.setAttribute('aria-labelledby', 'urlVpsMatchTitle');
+    node.setAttribute('aria-labelledby', 'urlVpsMatchTitle urlVpsMatchType');
     node.innerHTML = `
       <div class="dialog-header">
-        <div class="url-vps-match-titlebox">
+        <div class="url-vps-match-titlebox" id="urlVpsMatchTitlebox">
           <p class="eyebrow" id="urlVpsMatchEyebrow">URL Override</p>
-          <div class="url-vps-match-title-row"><h2 id="urlVpsMatchTitle">VPS Entry Found</h2><div class="url-vps-match-title-actions" id="urlVpsMatchTitleActions"></div></div>
+          <div class="url-vps-match-title-row"><h2 id="urlVpsMatchTitle">VPS Entry Found</h2><span class="url-vps-match-type" id="urlVpsMatchType"></span></div>
         </div>
         <button class="dialog-close" data-url-vps-match-close type="button" aria-label="Close and keep the URL">${CLOSE_ICON}</button>
       </div>
+      <div class="url-vps-match-progress" id="urlVpsMatchProgress" hidden>
+        <ol class="url-vps-match-dots" id="urlVpsMatchDots" aria-hidden="true"></ol>
+        <p class="url-vps-match-step" id="urlVpsMatchStep" aria-live="polite"><span aria-hidden="true" id="urlVpsMatchStepShort"></span><span class="visually-hidden" id="urlVpsMatchStepSaid"></span></p>
+        <button class="text-btn url-vps-match-close-all" id="urlVpsMatchCloseAll" type="button">Close All</button>
+      </div>
       <div class="dialog-body url-vps-match-body" id="urlVpsMatchBody"></div>`;
     document.body.appendChild(node);
-    node.querySelector('[data-url-vps-match-close]').addEventListener('click', () => node.close());
-    node.addEventListener('click', event => { if (event.target === node) node.close(); });
-    // Back to where the user was going, if the page still has it.
+    node.querySelector('[data-url-vps-match-close]').addEventListener('click', () => dismiss(node));
+    node.querySelector('#urlVpsMatchCloseAll').addEventListener('click', () => decide('all'));
+    node.addEventListener('click', event => { if (event.target === node) dismiss(node); });
+    // Esc answers the card during a run. Stopped at the key, not at the
+    // cancel event: Chrome lets a page refuse only one Esc in a row there.
+    node.addEventListener('keydown', event => {
+      if (run && event.key === 'Escape') {
+        event.preventDefault();
+        decide('close');
+      }
+    });
+    // Back to where the user was going, if the page still has it. Closed by
+    // anything else mid-run, the run ends there.
     node.addEventListener('close', () => {
-      const target = returnFocus;
+      if (run) run.ended = true;
+      decide('ended');
+      // A Use in a run may have rebuilt the box the keyboard came from; its
+      // new copy carries the same id.
+      let target = returnFocus;
       returnFocus = null;
+      if (target && !target.isConnected && target.id) target = document.getElementById(target.id);
       if (target?.isConnected) target.focus();
     });
     return node;
   }
 
-  function openDialog(spec, result) {
-    const node = dialog();
-    if (node.open || document.querySelector('dialog[open]')) return;
+  // Puts one link's finding in the pop-up: the tab or ROM it came from, the
+  // title, then where the link was found, each asset with its ID and buttons,
+  // and what to do about it.
+  function fill(node, spec, result, onUse) {
     shown.set(spec.name, result.key);
     node.querySelector('#urlVpsMatchEyebrow').textContent = `${spec.tab} URL Override`;
-    // Jason's wording (2026-10-30): "VPS Entry Found | {id}", then where the
-    // link was found, the asset, and what to do about it.
-    const several = result.matches.length > 1;
-    const title = node.querySelector('#urlVpsMatchTitle');
-    const titleActions = node.querySelector('#urlVpsMatchTitleActions');
-    if (several) {
-      title.textContent = 'VPS Entries Found';
-      titleActions.replaceChildren();
-    } else {
-      const id = String(result.matches[0].item.id);
-      title.replaceChildren('VPS Entry Found | ', idText(id));
-      titleActions.replaceChildren(actionButtons(spec, id));
-    }
-    node.querySelector('#urlVpsMatchBody').replaceChildren(...findingBody(spec, result));
-    returnFocus = document.activeElement && document.activeElement !== document.body
-      ? document.activeElement
-      : document.getElementById(`field-${spec.name}`);
+    node.querySelector('#urlVpsMatchTitle').textContent = findingTitle(result);
+    node.querySelector('#urlVpsMatchType').textContent = typeLabel(spec.category);
+    node.querySelector('#urlVpsMatchBody').replaceChildren(...findingBody(spec, result, onUse));
+  }
+
+  function show(node) {
+    if (node.open) return;
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', '');
-    // The keyboard starts on Close, not Use: a stray Enter then keeps the
-    // URL instead of clearing it.
+  }
+
+  // The keyboard starts on Close, not Use: a stray Enter then keeps the URL
+  // instead of clearing it.
+  function focusClose(node) {
     node.querySelector('[data-url-vps-match-close]')?.focus();
   }
 
-  // Moves the ID into the row's Manual VPSID box and clears the URL. Override
-  // is ticked first when it is not: the box only exists under Override, and
-  // ticking it through the row's own box runs the app's own rules for it.
-  function useId(spec, id) {
+  function focusBefore(spec) {
+    return document.activeElement && document.activeElement !== document.body
+      ? document.activeElement
+      : document.getElementById(`field-${spec.name}`);
+  }
+
+  // One link, from leaving its box. Not shown while another dialog is open.
+  function openDialog(spec, result) {
     const node = dialog();
+    if (node.open || document.querySelector('dialog[open]')) return;
+    node.querySelector('#urlVpsMatchProgress').hidden = true;
+    fill(node, spec, result, useId);
+    returnFocus = focusBefore(spec);
+    show(node);
+    focusClose(node);
+  }
+
+  // Moves the ID into the row's Manual VPSID box, ticking Override if need be,
+  // and empties the tab's Override fields, URL included (VPS_MAIN.useVpsAsset).
+  // False when nothing changed (no table, no ID): the card then stays, so Use
+  // is not seen to do something it did not.
+  function takeId(spec, id) {
+    if (window.VPS_MAIN?.useVpsAsset?.(spec.category, id) !== true) return false;
+    // The box is empty again, so any link put back in it is checked afresh:
+    // emptying it from state fires no input event to forget the last one
+    // (Jason, 2026-11-13: the same link pasted straight back opened nothing).
+    shown.delete(spec.name);
+    return true;
+  }
+
+  function useId(spec, id) {
+    if (!takeId(spec, id)) return;
     returnFocus = null;
-    runtime.state.callbacks?.onChange?.(spec.name, '');
-    const config = CATEGORY_CONFIG[spec.category];
-    if (runtime.state.values?.[config.overrideField] !== true) {
-      document.querySelector(`#assetMatrix .asset-row[data-category="${spec.category}"] .override-toggle input`)?.click();
-    }
-    window.VPS_MANUAL_VPSID?.apply?.(spec.category, id);
-    node.close();
+    dialog().close();
     // The redraw rebuilt the row; the keyboard goes to the box that now
     // holds the ID.
     window.setTimeout(() => document.getElementById(`manualVpsId-${spec.category}`)?.focus(), 0);
+  }
+
+  // The run's place: a dot per link, ticked once answered, and "2/3".
+  // Shown only for more than one link, Close All with it.
+  function paintProgress(node, step, total) {
+    const bar = node.querySelector('#urlVpsMatchProgress');
+    if (total < 2) {
+      bar.hidden = true;
+      return;
+    }
+    // The words first, then the row shown: a live region whose text arrives
+    // as it appears is often not read out.
+    // "2/4" on screen (Jason, 2026-11-15: shorter than "Link 2 of 4"); the
+    // full words for a screen reader.
+    node.querySelector('#urlVpsMatchStepShort').textContent = `${step + 1}/${total}`;
+    node.querySelector('#urlVpsMatchStepSaid').textContent = `Link ${step + 1} of ${total}`;
+    bar.hidden = false;
+    node.querySelector('#urlVpsMatchDots').replaceChildren(...Array.from({ length: total }, (_, index) => {
+      const dot = element('li', `url-vps-match-dot is-${index < step ? 'done' : index === step ? 'current' : 'waiting'}`);
+      if (index < step) dot.innerHTML = CHECK_ICON;
+      return dot;
+    }));
+  }
+
+  // The answered card slides out to the left and the next slides in from the
+  // right; with reduced motion asked for, it fades instead. The swap happens
+  // between the two, unseen.
+  async function slide(node, swap) {
+    const parts = [node.querySelector('#urlVpsMatchTitlebox'), node.querySelector('#urlVpsMatchBody')];
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    const move = still ? ['none', 'none'] : ['translateX(-28px)', 'translateX(28px)'];
+    const play = (frames, duration) => Promise.all(parts.map(part => part.animate(frames, { duration, easing: 'ease-in-out' }).finished.catch(() => {})));
+    await play([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: move[0] }], 140);
+    swap();
+    await play([{ opacity: 0, transform: move[1] }, { opacity: 1, transform: 'none' }], 180);
+  }
+
+  // Asks about each link in turn, in one pop-up that stays open for the
+  // whole run. Use and Close answer a card; Close All keeps every URL not
+  // yet answered and ends the run. Not shown while another dialog is open.
+  async function askEach(queue) {
+    const node = dialog();
+    if (!queue.length || node.open || document.querySelector('dialog[open]')) return;
+    run = { answer: null };
+    // Back to the Import control when nothing had the keyboard (a dropped
+    // file): the first link's box may be on a tab not showing.
+    returnFocus = document.activeElement && document.activeElement !== document.body
+      ? document.activeElement
+      : document.getElementById('ymlImportInput');
+    const put = (item, step) => {
+      // A card's Use counts only while it waits, never during the slide.
+      fill(node, item.spec, item.result, (_, id) => {
+        if (run?.answer && item.take(id)) decide('use');
+      });
+      paintProgress(node, step, queue.length);
+    };
+    for (const [step, item] of queue.entries()) {
+      if (step === 0) put(item, step);
+      else await slide(node, () => put(item, step));
+      if (run.ended) break;
+      show(node);
+      focusClose(node);
+      const choice = await new Promise(resolve => { run.answer = resolve; });
+      if (choice === 'ended') break;
+      // Close All is an answer for the rest too: they are not asked about
+      // again on leaving their boxes.
+      if (choice === 'all') {
+        queue.slice(step + 1).forEach(rest => shown.set(rest.spec.name, rest.result.key));
+        break;
+      }
+    }
+    run = null;
+    if (node.open) node.close();
+  }
+
+  // After a YML import (Jason, 2026-11-15): every URL Override the file
+  // brought is looked up, the tabs' in tab order and then each Additional
+  // ROM's, and the matches are asked about in one run (askEach). Close keeps
+  // the URL; Use takes the asset, as it does when the link is pasted. A tab's
+  // link asked about here is not asked about again on leaving its box
+  // (shown). Wrong-type links get no pop-up: render puts their error under
+  // the box. Each lookup touches only its own row, so the whole list is
+  // known before the first card, and the counter is right from the start.
+  async function checkImported() {
+    await ready();
+    const queue = [];
+    for (const spec of URL_FIELDS) {
+      const result = lookup(spec);
+      if (result.state === 'match') queue.push({ spec, result, take: id => takeId(spec, id) });
+    }
+    const roms = window.VPS_ADDITIONAL_ROMS;
+    if (roms?.URL_SPEC) {
+      for (const [index, entry] of roms.entries().entries()) {
+        const result = lookupUrl(entry.urlOverride, roms.URL_SPEC.category);
+        if (result.state !== 'match') continue;
+        const spec = { ...roms.URL_SPEC, name: `${roms.URL_SPEC.name}-${index}` };
+        queue.push({ spec, result, take: id => roms.useUrlMatchAt(index, id) === true });
+      }
+    }
+    await askEach(queue);
+    render();
   }
 
   // The wrong-type message under the box, beside the rulebook's dot.
@@ -464,5 +614,5 @@
     if (spec && urlKey(event.target.value) !== shown.get(spec.name)) shown.delete(spec.name);
   });
 
-  window.VPS_URL_OVERRIDE_LOOKUP = Object.freeze({ URL_FIELDS, urlKey, lookup, lookupUrl, issues, render, card, ready });
+  window.VPS_URL_OVERRIDE_LOOKUP = Object.freeze({ URL_FIELDS, urlKey, lookup, lookupUrl, issues, render, card, ready, checkImported });
 })();

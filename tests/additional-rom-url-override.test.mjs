@@ -9,6 +9,8 @@
 // - any other link: nothing.
 // The ID is saved in the entry's own vpsId. An ID that is not one of this
 // table's ROMs is accepted when VPS has it as a ROM, and opens in the box.
+// Under ROM Override there is no dropdown: only that box, marked Optional
+// (Jason, 2026-11-13).
 //
 // Runs the real app in headless Chrome with the five-table VPS fixture. Pink
 // Floyd is loaded, with its one ROM as the primary; the links belong to
@@ -57,6 +59,7 @@ const lookSource = `async settleText => {
     card: !!card,
     cardInUrlField: !!card && card.parentElement === urlWrap,
     title: card?.querySelector('.url-vps-match-card-title')?.textContent || '',
+    headings: [...(card?.querySelectorAll('.url-vps-match-asset .url-vps-match-heading') || [])].map(n => n.textContent),
     intro: card?.querySelector('.url-vps-match-intro')?.textContent || '',
     advice: card?.querySelector('.url-vps-match-advice')?.textContent || '',
     names: [...(card?.querySelectorAll('.url-vps-match-name') || [])].map(n => n.textContent),
@@ -83,7 +86,31 @@ const lookSource = `async settleText => {
     manualValue: manual?.value ?? null,
     manualLabel: node?.querySelector('#additionalRomManualLabel')?.textContent || '',
     manualLabelError: node?.querySelector('#additionalRomManualLabel')?.classList.contains('is-error') === true,
-    vpsDot: vpsField?.querySelector(':scope > .field-error-dot')?.getAttribute('aria-label') || '',
+    vpsDot: vpsField?.querySelector('.field-error-dot')?.getAttribute('aria-label') || '',
+    // Where the VPS ID dot sits, against the box that is shown, and whether
+    // its tooltip (forced open) stays inside the dialog, which clips.
+    vpsDotPlace: (() => {
+      const dot = vpsField?.querySelector('.field-error-dot');
+      const box = shown(manual) ? manual : select;
+      if (!dot || !box) return null;
+      const d = dot.getBoundingClientRect();
+      const b = box.getBoundingClientRect();
+      const tip = dot.querySelector('.error-dot-tip');
+      let tipInside = null;
+      if (tip) {
+        // At its widest (260px), as a long message such as "The primary ROM
+        // cannot also be an Additional ROM." draws it, then put back.
+        const before = tip.innerHTML;
+        tip.textContent = 'The selected Additional ROM is not available for this table. The primary ROM cannot also be an Additional ROM.';
+        tip.style.display = 'block';
+        const r = tip.getBoundingClientRect();
+        const n = node.getBoundingClientRect();
+        tipInside = r.width >= 250 && r.left >= n.left && r.right <= n.right;
+        tip.style.display = '';
+        tip.innerHTML = before;
+      }
+      return { dx: Math.round((d.left + d.width / 2) - b.right), dy: Math.round((d.top + d.height / 2) - b.top), tipInside };
+    })(),
     urlDot: urlWrap?.querySelector(':scope > .field-error-dot')?.getAttribute('aria-label') || '',
     active: document.activeElement?.id || document.activeElement?.className || '',
     saved: window.VPS_FEATURE_RUNTIME.state.values.additionalRoms || [],
@@ -135,10 +162,13 @@ if (!PRINT) {
   const found = await look();
   check('leaving the URL box with a ROM link VPS has shows a card under the box', found.card && found.cardInUrlField, JSON.stringify(found));
   check('no pop-up opens over the editor', found.popup === false && found.open === true, JSON.stringify(found));
-  check('the card reads "VPS Entry Found | {id}"', found.title === 'VPS Entry Found | s-4c6GqaOn', found.title);
+  // One match is laid out as each of several (Jason, 2026-11-13): the ID with
+  // its buttons on the asset's own row, not in the title.
+  check('the card reads "VPS Entry Found", and the asset row carries "VPSID {id}"',
+    found.title === 'VPS Entry Found' && found.headings.join('|') === 'VPSID s-4c6GqaOn', JSON.stringify([found.title, found.headings]));
   check('then where it was found, the asset, and what to do',
     found.intro === 'The link provided was found in VPSDB.'
-    && found.names[0] === 'Tales from the Crypt · ROM' && found.details[0] === 'vtftc_400 · by CarnyPriest'
+    && found.names[0] === 'Tales from the Crypt' && found.details[0] === 'vtftc_400 · by CarnyPriest'
     && found.advice === 'If this is the correct asset, please use the associated VPSID instead of the URL.', JSON.stringify(found));
   check('Copy, then Use, then close, in the tab order', found.tabOrder.join(',') === 'copy,use,close', found.tabOrder.join(','));
   check('the close button is drawn in the card\'s top-right corner',
@@ -173,7 +203,7 @@ if (!PRINT) {
   await app.typeText('tftc_400');
   await enter('additionalRomUrlOverride', VPFORUMS_TFTC_ROM);
   const second = await look();
-  check('a different matching link shows its own card', second.card && second.title === 'VPS Entry Found | 2Q1pXHma', second.title);
+  check('a different matching link shows its own card', second.card && second.headings.join('|') === 'VPSID 2Q1pXHma', JSON.stringify(second.headings));
 
   // 4. Use: the Manual VPSID box takes the dropdown's place; the URL and its
   // Version Override go.
@@ -222,6 +252,9 @@ if (!PRINT) {
   const refusedBad = await look();
   check('and Save ROM refuses it, the dot on the ID and the keyboard back in the box',
     refusedBad.open && refusedBad.vpsDot === 'No VPS asset has this ID.' && refusedBad.active === 'additionalRomManualVpsId', JSON.stringify(refusedBad));
+  check('that dot is on the box\'s corner, where the dropdown\'s used to be is far past it',
+    !!refusedBad.vpsDotPlace && Math.abs(refusedBad.vpsDotPlace.dx) <= 6 && Math.abs(refusedBad.vpsDotPlace.dy) <= 6,
+    JSON.stringify(refusedBad.vpsDotPlace));
   await enter('additionalRomManualVpsId', 'Pr7aybcEBQ');
   const wrongId = await look();
   check('a Backglass ID is named as one', wrongId.manualLabel === 'This ID is a Backglass, not a ROM.' && wrongId.vpsDot === 'This ID is a Backglass, not a ROM.', JSON.stringify(wrongId));
@@ -287,10 +320,10 @@ if (!PRINT) {
     await new Promise(r => setTimeout(r, 50));
     await settle();
     const card = document.querySelector('#additionalRomDialog .url-vps-match-card');
-    return { card: !!card, title: card?.querySelector('.url-vps-match-card-title')?.textContent || '', active: document.activeElement?.id };
+    return { card: !!card, heading: card?.querySelector('.url-vps-match-heading')?.textContent || '', active: document.activeElement?.id };
   }, [settleSource, TFTC_ROM_URL]);
   check('pasting a matching link shows the card, the keyboard staying in the box',
-    pasted.card && pasted.title === 'VPS Entry Found | s-4c6GqaOn' && pasted.active === 'additionalRomUrlOverride', JSON.stringify(pasted));
+    pasted.card && pasted.heading === 'VPSID s-4c6GqaOn' && pasted.active === 'additionalRomUrlOverride', JSON.stringify(pasted));
   await click('#additionalRomDialog [data-additional-rom-close]');
 
   // 11. A saved wrong-type link (as an import brings one) blocks in the
@@ -337,14 +370,96 @@ if (!PRINT) {
     ownRom.value === 'jgo91P3SSp' && ownRom.manual === false, JSON.stringify(ownRom));
   await click('#additionalRomDialog [data-additional-rom-close]');
 
-  // 12. ROM Override on: the dropdown says "Not needed", and Use still works.
+  // 12. ROM Override on: no dropdown, only an optional Manual VPSID box
+  // (Jason, 2026-11-13), and Use still works.
+  // Seen, not just laid out: the editor's labels are visually hidden, and a
+  // hint inside one still has a size (the first build's mistake, found in
+  // Jason's live test, 2026-11-14). So: no hidden ancestor, real width, and
+  // on the box's top border.
+  const optionalSource = () => {
+    const hint = document.getElementById('additionalRomVpsOptional');
+    const box = document.getElementById('additionalRomManualVpsId').getBoundingClientRect();
+    const r = hint?.getBoundingClientRect();
+    const seen = !!hint && hint.getClientRects().length > 0 && !hint.closest('.visually-hidden')
+      && r.width > 20 && Math.abs((r.top + r.height / 2) - box.top) <= 3 && r.left >= box.left && r.right <= box.right;
+    return {
+      hint: seen ? hint.textContent : '',
+      place: r ? { top: Math.round(r.top - box.top), left: Math.round(r.left - box.left), width: Math.round(r.width) } : null,
+      boxLabel: document.getElementById('additionalRomManualVpsId').getAttribute('aria-label') || '',
+      labelFor: document.querySelector('#additionalRomVpsField > label').getAttribute('for'),
+      options: [...document.getElementById('additionalRomVpsId').options].map(option => option.textContent)
+    };
+  };
   await play([...PINK_FLOYD, ['override', 'romFiles', true], ['fill', 'romUrlOverride', '']]);
+  await openEditor();
+  const optionalOpen = await look();
+  const optionalMarks = await app.run(optionalSource);
+  check('with ROM Override on, the editor opens on the Manual VPSID box, empty and focused, with no dropdown',
+    optionalOpen.manualMode && optionalOpen.manualShown && !optionalOpen.selectShown
+      && optionalOpen.manualValue === '' && optionalOpen.active === 'additionalRomManualVpsId', JSON.stringify(optionalOpen));
+  check('it is marked Optional, on screen and to a screen reader, and the label names the box',
+    optionalMarks.hint === 'Optional' && /Optional while ROM Override is on/.test(optionalMarks.boxLabel)
+      && optionalMarks.labelFor === 'additionalRomManualVpsId', JSON.stringify(optionalMarks));
+  check('the old "Not needed" dropdown text is gone',
+    !optionalMarks.options.some(text => /Not needed/.test(text)), JSON.stringify(optionalMarks.options));
+  // Typed in, then emptied and left: a real change, as on the main rows.
+  await enter('additionalRomManualVpsId', 'x');
+  await enter('additionalRomManualVpsId', '');
+  const leftEmpty = await look();
+  check('emptied and left, the box stays: there is no dropdown to go back to',
+    leftEmpty.manualMode && leftEmpty.manualShown && !leftEmpty.selectShown
+      && leftEmpty.manualValue === '' && leftEmpty.manualLabel === '', JSON.stringify(leftEmpty));
+  await enter('additionalRomChecksum', MD5_ADD);
+  await click('#additionalRomSave');
+  const savedEmpty = await look();
+  check('Save ROM with no ID saves the entry, as the ID is optional',
+    !savedEmpty.open && savedEmpty.saved.length === 1 && !savedEmpty.saved[0].vpsId
+      && savedEmpty.saved[0].checksum === MD5_ADD && savedEmpty.issues.length === 0, JSON.stringify(savedEmpty));
+  await openEditor();
+  await enter('additionalRomManualVpsId', 'not-a-vps-id');
+  await click('#additionalRomSave');
+  const badOptional = await look();
+  check('an ID that is given is still checked: a bad one stops Save ROM with its dot',
+    badOptional.open && badOptional.vpsDot !== '' && badOptional.manualLabelError
+      && badOptional.saved.length === 1 && !badOptional.saved[0].vpsId, JSON.stringify(badOptional));
+  check('the dot sits on the Manual VPSID box\'s top-right corner, not at the row\'s far end',
+    !!badOptional.vpsDotPlace && Math.abs(badOptional.vpsDotPlace.dx) <= 6 && Math.abs(badOptional.vpsDotPlace.dy) <= 6,
+    JSON.stringify(badOptional.vpsDotPlace));
+  check('and its tooltip opens inside the dialog, not cut off at its left edge',
+    badOptional.vpsDotPlace?.tipInside === true, JSON.stringify(badOptional.vpsDotPlace));
+  const stillOptional = await app.run(optionalSource);
+  check('"Optional" stays on the box while it holds an ID with an error', stillOptional.hint === 'Optional', JSON.stringify(stillOptional));
+  await enter('additionalRomManualVpsId', 's-4c6GqaOn');
+  await click('#additionalRomSave');
+  const goodOptional = await look();
+  check('another table\'s ROM ID is saved, and the editor reopens on it in the box',
+    !goodOptional.open && goodOptional.saved[0]?.vpsId === 's-4c6GqaOn' && goodOptional.issues.length === 0, JSON.stringify(goodOptional));
+  await openEditor();
+  const reopenedOptional = await look();
+  check('reopened, the ID is in the box with its table and type',
+    reopenedOptional.manualMode && reopenedOptional.manualValue === 's-4c6GqaOn'
+      && reopenedOptional.manualLabel === 'Tales from the Crypt · ROM', JSON.stringify(reopenedOptional));
+  await click('#additionalRomDialog [data-additional-rom-close]');
+  await app.run(() => {
+    window.VPS_FEATURE_RUNTIME.state.callbacks.onChange('additionalRoms', []);
+    window.VPS_ADDITIONAL_ROMS.render();
+  });
   await openEditor();
   await enter('additionalRomUrlOverride', TFTC_ROM_URL);
   await click('#additionalRomDialog .url-vps-match-use');
   const overridden = await look();
   check('with ROM Override on, Use still puts the ID in the Manual VPSID box',
     overridden.manualMode && overridden.manualValue === 's-4c6GqaOn' && overridden.url === '', JSON.stringify(overridden));
+  await click('#additionalRomDialog [data-additional-rom-close]');
+
+  // ROM Override off again: the dropdown is back, and nothing says Optional.
+  await play(PINK_FLOYD);
+  await openEditor();
+  const required = await look();
+  const requiredMarks = await app.run(optionalSource);
+  check('with ROM Override off, the editor opens on the dropdown and the ID is not marked Optional',
+    !required.manualMode && required.selectShown && required.active === 'additionalRomVpsId'
+      && requiredMarks.hint === '' && !/Optional/.test(requiredMarks.boxLabel), JSON.stringify({ required, requiredMarks }));
   await click('#additionalRomDialog [data-additional-rom-close]');
 
   check('no page errors', app.errors.filter(error => !/Unable to preload the VPS database/.test(error)).length === 0, app.errors.join('\n'));

@@ -856,6 +856,12 @@
     builder.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // { file, apply }: see ymlFeatureImportBridge.js.
+  async function prepareFile(file) {
+    const bridge = window.VPS_YML_FEATURE_IMPORT;
+    return typeof bridge?.prepare === 'function' ? bridge.prepare(file) : { file };
+  }
+
   async function importYmlFile(file) {
     if (importing) return;
     if (!isYmlFile(file)) {
@@ -873,14 +879,14 @@
     }
 
     importing = true;
-    // Read by ymlFeatureImportBridge: it only applies its blocks to a load that
-    // really happened.
-    if (dropZone) dropZone.dataset.importResult = 'pending';
     dropZone?.classList.add(DROP_LOADING_CLASS);
     showToast('loading', 'Opening YML file', `Parsing ${file.name} and preparing the editor…`);
 
     try {
-      const text = await file.text();
+      // The Additional ROM and rename blocks come out first; the bridge puts
+      // their rows in after the rest has loaded (prepared.apply below).
+      const prepared = await prepareFile(file);
+      const text = await prepared.file.text();
       const parsed = parseFlatYaml(text);
       const { values, ignored } = normalizeImportedData(parsed);
 
@@ -926,13 +932,23 @@
       // fine; it just has no control to land in. (postInstallRename, a list of
       // objects, goes through ymlFeatureImportBridge instead.)
       window.VPS_EXTRACT_EXTRA?.applyImported?.(values.vpxExtractExtra);
+      prepared.apply?.();
+      // Last, once every field is in, Additional ROMs included: each URL
+      // Override the file brought is looked up in VPS, and a match asks
+      // whether to use the asset instead (Jason, 2026-11-15). The file has
+      // loaded by now, so a fault in this check is logged, never reported as
+      // a failed import (ui-checker, 2026-11-15).
+      try {
+        await window.VPS_URL_OVERRIDE_LOOKUP?.checkImported?.();
+      } catch (error) {
+        console.warn('The URL Override check after import failed', error);
+      }
 
       const ignoredMessage = ignored.length
         ? ` Loaded successfully; ${ignored.length} outdated field${ignored.length === 1 ? ' was' : 's were'} removed.`
         : ' The file is ready to continue editing.';
       // The alert already listed them, so this only confirms it.
       const badMessage = bad.some(entry => entry.id) ? ' All corrupted VPS IDs removed.' : '';
-      if (dropZone) dropZone.dataset.importResult = 'loaded';
       showToast('success', 'YML loaded for editing', `${file.name}.${ignoredMessage}${badMessage}`, { details: bad.length > 0 });
     } catch (error) {
       console.error('YML import failed', error);

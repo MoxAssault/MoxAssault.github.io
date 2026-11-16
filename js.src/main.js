@@ -612,6 +612,14 @@
   }
 
   function handleOverrideChange(fieldName, checked) {
+    setOverride(fieldName, checked);
+    renderWorkspace();
+    markChanged();
+  }
+
+  // Override's rules, without the redraw, so useVpsAsset can tick it as part
+  // of one change.
+  function setOverride(fieldName, checked) {
     const step = WIZARD_STEPS.find(candidate => candidate.overrideField === fieldName);
     // Read before the shape moves — see liveMirrors.
     const mirrorsBefore = liveMirrors(step);
@@ -630,8 +638,33 @@
       const config = Object.values(CATEGORY_CONFIG).find(candidate => candidate.overrideField === fieldName);
       if (config?.nsfwField) delete state.values[config.nsfwField];
     }
+  }
+
+  // A VPS asset found from a URL Override takes that row over (Jason,
+  // 2026-10-30 and 2026-11-13): Override on, the asset's ID as the Manual
+  // VPSID, and every Override field on its tab emptied (URL, Version, Authors,
+  // Image), as the VPS entry now supplies what they stood in for. Notes,
+  // checksum and archive fields stay. One change and one redraw, used by the
+  // URL Override pop-up's Use.
+  function overrideValueKeys(step) {
+    return (step?.fields || []).map(field => field.yml_field).filter(key => /Override$/.test(key));
+  }
+
+  function useVpsAsset(category, id) {
+    const config = CATEGORY_CONFIG[category];
+    const step = WIZARD_STEPS.find(candidate => candidate.id === config?.stepId);
+    const vpsId = String(id ?? '').trim();
+    if (!state.record || !vpsId || !step?.overrideField
+      || !window.VPS_MANUAL_VPSID?.CATEGORIES?.includes(category)) return false;
+    if (state.values[step.overrideField] !== true) setOverride(step.overrideField, true);
+    state.values[config.idField] = vpsId;
+    overrideValueKeys(step).forEach(key => { delete state.values[key]; });
+    // A database load that failed earlier is tried again, as typing an ID
+    // into the box does, so the new ID is checked rather than refused.
+    window.VPS_MANUAL_VPSID.ready?.();
     renderWorkspace();
     markChanged();
+    return true;
   }
 
   function handleNsfwChange(fieldName, checked) {
@@ -871,7 +904,7 @@
     return state.yaml;
   }
 
-  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue, readyYaml, markIdNeeded });
+  window.VPS_MAIN = Object.freeze({ validationContext, refreshOutput, setUiValue, readyYaml, markIdNeeded, useVpsAsset });
 
   function updateValidationSummary() {
     refreshValidation();

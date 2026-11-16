@@ -387,9 +387,11 @@ const applyBundledShape = new Function('data', block + '\n return data;');
   // The behaviour above is only correct because both handlers read the mirror
   // list before they move the shape. A future edit that hoists the assignment
   // back above it would pass every check above and still be wrong.
-  ['handleBundleChange', 'handleOverrideChange'].forEach(name => {
+  // Override's rules live in setOverride (split out 2026-11-13 so the URL
+  // Override pop-up's Use can tick it without a second redraw).
+  ['handleBundleChange', 'setOverride'].forEach(name => {
     const from = mainSource.indexOf('function ' + name + '(');
-    const body = mainSource.slice(from, mainSource.indexOf('renderWorkspace();', from));
+    const body = mainSource.slice(from, mainSource.indexOf('\n  function ', from + 1));
     check(name + ' reads liveMirrors before it moves the shape',
       from !== -1
       && body.indexOf('liveMirrors(step)') !== -1

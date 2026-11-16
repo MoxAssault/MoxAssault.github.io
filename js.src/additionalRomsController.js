@@ -16,7 +16,8 @@
   // override lookup against VPSDB"). A link a VPS ROM carries shows a card
   // under the box; its Use swaps the ROM dropdown for a Manual VPSID box
   // holding the ID. The ID is saved in the entry's own vpsId, so an entry
-  // whose ID is not one of this table's ROMs opens in that box.
+  // whose ID is not one of this table's ROMs opens in that box, as every
+  // entry does under ROM Override (idOptional).
   let manualMode = false;
   // The link whose card was closed: leaving the box again with it does not
   // bring the card back, until the link changes or the editor reopens.
@@ -82,16 +83,18 @@
       .filter(item => !used.has(String(item?.id || '')));
   }
 
+  // ROM Override: the main ROM is not this table's VPS ROM, so its ROMs are
+  // not offered. The editor shows only the Manual VPSID box, and the ID may
+  // be left empty, as the main rows' Manual VPSID may (Jason, 2026-11-13).
+  function idOptional() {
+    return runtime.state.values?.romOverride === true;
+  }
+
   function validateEntryDetailed(entry, index = -1) {
     const errors = [];
     const add = (field, message) => errors.push({ field, message });
-    // ROM Override means the primary ROM has no VPS DB entry at all — an
-    // Additional ROM can't pull one from the DB either, so the picker is
-    // disabled in the dialog (see open()) and not required here. The other
-    // vpsId checks below are already gated on entry.vpsId being truthy, so
-    // they naturally no-op once it's left empty.
-    const overrideActive = runtime.state.values?.romOverride === true;
-    if (!overrideActive && !entry.vpsId) add('vpsId', 'Select a ROM VPS ID.');
+    // The other vpsId checks below run only when an ID is given.
+    if (!idOptional() && !entry.vpsId) add('vpsId', 'Select a ROM VPS ID.');
     if (!entry.checksum) add('checksum', 'Checksum is required.');
     else if (!isMd5Hash(entry.checksum)) add('checksum', 'Checksum must contain exactly 32 hexadecimal characters.');
     if (entry.urlOverride && !entry.versionOverride) add('versionOverride', 'Version Override is required when URL Override is used.');
@@ -135,10 +138,16 @@
     return field === 'vpsId' && manualMode ? 'additionalRomManualVpsId' : FIELD_CONTROL_IDS[field];
   }
 
+  // A dot sits on the corner of the box its error is about. The Manual VPSID
+  // box is narrower than the dropdown it stands in for, so its dot is drawn
+  // on the box, not at the row's far end (Jason, 2026-11-14).
+  const DOT_HOSTS = '.additional-rom-manual-field, .field';
+
   function clearFieldErrorPresentation(node) {
     node.querySelectorAll('.field.has-field-error').forEach(field => {
       field.classList.remove('has-field-error');
-      field.querySelector(':scope > .field-error-dot')?.remove();
+      field.querySelectorAll(':scope > .field-error-dot, .additional-rom-manual-field > .field-error-dot')
+        .forEach(dot => dot.remove());
     });
   }
 
@@ -151,7 +160,8 @@
       grouped.set(field, messages);
     });
     grouped.forEach((messages, field) => {
-      const wrapper = node.querySelector(`#${FIELD_CONTROL_IDS[field]}`)?.closest('.field');
+      const control = node.querySelector(`#${controlId(field)}`);
+      const wrapper = control?.closest('.field');
       if (!wrapper) return;
       wrapper.classList.add('has-field-error');
       const dot = document.createElement('span');
@@ -162,7 +172,7 @@
       dot.setAttribute('role', 'img');
       dot.setAttribute('aria-label', messages.join(' '));
       dot.tabIndex = 0;
-      wrapper.appendChild(dot);
+      control.closest(DOT_HOSTS).appendChild(dot);
     });
   }
 
@@ -220,7 +230,7 @@
       </div>
       <div class="dialog-body additional-rom-body">
         <div class="field-grid additional-rom-grid">
-          <div class="field field-wide additional-rom-vps-field" id="additionalRomVpsField"><label for="additionalRomVpsId"><span>VPS ID</span></label><select id="additionalRomVpsId"></select><div class="additional-rom-manual"><input id="additionalRomManualVpsId" type="text" placeholder="Manual VPSID" autocomplete="off" spellcheck="false" aria-label="VPS ID, Manual VPSID for the Additional ROM. Empty it and leave the box to pick from this table's ROMs again." aria-describedby="additionalRomManualLabel"><span class="additional-rom-manual-label" id="additionalRomManualLabel"></span></div></div>
+          <div class="field field-wide additional-rom-vps-field" id="additionalRomVpsField"><label for="additionalRomVpsId"><span>VPS ID</span></label><select id="additionalRomVpsId"></select><div class="additional-rom-manual"><span class="additional-rom-manual-field"><input id="additionalRomManualVpsId" type="text" placeholder="Manual VPSID" autocomplete="off" spellcheck="false" aria-describedby="additionalRomManualLabel"><span class="manual-vpsid-optional" id="additionalRomVpsOptional" aria-hidden="true" hidden>Optional</span></span><span class="additional-rom-manual-label" id="additionalRomManualLabel"></span></div></div>
           <div class="field field-wide checksum-drop-field" id="additionalRomChecksumField">
             <label for="additionalRomChecksum"><span>Checksum</span></label>
             <input id="additionalRomChecksum" type="text" maxlength="32" placeholder="ROM Checksum" autocomplete="off">
@@ -285,12 +295,20 @@
     return node.querySelector('#additionalRomManualVpsId');
   }
 
+  // On is the box in the dropdown's place: after a Use, for an ID off this
+  // table, and always under ROM Override, where there is no dropdown to
+  // return to and the ID is optional.
   function setManualMode(node, on, id = '') {
     manualMode = on;
+    const optional = on && idOptional();
     node.querySelector('#additionalRomVpsField').classList.toggle('is-manual', on);
     // The visible "VPS ID" label names whichever box is shown (ui-checker).
     node.querySelector('#additionalRomVpsField > label')
       .setAttribute('for', on ? 'additionalRomManualVpsId' : 'additionalRomVpsId');
+    node.querySelector('#additionalRomVpsOptional').hidden = !optional;
+    manualBox(node).setAttribute('aria-label', optional
+      ? 'VPS ID, Manual VPSID for the Additional ROM. Optional while ROM Override is on.'
+      : 'VPS ID, Manual VPSID for the Additional ROM. Empty it and leave the box to pick from this table\'s ROMs again.');
     manualBox(node).value = on ? String(id || '') : '';
     updateManualLabel(node);
   }
@@ -322,7 +340,8 @@
   function bindManualBox(node) {
     const box = manualBox(node);
     box.addEventListener('change', () => {
-      if (box.value.trim()) {
+      // Under ROM Override an empty box is a valid answer, and stays.
+      if (box.value.trim() || idOptional()) {
         updateManualLabel(node);
         return;
       }
@@ -599,27 +618,21 @@
     editingIndex = index;
     const current = index >= 0 ? entries()[index] || {} : {};
     const select = node.querySelector('#additionalRomVpsId');
-    // ROM Override means there's no VPS entry for the primary ROM — an
-    // Additional ROM entry can't have one either, so the picker is disabled
-    // and not populated (see validateEntryDetailed for the matching
-    // not-required change).
-    const overrideActive = runtime.state.values?.romOverride === true;
     // An ID that is not one of this table's ROMs is a Manual VPSID, and
-    // opens in its box (decision 1 of piece 2).
+    // opens in its box (decision 1 of piece 2); under ROM Override every
+    // entry does (idOptional).
     const borrowed = Boolean(current.vpsId)
       && !allRoms().some(item => String(item?.id || '') === String(current.vpsId));
-    select.replaceChildren(new Option(
-      overrideActive ? 'Not needed — ROM Override is enabled' : 'Select an additional ROM', ''
-    ));
-    if (!overrideActive) {
+    const manual = borrowed || idOptional();
+    select.replaceChildren(new Option('Select an additional ROM', ''));
+    if (!manual) {
       const items = choices(index);
-      if (current.vpsId && !borrowed && !items.some(item => String(item?.id || '') === String(current.vpsId))) {
+      if (current.vpsId && !items.some(item => String(item?.id || '') === String(current.vpsId))) {
         items.unshift({ id: current.vpsId });
       }
       items.forEach(item => select.add(new Option(getItemLabel(item), String(item?.id || ''))));
     }
-    select.value = borrowed ? '' : String(current.vpsId || '');
-    select.disabled = overrideActive;
+    select.value = manual ? '' : String(current.vpsId || '');
     urlCheckGeneration += 1;
     dismissedUrlKey = '';
     clearUrlFinding(node);
@@ -627,7 +640,7 @@
     node.querySelector('#additionalRomChecksum').value = String(current.checksum || '');
     node.querySelector('#additionalRomVersionOverride').value = String(current.versionOverride || '');
     node.querySelector('#additionalRomUrlOverride').value = String(current.urlOverride || '');
-    setManualMode(node, borrowed, current.vpsId);
+    setManualMode(node, manual, current.vpsId);
     // The dialog is created once and cached, so this cannot live in the markup:
     // the accepted list depends on the currently loaded table's manufacturer.
     // Reopening the modal abandons any drop still running from last time, so
@@ -645,23 +658,37 @@
     utils.resetTwoClick(node.querySelector('#additionalRomRemove'));
     if (typeof node.showModal === 'function') node.showModal();
     else node.setAttribute('open', '');
-    if (borrowed) manualBox(node).focus();
-    else if (overrideActive) node.querySelector('#additionalRomChecksum').focus();
-    else select.focus();
+    (manual ? manualBox(node) : select).focus();
     // A saved link of the wrong type says so at once; a matching one waits
     // for the user to leave the box, as the card is an offer, not an error.
     if (current.urlOverride) checkUrl(node, { allowCard: false });
   }
 
-  function removeEditing() {
-    if (editingIndex < 0) return;
-    const node = dialog();
-    const next = entries();
-    next.splice(editingIndex, 1);
-    runtime.state.callbacks.onChange('additionalRoms', next, definition());
-    node.close();
+  // The list into state, the ROM tab's summary redrawn, the YML rebuilt.
+  function commit(next) {
+    runtime.state.callbacks?.onChange?.('additionalRoms', next, definition());
     render();
     runtime.schedule();
+  }
+
+  function removeEditing() {
+    if (editingIndex < 0) return;
+    const next = entries();
+    next.splice(editingIndex, 1);
+    dialog().close();
+    commit(next);
+  }
+
+  // Use from the import's URL Override check (Jason, 2026-11-15): what the
+  // editor's Use then Save ROM would do. The ID in, and the URL gone with its
+  // Version Override, as they are a pair here (useUrlMatch). True if it changed.
+  function useUrlMatchAt(index, id) {
+    const next = entries();
+    const vpsId = String(id ?? '').trim();
+    if (!next[index] || !vpsId || !runtime.state.callbacks) return false;
+    next[index] = { ...next[index], vpsId, urlOverride: '', versionOverride: '' };
+    commit(next);
+    return true;
   }
 
   function readEntry(node) {
@@ -693,7 +720,8 @@
     // Cancel and reopen while this waits must not save the new form: the
     // counter moves on every open (pr-checker, 2026-11-01).
     const generation = urlCheckGeneration;
-    if (first.urlOverride || manualMode) {
+    // An empty optional box has nothing to check, so it does not wait.
+    if (first.urlOverride || (manualMode && first.vpsId)) {
       saveWaiting = true;
       node.querySelector('#additionalRomSave').disabled = true;
       try {
@@ -724,10 +752,8 @@
     const next = entries();
     if (editingIndex >= 0) next[editingIndex] = entry;
     else next.push(entry);
-    runtime.state.callbacks?.onChange?.('additionalRoms', next, definition());
     node.close();
-    render();
-    runtime.schedule();
+    commit(next);
   }
 
   const MAX_ADDITIONAL_ROMS = 1;
@@ -787,7 +813,7 @@
     indicator.setAttribute('aria-label', `Additional ROM: ${label}. Activate to edit.`);
   }
 
-  const api = Object.freeze({ entries, validateEntry, open, render });
+  const api = Object.freeze({ entries, validateEntry, open, render, useUrlMatchAt, URL_SPEC });
   window.VPS_ADDITIONAL_ROMS = api;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dialog, { once: true });
   else dialog();

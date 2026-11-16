@@ -68,16 +68,28 @@ const lookSource = `async ([field, settleText]) => {
         offY: Math.abs((a.top + a.height / 2) - (b.top + b.height / 2))
       };
     })(),
-    // The ID in the title, styled as the table card's.
+    // The ID on the asset's row, styled as the table card's.
     idStyle: (() => {
-      const id = node?.querySelector('#urlVpsMatchTitle .url-vps-match-id');
+      const id = node?.querySelector('.url-vps-match-asset .url-vps-match-id');
       if (!id) return null;
       const style = getComputedStyle(id);
       return { text: id.textContent, mono: /JetBrains Mono/.test(style.fontFamily), weight: style.fontWeight, code: !!node.querySelector('#urlVpsMatchTitle code') };
     })(),
     thumbs: window.__urlVpsThumbs || [],
     headings: [...(node?.querySelectorAll('.url-vps-match-heading') || [])].map(n => n.textContent),
+    // The ID and its two buttons share the asset's own row: their middles
+    // sit within a few pixels of each other, inside the asset block.
+    row: (() => {
+      const head = node?.querySelector('.url-vps-match-asset .url-vps-match-head');
+      const parts = head ? [head.querySelector('.url-vps-match-heading'), ...head.querySelectorAll('.url-vps-match-icon')] : [];
+      if (parts.length !== 3 || parts.some(part => !part)) return null;
+      const middles = parts.map(part => { const r = part.getBoundingClientRect(); return r.top + r.height / 2; });
+      return { spread: Math.round(Math.max(...middles) - Math.min(...middles)), inTitle: !!node.querySelector('#urlVpsMatchTitle .url-vps-match-icon, .dialog-header .url-vps-match-icon') };
+    })(),
     names: [...(node?.querySelectorAll('.url-vps-match-name') || [])].map(n => n.textContent),
+    type: node?.querySelector('#urlVpsMatchType')?.textContent || '',
+    typeInTitleRow: !!node?.querySelector('.url-vps-match-title-row > #urlVpsMatchTitle + #urlVpsMatchType'),
+    labelledBy: node?.getAttribute('aria-labelledby') || '',
     details: [...(node?.querySelectorAll('.url-vps-match-details') || [])].map(n => n.textContent),
     useTip: node?.querySelector('.url-vps-match-use')?.dataset.tooltip || '',
     useLabel: node?.querySelector('.url-vps-match-use')?.getAttribute('aria-label') || '',
@@ -164,7 +176,11 @@ if (!PRINT) {
   await enter('http://vpuniverse.com/files/file/3941-tales-from-the-crypt-400-unofficial-mod');
   const found = await look();
   check('leaving the box with a ROM link VPS has opens the pop-up', found.open === true && found.eyebrow === 'ROM URL Override', JSON.stringify(found));
-  check('its title reads "VPS Entry Found | {id}"', found.title === 'VPS Entry Found | s-4c6GqaOn' && found.headings.length === 0, JSON.stringify(found));
+  // One match is laid out as each of several (Jason, 2026-11-13).
+  check('its title reads "VPS Entry Found", and the asset row "VPSID {id}"',
+    found.title === 'VPS Entry Found' && found.headings.join('|') === 'VPSID s-4c6GqaOn', JSON.stringify(found));
+  check('the VPSID, Copy and Use sit on one row in the asset, none in the title',
+    found.row && found.row.spread <= 4 && found.row.inTitle === false, JSON.stringify(found.row));
   check('then "The link provided was found in VPSDB.", and the line saying to use the VPSID',
     found.intro === 'The link provided was found in VPSDB.'
     && found.advice === 'If this is the correct asset, please use the associated VPSID instead of the URL.', JSON.stringify(found));
@@ -173,8 +189,10 @@ if (!PRINT) {
   check('the VPSID is plain monospace, as the table card shows IDs',
     found.idStyle && found.idStyle.text === 's-4c6GqaOn' && found.idStyle.mono && found.idStyle.weight === '400' && !found.idStyle.code, JSON.stringify(found.idStyle));
   check('a ROM has no picture on VPS, so none is drawn', found.thumbs.length === 0, JSON.stringify(found));
-  check('then the asset: table, type, version and author',
-    found.names[0] === 'Tales from the Crypt · ROM' && found.details[0] === 'vtftc_400 · by CarnyPriest', JSON.stringify(found));
+  check('then the asset: table, version and author, the type no longer after the name',
+    found.names[0] === 'Tales from the Crypt' && found.details[0] === 'vtftc_400 · by CarnyPriest', JSON.stringify(found));
+  check('the type is named once, in a badge beside the title', found.type === 'ROM' && found.typeInTitleRow, JSON.stringify(found));
+  check('and is read out with the title', found.labelledBy === 'urlVpsMatchTitle urlVpsMatchType', found.labelledBy);
   check('the Use button says "Use this Asset ID?" and names what it does',
     found.useTip === 'Use this Asset ID?' && /Use VPSID s-4c6GqaOn as the ROM Manual VPSID/.test(found.useLabel), JSON.stringify(found));
   // Close, not Use: a stray Enter keeps the URL rather than clearing it.
@@ -212,7 +230,7 @@ if (!PRINT) {
   // 5. Use: the ID goes to the Manual VPSID box and the URL goes.
   await enter(VPFORUMS_TFTC_ROM);
   const second = await look();
-  check('a different matching link opens its own pop-up', second.open === true && second.title === 'VPS Entry Found | 2Q1pXHma', JSON.stringify(second));
+  check('a different matching link opens its own pop-up', second.open === true && second.headings.join('|') === 'VPSID 2Q1pXHma', JSON.stringify(second));
   await app.run(async settleText => {
     document.querySelector('#urlVpsMatchDialog .url-vps-match-use').click();
     await eval(settleText)();
@@ -228,6 +246,26 @@ if (!PRINT) {
     box.manual === '2Q1pXHma' && box.id === '2Q1pXHma' && box.focused === 'manualVpsId-romFiles', JSON.stringify(box));
   check('the YML has the ID and no URL Override',
     used.yaml.includes('romVPSId: "2Q1pXHma"') && !used.yaml.some(line => line.startsWith('romUrlOverride')), used.yaml.join('\n'));
+
+  // 5a. Found by Jason on 2026-11-13: right after Use, pasting the same link
+  // into the emptied box opened nothing, as the pop-up still counted it shown.
+  const again = await app.run(async ([settleText, url]) => {
+    const settle = eval(settleText);
+    const input = document.getElementById('field-romUrlOverride');
+    input.focus();
+    input.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true }));
+    input.value = url;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 50));
+    await settle();
+    const node = document.getElementById('urlVpsMatchDialog');
+    const result = { open: node.open === true, heading: node.querySelector('.url-vps-match-heading')?.textContent || '' };
+    node.querySelector('[data-url-vps-match-close]').click();
+    await settle();
+    return result;
+  }, [settleSource, VPFORUMS_TFTC_ROM]);
+  check('right after Use, pasting the same link into the emptied box opens the pop-up again',
+    again.open === true && again.heading === 'VPSID 2Q1pXHma', JSON.stringify(again));
 
   // 5b. Found by Jason on 2026-10-30: emptying the box and pasting a link
   // while staying in it opened nothing, as the check only ran on leaving.
@@ -245,18 +283,21 @@ if (!PRINT) {
     await new Promise(r => setTimeout(r, 50));
     await settle();
     const node = document.getElementById('urlVpsMatchDialog');
-    const result = { open: node.open === true, title: node.querySelector('#urlVpsMatchTitle').textContent };
+    const result = { open: node.open === true, heading: node.querySelector('.url-vps-match-heading')?.textContent || '' };
     node.querySelector('[data-url-vps-match-close]').click();
     await settle();
     result.back = document.activeElement?.id || '';
     return result;
   }, [settleSource, VPFORUMS_TFTC_ROM]);
   check('pasting a matching link opens the pop-up without leaving the box',
-    pasted.open === true && pasted.title === 'VPS Entry Found | 2Q1pXHma', JSON.stringify(pasted));
+    pasted.open === true && pasted.heading === 'VPSID 2Q1pXHma', JSON.stringify(pasted));
   check('and closing it puts the keyboard back in the box', pasted.back === 'field-romUrlOverride', JSON.stringify(pasted));
 
   // 6. Use without Override ticked: the row's own asset picked, a URL typed.
-  await play([...PINK_FLOYD, ['asset', 'romFiles', 'jgo91P3SSp'], ['fill', 'romUrlOverride', '']]);
+  // Use also empties the tab's other Override fields, as the VPS entry
+  // supplies them (Jason, 2026-11-13); Notes stays.
+  await play([...PINK_FLOYD, ['asset', 'romFiles', 'jgo91P3SSp'], ['fill', 'romNotes', 'Keep these notes'],
+    ['fill', 'romVersionOverride', 'tftc_400'], ['fill', 'romUrlOverride', '']]);
   await enter(TFTC_ROM_URL);
   await app.run(async settleText => {
     document.querySelector('#urlVpsMatchDialog .url-vps-match-use').click();
@@ -265,10 +306,36 @@ if (!PRINT) {
   const ticked = await app.run(() => ({
     override: window.VPS_FEATURE_RUNTIME.state.values.romOverride,
     manual: document.getElementById('manualVpsId-romFiles')?.value || '',
-    url: window.VPS_FEATURE_RUNTIME.state.values.romUrlOverride ?? ''
+    url: window.VPS_FEATURE_RUNTIME.state.values.romUrlOverride ?? '',
+    version: window.VPS_FEATURE_RUNTIME.state.values.romVersionOverride ?? '',
+    versionBox: document.getElementById('field-romVersionOverride')?.value ?? null,
+    notes: window.VPS_FEATURE_RUNTIME.state.values.romNotes ?? ''
   }));
   check('without Override, Use ticks it, fills the box and clears the URL',
     ticked.override === true && ticked.manual === 's-4c6GqaOn' && ticked.url === '', JSON.stringify(ticked));
+  check('Use empties the ROM Version Override, in the build and on screen',
+    ticked.version === '' && ticked.versionBox === '', JSON.stringify(ticked));
+  check('Use keeps the ROM Notes', ticked.notes === 'Keep these notes', JSON.stringify(ticked));
+
+  // 6b. On Backglass, Use empties Authors and Image Override as well.
+  await play([...PINK_FLOYD, ['override', 'b2sFiles', true], ['fill', 'backglassNotes', 'B2S notes'],
+    ['fill', 'backglassAuthorsOverride', 'Someone'], ['fill', 'backglassImageOverride', 'https://example.com/b2s.png'],
+    ['fill', 'backglassUrlOverride', '']]);
+  await enter(TFTC_B2S_URL, 'backglassUrlOverride');
+  await app.run(async settleText => {
+    document.querySelector('#urlVpsMatchDialog .url-vps-match-use').click();
+    await eval(settleText)();
+  }, settleSource);
+  const b2sUsed = await app.run(() => {
+    const values = window.VPS_FEATURE_RUNTIME.state.values;
+    return {
+      id: values.backglassVPSId ?? '',
+      left: ['backglassAuthorsOverride', 'backglassImageOverride', 'backglassUrlOverride'].filter(key => values[key]),
+      notes: values.backglassNotes ?? ''
+    };
+  });
+  check('on Backglass, Use empties Authors, Image and URL Override and keeps Notes',
+    b2sUsed.id !== '' && b2sUsed.left.length === 0 && b2sUsed.notes === 'B2S notes', JSON.stringify(b2sUsed));
 
   // 7. A link VPS lists only as another type: a blocking error, no pop-up.
   await play([...PINK_FLOYD, ['override', 'romFiles', true], ['fill', 'romUrlOverride', '']]);
@@ -340,7 +407,7 @@ if (!PRINT) {
   await watchThumbs();
   await enter(TFTC_B2S_URL, 'backglassUrlOverride');
   const b2s = await look('backglassUrlOverride');
-  check('a Backglass link on the Backglass tab opens its pop-up', b2s.open === true && b2s.names[0] === 'Tales from the Crypt · Backglass', JSON.stringify(b2s));
+  check('a Backglass link on the Backglass tab opens its pop-up', b2s.open === true && b2s.names[0] === 'Tales from the Crypt' && b2s.type === 'Backglass', JSON.stringify(b2s));
   check('with the Backglass picture to the left of its details',
     b2s.thumbs.length === 1 && /\/img\/Pr7aybcEBQ_/.test(b2s.thumbs[0]), JSON.stringify(b2s));
   const broken = await app.run(async settleText => {
@@ -407,13 +474,14 @@ if (!PRINT) {
       advice: node()?.querySelector('.url-vps-match-advice')?.textContent || '',
       uses: node()?.querySelectorAll('.url-vps-match-asset .url-vps-match-use').length || 0,
       headings: [...(node()?.querySelectorAll('.url-vps-match-heading') || [])].map(n => n.textContent),
-      names: [...(node()?.querySelectorAll('.url-vps-match-name') || [])].map(n => n.textContent)
+      names: [...(node()?.querySelectorAll('.url-vps-match-name') || [])].map(n => n.textContent),
+      type: node()?.querySelector('#urlVpsMatchType')?.textContent || ''
     };
   }, settleSource);
   check('with the database down there is no pop-up and no page error', shared.offline === false && extra.errors.length === 0, JSON.stringify({ shared, errors: extra.errors }));
   check('leaving the box again retries the database and opens the pop-up', shared.open === true, JSON.stringify(shared));
   check('ROMs sharing the link are all listed, this table\'s first, then by name',
-    shared.names.join(' | ') === 'Pink Floyd · ROM | AC/DC (Pro Vault Edition) · ROM | Tales from the Crypt · ROM'
+    shared.names.join(' | ') === 'Pink Floyd | AC/DC (Pro Vault Edition) | Tales from the Crypt' && shared.type === 'ROM'
     && shared.headings[0] === 'VPSID jgo91P3SSp', JSON.stringify(shared));
   check('with several, the title says Entries and each asset has its own ID and Use',
     shared.title === 'VPS Entries Found' && shared.uses === 3

@@ -5,13 +5,18 @@
   const fields = window.VPS_YML_FIELDS;
   if (!runtime || !fields) return;
 
-  const MAX_WAIT_MS = 30000;
-  const PROMPT_WAIT_MS = 30 * 60 * 1000;
+  // The YML blocks the flat importer (ymlImport.js) cannot read: additionalRoms
+  // and postInstallRename, both lists of objects. ymlImport calls prepare()
+  // before it parses a file; the blocks are cut out, and the apply() handed
+  // back puts their rows in once the rest of the file has loaded.
+  //
+  // Until 2026-11-15 this file caught the file input's change and drop events
+  // ahead of the importer, sent a stripped copy back through the input, then
+  // polled the drop zone's CSS class for up to 30 minutes to learn when the
+  // import ended. ymlImport now calls it directly (Jason, task 4: the import's
+  // URL Override check has to run after the Additional ROMs are in).
+
   const SUPPORTED_KEYS = new Set(['vpsId', 'checksum', 'versionOverride', 'urlOverride']);
-  let fileInput = null;
-  let dropZone = null;
-  let bypass = false;
-  let processing = false;
 
   function stripInlineComment(value) {
     let single = false;
@@ -88,17 +93,12 @@
     }));
   }
 
-  function extractTableId(text) {
-    const match = String(text).match(/^tableVPSId:\s*(.+)$/m);
-    return match ? String(parseScalar(match[1])).trim() : '';
-  }
-
   function extractFeatureBlock(text) {
     const normalized = String(text).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     const lines = normalized.split('\n');
     const start = lines.findIndex(line => /^additionalRoms:\s*(?:\[\s*\])?\s*(?:#.*)?$/.test(line));
     if (start < 0) {
-      return { found: false, entries: [], strippedText: normalized, tableId: extractTableId(normalized) };
+      return { found: false, entries: [], strippedText: normalized };
     }
 
     let end = start + 1;
@@ -106,7 +106,7 @@
     const inlineEmpty = /^additionalRoms:\s*\[\s*\]/.test(lines[start]);
     const entries = inlineEmpty ? [] : parseAdditionalRoms(lines.slice(start + 1, end));
     const stripped = [...lines.slice(0, start), ...lines.slice(end)].join('\n');
-    return { found: true, entries, strippedText: stripped, tableId: extractTableId(stripped) };
+    return { found: true, entries, strippedText: stripped };
   }
 
   // postInstallRename is a list of { source, destination }, which the flat
@@ -158,136 +158,37 @@
     });
   }
 
-  function assignFile(file) {
-    if (typeof DataTransfer === 'function') {
-      const transfer = new DataTransfer();
-      transfer.items.add(file);
-      fileInput.files = transfer.files;
-      return;
-    }
-    Object.defineProperty(fileInput, 'files', {
-      configurable: true,
-      value: Object.freeze([file])
-    });
-  }
-
-  function dispatchToOriginal(file) {
-    assignFile(file);
-    bypass = true;
-    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-    bypass = false;
-  }
-
-  function waitFor(predicate, timeout = MAX_WAIT_MS, interval = 40) {
-    const started = Date.now();
-    return new Promise((resolve, reject) => {
-      const check = () => {
-        try {
-          const value = predicate();
-          if (value) {
-            resolve(value);
-            return;
-          }
-        } catch (_) {
-          // The original importer is still transitioning between views.
-        }
-        if (Date.now() - started >= timeout) {
-          reject(new Error('Timed out waiting for the original YML importer.'));
-          return;
-        }
-        window.setTimeout(check, interval);
-      };
-      check();
-    });
-  }
-
-  async function waitForOriginalImport(tableId) {
-    await waitFor(() => dropZone.classList.contains('is-loading'), 3000);
-    // The importer may be waiting on a prompt, for as long as the user takes.
-    await waitFor(() => !dropZone.classList.contains('is-loading'), PROMPT_WAIT_MS);
-    // Cancelled or refused: the build on screen is not this file's, whatever
-    // table it holds, so nothing from the file may be written into it.
-    if (dropZone.dataset.importResult !== 'loaded') throw new Error('The import did not complete.');
-    return waitFor(() => {
-      const recordId = String(runtime.state.record?.id || '').trim();
-      const hasCallbacks = typeof runtime.state.callbacks?.onChange === 'function';
-      return hasCallbacks && (!tableId || recordId.toLowerCase() === tableId.toLowerCase());
-    });
-  }
-
   function additionalRomsDefinition() {
     return fields.WIZARD_STEPS.find(step => step.id === 'rom')?.fields
       .find(field => field.yml_field === 'additionalRoms') || { yml_field: 'additionalRoms', type: 'additional-roms' };
   }
 
-  async function processFile(source) {
-    processing = true;
+  // { file, apply }: the file for the flat importer, and what to do once it
+  // has loaded. A block that will not parse leaves the file whole, so the
+  // importer's own error says what is wrong with it.
+  async function prepare(source) {
+    let extracted;
+    let renames;
     try {
-      let extracted;
-      let renames;
-      try {
-        extracted = extractFeatureBlock(await source.text());
-        renames = extractRenameBlock(extracted.strippedText);
-      } catch (error) {
-        console.warn('Additional ROM / rename import preprocessing failed; using the original importer error path.', error);
-        dispatchToOriginal(source);
-        return;
-      }
-
-      const found = extracted.found || renames.found;
-      const nextFile = found ? transformedFile(source, renames.strippedText) : source;
-      dispatchToOriginal(nextFile);
-      if (!found) return;
-
-      try {
-        await waitForOriginalImport(extracted.tableId);
-      } catch (_) {
-        return;
-      }
-
-      if (extracted.found) {
-        runtime.state.callbacks.onChange('additionalRoms', extracted.entries, additionalRomsDefinition());
-        window.VPS_ADDITIONAL_ROMS?.render?.();
-      }
-      if (renames.found) window.VPS_INSTALL_RENAMES?.applyImported?.(renames.entries);
-      window.VPS_PRODUCTION_UI_EXTENSIONS?.scheduleControlCorrections?.();
-    } finally {
-      processing = false;
+      extracted = extractFeatureBlock(await source.text());
+      renames = extractRenameBlock(extracted.strippedText);
+    } catch (error) {
+      console.warn('Additional ROM / rename import preprocessing failed; using the original importer error path.', error);
+      return { file: source };
     }
+    if (!extracted.found && !renames.found) return { file: source };
+    return {
+      file: transformedFile(source, renames.strippedText),
+      apply() {
+        if (extracted.found) {
+          runtime.state.callbacks.onChange('additionalRoms', extracted.entries, additionalRomsDefinition());
+          window.VPS_ADDITIONAL_ROMS?.render?.();
+        }
+        if (renames.found) window.VPS_INSTALL_RENAMES?.applyImported?.(renames.entries);
+        window.VPS_PRODUCTION_UI_EXTENSIONS?.scheduleControlCorrections?.();
+      }
+    };
   }
 
-  function validYml(file) {
-    return file instanceof File && /\.yml$/i.test(file.name);
-  }
-
-  function onInputChange(event) {
-    if (bypass || processing) return;
-    const file = fileInput.files?.[0];
-    if (!validYml(file)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    void processFile(file);
-  }
-
-  function onDrop(event) {
-    if (bypass || processing) return;
-    const files = [...(event.dataTransfer?.files || [])];
-    if (files.length !== 1 || !validYml(files[0])) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    dropZone.classList.remove('is-dragover');
-    void processFile(files[0]);
-  }
-
-  function bind() {
-    fileInput = document.getElementById('ymlImportInput');
-    dropZone = document.getElementById('ymlImportDrop');
-    if (!fileInput || !dropZone) return;
-    fileInput.addEventListener('change', onInputChange, true);
-    dropZone.addEventListener('drop', onDrop, true);
-  }
-
-  window.VPS_YML_FEATURE_IMPORT = Object.freeze({ extractFeatureBlock });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
-  else bind();
+  window.VPS_YML_FEATURE_IMPORT = Object.freeze({ extractFeatureBlock, prepare });
 })();
