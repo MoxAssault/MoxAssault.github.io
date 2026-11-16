@@ -510,23 +510,30 @@
       });
       paintProgress(node, step, queue.length);
     };
-    for (const [step, item] of queue.entries()) {
-      if (step === 0) put(item, step);
-      else await slide(node, () => put(item, step));
-      if (run.ended) break;
-      show(node);
-      focusClose(node);
-      const choice = await new Promise(resolve => { run.answer = resolve; });
-      if (choice === 'ended') break;
-      // Close All is an answer for the rest too: they are not asked about
-      // again on leaving their boxes.
-      if (choice === 'all') {
-        queue.slice(step + 1).forEach(rest => shown.set(rest.spec.name, rest.result.key));
-        break;
+    // Whatever happens in the run, it ends with the pop-up closed and run
+    // cleared: left set by a throw, it would turn ×, Esc and a click outside
+    // into answers to a card no longer waiting, and the modal could not be
+    // closed (pr-checker, 2026-11-15).
+    try {
+      for (const [step, item] of queue.entries()) {
+        if (step === 0) put(item, step);
+        else await slide(node, () => put(item, step));
+        if (run.ended) break;
+        show(node);
+        focusClose(node);
+        const choice = await new Promise(resolve => { run.answer = resolve; });
+        if (choice === 'ended') break;
+        // Close All is an answer for the rest too: they are not asked about
+        // again on leaving their boxes.
+        if (choice === 'all') {
+          queue.slice(step + 1).forEach(rest => shown.set(rest.spec.name, rest.result.key));
+          break;
+        }
       }
+    } finally {
+      run = null;
+      if (node.open) node.close();
     }
-    run = null;
-    if (node.open) node.close();
   }
 
   // After a YML import (Jason, 2026-11-15): every URL Override the file
@@ -553,8 +560,13 @@
         queue.push({ spec, result, take: id => roms.useUrlMatchAt(index, id) === true });
       }
     }
-    await askEach(queue);
-    render();
+    // The wrong-type notes are drawn even when the run fails: the import
+    // logs the fault and finishes, and its errors should still show.
+    try {
+      await askEach(queue);
+    } finally {
+      render();
+    }
   }
 
   // The wrong-type message under the box, beside the rulebook's dot.

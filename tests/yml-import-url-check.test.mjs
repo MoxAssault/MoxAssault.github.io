@@ -289,6 +289,28 @@ if (!PRINT) {
   check('Close keeps the Additional ROM\'s URL and Version Override', keptRom.urlOverride === TFTC_ROM_URL && keptRom.versionOverride === 'tftc_400' && !keptRom.vpsId
     && romKept.toast === 'YML loaded for editing', JSON.stringify(romKept));
 
+  // 5b. A fault mid-run (here the slide throws) still closes the pop-up and
+  // lets the import finish, rather than leaving a modal nothing can close.
+  await play([]);
+  await start(three);
+  await next();
+  await app.run(() => {
+    window.__realAnimate = Element.prototype.animate;
+    Element.prototype.animate = function () { throw new Error('slide broke'); };
+  });
+  await closeButton();
+  const faulted = await next();
+  await app.run(() => { Element.prototype.animate = window.__realAnimate; });
+  check('a fault mid-run closes the pop-up and the import still finishes', !faulted.open && faulted.toast === 'YML loaded for editing', JSON.stringify(faulted));
+  // The run was cleared: the next import asks, and answers, as normal.
+  await play([]);
+  await start(three);
+  const afterFault = await next();
+  await closeAll();
+  const afterFaultDone = await next();
+  check('and the next import runs normally', afterFault.open && afterFault.step === '1/3'
+    && !afterFaultDone.open && afterFaultDone.toast === 'YML loaded for editing', JSON.stringify({ afterFault, afterFaultDone }));
+
   // 6. The check is an extra: if it fails, the file has still loaded.
   await play([]);
   await app.run(() => {
