@@ -4,6 +4,8 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-15
+
 ### Added
 - Opening a YML now checks each URL Override against VPS, Additional ROMs included. A link VPS lists for the right kind of asset opens a window offering that asset's VPS ID in its place. With several, they come one after another in the same window, with a counter and a slide between them, and Close All keeps every URL not yet answered.
 - Test Folder and Test This YML now offer each file as its own download, plus All for every file, and the zip holds a README.md. The window says which README it holds and whether it matches the builder's.
