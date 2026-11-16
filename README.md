@@ -72,6 +72,8 @@ The active build autosaves in the current browser. Recent copied and downloaded 
 
 **Test This YML** in the preview panel does the same for the build on screen. It validates first, like Download, and needs the Short Table Name. The on-screen YML is used in place of any `table.yml` in the folder you pick, and the window says which one was tested.
 
+When a test finishes, the window offers each file as its own download (`manifest.json`, the table's zip, `table.yml` and `README.md`), with **All** in its header for every file offered. Nothing is saved until you press one. The zip holds a `README.md`, and the window says which one: the folder's own or the builder's, and whether the two match. A difference of only spaces or line breaks at the end counts as a match. Your folder is never changed.
+
 The folder is read in the browser and nothing is uploaded, whatever the browser's folder picker says. The scripts come from the Legends Unchained repository at test time and run in a locked Web Worker, so this needs an internet connection. Folders over 200 MB are refused.
 
 ## Edit an existing YML
@@ -83,6 +85,7 @@ Drop a generated VPXS configuration anywhere on the top bar, or use the **Import
 - Files larger than 2 MB are rejected.
 - The file is read and parsed in the browser; it is not uploaded.
 - When a build is already open, the builder asks for confirmation before replacing it.
+- Once the file has loaded, each URL Override is looked up in VPS, Additional ROMs included. A link VPS lists for the right kind of asset opens a **VPS Entry Found** window, one link after another, with a counter such as `2/4` and the asset type beside the title. **Use** swaps the URL for that asset's VPS ID, **Close** keeps the URL, and **Close All** keeps every URL not yet answered.
 - The imported `tableVPSId` and asset VPS IDs are checked against the current VPS database before the active build is cleared.
 - The importer supports the flat VPXS structure used by this builder, including scalars, booleans, numbers, arrays, and folded or literal text blocks.
 - Unsupported top-level keys are skipped and reported after the import completes.
@@ -103,6 +106,8 @@ The Assets Panel lists the available asset categories for the selected table:
 - **VPU Patch**
 
 Each asset row shows its current state and available database entries. Broken entries are disabled. Supported artwork includes compact thumbnail previews.
+
+A row backed by a VPS asset, picked from its list or typed as a checked **Manual VPSID** under Override, is highlighted, and its name links to that asset's download page.
 
 A green asset badge is clickable and jumps to that asset's configuration tab. The Configuration Panel appears whenever at least one asset is selected or marked as bundled; selecting a VPX first is not required to begin entering other asset details.
 
