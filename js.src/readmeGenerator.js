@@ -256,5 +256,8 @@
   } else {
     init();
   }
-  window.VPS_README = Object.freeze({ requireShortName });
+  // The Test Manifest window makes the same README, from the same name rule
+  // (Jason, 2026-11-14): normalizeShortName checks a folder's name, and
+  // wizardReadmeText is the file itself.
+  window.VPS_README = Object.freeze({ requireShortName, normalizeShortName, wizardReadmeText });
 })();

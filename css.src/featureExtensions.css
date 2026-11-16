@@ -775,18 +775,126 @@
 .vpx-renames-status { margin: 0; color: var(--state-red); font-size: 11.5px; }
 .vpx-renames-status:empty { display: none; }
 .test-manifest-dialog { width: min(560px, calc(100% - 28px)); }
+.test-manifest-dialog .dialog-header { position: relative; }
 .test-manifest-dialog .dialog-header > div { min-width: 0; }
 .test-manifest-dialog .dialog-header h2 { overflow-wrap: anywhere; }
-.test-manifest-dialog .dialog-close { flex: none; }
+.test-manifest-dialog .dialog-close { position: relative; flex: none; }
+/* The × says what it does on hover and keyboard focus; while a test runs that
+   is "Cancel the test and close" (Jason, 2026-11-15). It opens down and to
+   the left, inside the window. */
+.test-manifest-dialog .dialog-close[data-tooltip]::before {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  right: 0;
+  display: none;
+  width: max-content;
+  max-width: 220px;
+  padding: 5px 7px;
+  border: 1px solid var(--panel-line-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  content: attr(data-tooltip);
+  font: 600 11px/1.3 "Inter", sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.test-manifest-dialog .dialog-close[data-tooltip]:hover::before,
+.test-manifest-dialog .dialog-close[data-tooltip]:focus-visible::before { display: block; }
 .test-manifest-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+/* A bar that sweeps while the test reads, starts and builds (Jason,
+   2026-11-15). It lies over the header's bottom line instead of taking a row
+   of its own, so nothing moves when it comes and goes. Under reduced motion
+   it pulses in place instead of moving. */
+.test-manifest-progress {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+}
+.test-manifest-progress > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: test-manifest-sweep 1.2s ease-in-out infinite;
+}
+@keyframes test-manifest-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(290%); }
+}
+@keyframes test-manifest-pulse {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .test-manifest-progress > span {
+    width: 100%;
+    animation: test-manifest-pulse 1.6s ease-in-out infinite alternate;
+  }
+}
 .test-manifest-status { margin: 0; color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
 .test-manifest-status.error { color: var(--state-red); }
 .test-manifest-notes { margin: 0; padding-left: 18px; color: var(--text-muted); font-size: 11.5px; overflow-wrap: anywhere; }
 .test-manifest-notes:empty { display: none; }
 .test-manifest-downloads { display: flex; flex-wrap: wrap; gap: 8px; }
 .test-manifest-downloads[hidden] { display: none; }
-.test-manifest-downloads .preview-primary { padding: 6px 10px; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); overflow-wrap: anywhere; white-space: normal; }
+/* A download icon and the file's name, not "Download ...", so the buttons
+   are narrower (Jason, 2026-11-13). Two classes, so .text-btn:hover cannot
+   turn the text the colour of its own background. */
+.test-manifest-dialog .test-manifest-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.test-manifest-dialog .test-manifest-save[hidden] { display: none; }
+.test-manifest-dialog .test-manifest-save:disabled { opacity: 0.42; cursor: not-allowed; }
+.test-manifest-save-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.test-manifest-header-actions { flex: none; }
+/* Test Folder asks for the table's name when its folder is not one. */
+.test-manifest-name { display: grid; gap: 6px; margin: 0; }
+.test-manifest-name[hidden] { display: none; }
+.test-manifest-name label { color: var(--text-muted); font-size: 11.5px; font-weight: 700; }
+.test-manifest-name-row { display: flex; gap: 8px; min-width: 0; }
+.test-manifest-name-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid var(--panel-line);
+  border-radius: 7px;
+  background: var(--panel-raised);
+  padding: 0 9px;
+  color: var(--text);
+  font: 12.5px "JetBrains Mono", monospace;
+}
+.test-manifest-name-row input[aria-invalid="true"] { border-color: color-mix(in srgb, var(--state-red) 72%, var(--panel-line)); }
+.test-manifest-name-error { margin: 0; color: var(--state-red); font-size: 11.5px; }
+.test-manifest-name-error:empty { display: none; }
 .test-manifest-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.test-manifest-actions[hidden] { display: none; }
 .archive-choice-dialog { width: min(560px, calc(100% - 28px)); }
 .archive-choice-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .archive-choice-note { margin: 0; color: var(--text-muted); font-size: 11.5px; overflow-wrap: anywhere; }
@@ -913,6 +1021,23 @@
   gap: 4px 10px;
 }
 .url-vps-match-title-row h2 { overflow-wrap: anywhere; }
+/* The asset type, once per card, by the title (Jason, 2026-11-15; it used to
+   follow every table name). In --accent-2, not the orange of Use and the
+   dots (Jason: a different colour), and smaller. On --panel: 11.13:1 dark,
+   4.71:1 light, 9.44:1 secret. No fill: --accent-2-soft under it took light
+   to 4.03:1, under the 4.5:1 its 10px text needs. */
+.url-vps-match-type {
+  padding: 1px 6px;
+  border: 1px solid var(--accent-2);
+  border-radius: 999px;
+  color: var(--accent-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 /* The ID as the table card shows one (.table-id): plain monospace. In
    --text-muted, not the card's --text-faint, which measured 3.60:1 (dark)
    and 3.42:1 (light) on --panel, under the 4.5:1 text this size needs. */
@@ -932,8 +1057,6 @@
   stroke-width: 2;
   stroke-linecap: round;
 }
-.url-vps-match-title-actions:empty { display: none; }
-.url-vps-match-title-actions { display: flex; flex-shrink: 0; gap: 4px; }
 .url-vps-match-body { display: grid; gap: 14px; color: var(--text); }
 .url-vps-match-intro,
 .url-vps-match-advice { margin: 0; font-size: 13px; line-height: 1.4; }
@@ -1007,6 +1130,61 @@
   overflow-wrap: anywhere;
 }
 
+/* An import's run of links (Jason, 2026-11-15): a dot per link under the
+   header, ticked once answered, the step in words, and Close All. Answered
+   and current dots in --state-orange (8.49:1 dark, 5.55:1 light, 6.04:1
+   secret on --panel), the tick in --panel on it at the same ratios; waiting
+   dots ringed in --text-muted. The cards slide in JS (slide). */
+.url-vps-match-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--panel-line);
+}
+.url-vps-match-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.url-vps-match-dot {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 2px solid var(--text-muted);
+  border-radius: 50%;
+}
+.url-vps-match-dot.is-current { border-color: var(--state-orange); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 8px var(--state-orange); }
+.url-vps-match-dot.is-done { border-color: var(--state-orange); background: var(--state-orange); color: var(--panel); }
+.url-vps-match-dot svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.url-vps-match-step {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.url-vps-match-close-all { flex-shrink: 0; margin-left: auto; }
+/* A column, so the body scrolls in whatever height the header and the row
+   leave it, however many lines the dots wrap to: the dialog hides its
+   overflow, and a fixed max-height would cut off the body's last lines. */
+.url-vps-match-dialog[open] { display: flex; flex-direction: column; }
+.url-vps-match-dialog > .url-vps-match-body { flex: 1 1 auto; max-height: none; }
+
 /* The URL Override check, piece 2 (2026-10-31): the Additional ROM editor.
    The finding is a card under the URL box (Jason: the editor is already a
    dialog). Transparent, so its text sits on the dialog's --panel exactly as
@@ -1043,7 +1221,22 @@
 .additional-rom-manual { display: none; align-items: center; gap: 10px; min-width: 0; }
 .additional-rom-vps-field.is-manual > select { display: none; }
 .additional-rom-vps-field.is-manual > .additional-rom-manual { display: flex; }
-.additional-rom-manual input[type="text"] { flex: 0 0 180px; width: 180px; }
+/* The box and what sits on it: its "Optional" while ROM Override is on, and
+   its error dot (Jason, 2026-11-14). The editor's labels are visually hidden,
+   so "Optional" floats on the box's top border, as on the main rows; above
+   the line is the dialog's --panel, below it the box's --panel-raised. */
+.additional-rom-manual-field { position: relative; display: flex; flex: 0 0 180px; width: 180px; }
+.additional-rom-manual-field > input[type="text"] { flex: 1 1 auto; min-width: 0; }
+#additionalRomDialog .additional-rom-manual-field > .manual-vpsid-optional {
+  background: linear-gradient(to bottom, var(--panel) 50%, var(--panel-raised) 50%);
+}
+/* The box is at the dialog's left edge, which clips: its dot's tooltip
+   opens to the right, not leftward over the edge. */
+#additionalRomDialog .additional-rom-manual-field > .field-error-dot > .error-dot-tip,
+#additionalRomDialog .additional-rom-manual-field > .field-error-dot[data-tooltip]::before {
+  left: -2px;
+  right: auto;
+}
 .additional-rom-manual-label {
   flex: 1 1 auto;
   min-width: 0;

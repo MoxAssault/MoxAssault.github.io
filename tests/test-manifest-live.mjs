@@ -254,7 +254,7 @@ await send('DOM.setFileInputFiles', { nodeId: inputNode.result.nodeId, files: [t
 const page = JSON.parse(await evaluate(`(async () => {
   const status = () => document.getElementById('testManifestStatus')?.textContent || '';
   const started = Date.now();
-  const finished = () => document.getElementById('testManifestDone')?.textContent === 'Close' && status();
+  const finished = () => document.getElementById('testManifestClose')?.getAttribute('aria-label') === 'Close Test Manifest' && status();
   while (Date.now() - started < 90000 && !finished()) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
@@ -319,7 +319,7 @@ if (process.env.LIVE_TABLE) {
       const status = () => document.getElementById('testManifestStatus')?.textContent || '';
       const started = Date.now();
       await new Promise(r => setTimeout(r, 300));
-      while (Date.now() - started < 90000 && !(document.getElementById('testManifestDone')?.textContent === 'Close' && status())) await new Promise(r => setTimeout(r, 100));
+      while (Date.now() - started < 90000 && !(document.getElementById('testManifestClose')?.getAttribute('aria-label') === 'Close Test Manifest' && status())) await new Promise(r => setTimeout(r, 100));
       const before = window.__blobs.length;
       document.getElementById('testManifestSaveManifest')?.click();
       await new Promise(r => setTimeout(r, 200));

@@ -25,8 +25,10 @@ const install = () => app.run(() => {
   };
   window.__pickerOpens = 0;
   document.getElementById('testYmlInput').click = () => { window.__pickerOpens += 1; };
-  window.__files = (folder, names) => names.map(name => {
-    const file = new File(['from the folder'], name.split('/').pop());
+  // A name, or [name, contents] for a file whose bytes matter.
+  window.__files = (folder, names) => names.map(entry => {
+    const [name, contents] = Array.isArray(entry) ? entry : [entry, 'from the folder'];
+    const file = new File([contents], name.split('/').pop());
     Object.defineProperty(file, 'webkitRelativePath', { value: `${folder}/${name}` });
     return file;
   });
@@ -43,7 +45,10 @@ const install = () => app.run(() => {
       notes: [...(node?.querySelectorAll('#testManifestNotes li') || [])].map(item => item.textContent),
       folder: run?.folder,
       paths: run?.files.map(([path]) => path),
-      yml: run ? new TextDecoder().decode(run.files.find(([path]) => path === 'table.yml')?.[1] || new Uint8Array()) : ''
+      yml: run ? new TextDecoder().decode(run.files.find(([path]) => path === 'table.yml')?.[1] || new Uint8Array()) : '',
+      readme: run ? new TextDecoder().decode(run.files.find(([path]) => path === 'README.md')?.[1] || new Uint8Array()) : '',
+      buttons: [...(node?.querySelectorAll('#testManifestDownloads button') || [])].map(button => ({ text: button.textContent.trim(), disabled: button.disabled })),
+      nameForm: node?.querySelector('#testManifestNameForm')?.hidden === false
     };
   };
 });
@@ -105,8 +110,25 @@ const yml = await app.run(() => window.VPS_MAIN.readyYaml());
 await app.run(() => window.VPS_TEST_MANIFEST.testYml(window.__files('vpx-live', ['launcher.png', 'table.ini'])));
 const added = await app.run(() => window.__read(/Manifest built/));
 check('the on-screen YML is added to the folder', added.yml === yml && added.paths.includes('table.yml'), JSON.stringify(added.paths));
-check('the window says so', added.notes.includes('Tested the YML on screen.'), JSON.stringify(added.notes));
+check('the window says so', added.notes.includes('Test performed using the YML on screen.'), JSON.stringify(added.notes));
 check('the table is named from the Short Table Name', added.title === 'vpx-live' && added.folder === 'vpx-live', JSON.stringify(added));
+
+// The README (Jason, 2026-11-14): the builder's, named from the Short Table
+// Name, never by asking; table.yml and README.md are both offered.
+const README_LIVE = 'This table is in the Table Manager Wizard. To view its details visit https://vpxtablemanager.com/catalog/#table=vpx-live\n';
+check('the builder\'s README goes in the zip, named from the Short Table Name',
+  added.readme === README_LIVE && !added.nameForm, JSON.stringify(added.readme));
+check('every download is offered here, table.yml included',
+  JSON.stringify(added.buttons) === JSON.stringify(['manifest.json', 'vpx-live.zip', 'table.yml', 'README.md'].map(text => ({ text, disabled: false }))),
+  JSON.stringify(added.buttons));
+await app.run(() => document.getElementById('testManifestSaveYml').click());
+const ymlFile = await app.nextDownload();
+check('Download table.yml saves the YML that was tested', ymlFile.filename === 'table.yml' && ymlFile.text === yml, ymlFile.filename);
+await app.run(() => document.getElementById('testManifestSaveAll').click());
+const allFiles = [];
+for (let i = 0; i < 4; i += 1) allFiles.push((await app.nextDownload()).filename);
+check('Download All saves all four',
+  JSON.stringify(allFiles.map(name => name.replace(/ \(\d+\)/, ''))) === '["manifest.json","vpx-live.zip","table.yml","README.md"]', JSON.stringify(allFiles));
 await app.run(() => document.getElementById('testManifestDialog').close());
 await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -117,7 +139,30 @@ const replaced = await app.run(() => window.__read(/Manifest built/));
 check('the on-screen YML wins over the folder\'s', replaced.yml === yml, replaced.yml.slice(0, 80));
 check('only one table.yml goes in', replaced.paths.filter(path => path === 'table.yml').length === 1, JSON.stringify(replaced.paths));
 check('the window names which one was tested',
-  replaced.notes.includes('Tested the YML on screen, not the table.yml in this folder.'), JSON.stringify(replaced.notes));
+  replaced.notes.includes('Test performed using the YML on screen, not table.yml in the selected folder.'), JSON.stringify(replaced.notes));
+await app.run(() => document.getElementById('testManifestDialog').close());
+await new Promise(resolve => setTimeout(resolve, 50));
+
+// A folder with a different README: Test This YML puts the builder's in.
+await press();
+await app.run(() => window.VPS_TEST_MANIFEST.testYml(window.__files('vpx-live', ['launcher.png', ['README.md', 'Old notes\n']])));
+const ownReadme = await app.run(() => window.__read(/Manifest built/));
+check('a different README is replaced by the builder\'s in the zip, and the window says so',
+  ownReadme.readme === README_LIVE && ownReadme.paths.filter(path => path === 'README.md').length === 1
+    && ownReadme.notes.includes('README.md in this folder differs from the builder\'s README for vpx-live, so the zip holds the builder\'s. Your folder was not changed.'),
+  JSON.stringify(ownReadme));
+check('and README.md is offered', ownReadme.buttons[3]?.disabled === false, JSON.stringify(ownReadme.buttons));
+await app.run(() => document.getElementById('testManifestDialog').close());
+await new Promise(resolve => setTimeout(resolve, 50));
+
+// An exact match is used as it is, and its download is not offered.
+await press();
+await app.run(text => window.VPS_TEST_MANIFEST.testYml(window.__files('vpx-live', ['launcher.png', ['README.md', text]])), README_LIVE);
+const sameReadme = await app.run(() => window.__read(/Manifest built/));
+check('an exact match is used, its button disabled, table.yml still offered',
+  sameReadme.readme === README_LIVE && sameReadme.buttons[3]?.disabled === true && sameReadme.buttons[2]?.disabled === false
+    && sameReadme.notes.includes('README.md in this folder matches the builder\'s README for vpx-live exactly, so the folder\'s own copy was used.'),
+  JSON.stringify(sameReadme));
 await app.run(() => document.getElementById('testManifestDialog').close());
 await new Promise(resolve => setTimeout(resolve, 50));
 
