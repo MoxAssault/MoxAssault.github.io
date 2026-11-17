@@ -1553,10 +1553,19 @@
       button.id = `suggestion-${index}`;
       button.setAttribute('role', 'option');
       button.setAttribute('aria-selected', index === activeIndex ? 'true' : 'false');
-      button.append(
-        element('span', 'suggestion-name', record.name || '[Unnamed table]'),
-        element('span', 'suggestion-meta', record.id || 'No ID')
-      );
+      // The maker and year follow the name, the way pinball tables are
+      // usually written ("The Addams Family  Bally 1992"), smaller and in a
+      // muted colour so the name still leads (a Builder user asked, Jason
+      // chose this layout, 2026-11-17).
+      // Either part can be missing; with neither the row is just the name.
+      const title = element('span', 'suggestion-title');
+      title.append(element('span', 'suggestion-name', record.name || '[Unnamed table]'));
+      const maker = [record.manufacturer, record.year]
+        .map(part => (part === undefined || part === null ? '' : String(part).trim()))
+        .filter(Boolean)
+        .join(' ');
+      if (maker) title.append(' ', element('span', 'suggestion-maker', maker));
+      button.append(title, element('span', 'suggestion-meta', record.id || 'No ID'));
       button.addEventListener('mousedown', event => {
         event.preventDefault();
         onSelect(record);

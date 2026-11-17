@@ -102,5 +102,12 @@
 }
 .suggestion-item:last-child { border-bottom: 0; }
 .suggestion-item:hover, .suggestion-item.active { background: var(--accent-soft); }
+.suggestion-title { min-width: 0; }
 .suggestion-name { font-weight: 600; }
-.suggestion-meta { color: var(--text-faint); font: 11px "JetBrains Mono", monospace; white-space: nowrap; }
+/* The maker and year after the name, kept together on one line; a long name
+   wraps before them rather than pushing the ID out. */
+.suggestion-maker { margin-left: 2px; color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+/* The maker, year and ID use --text-muted: 4.56:1 or better on the row and
+   its highlight in every theme, where --text-faint measured 2.45 to 4.13:1
+   (AA text needs 4.5:1; 2026-11-17). */
+.suggestion-meta { color: var(--text-muted); font: 11px "JetBrains Mono", monospace; white-space: nowrap; }

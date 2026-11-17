@@ -4,6 +4,14 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+### Added
+- Search results show each table's manufacturer and year after its name, so tables with the same name are easier to tell apart.
+
+### Fixed
+- Text boxes, dropdowns and checkboxes have borders that are easier to see in every theme.
+- The VPS ID in search results is easier to read.
+- The Download button's label is centred in the preview bar instead of running off to the right.
+
 ## [1.4.0] - 2026-11-15
 
 ### Added

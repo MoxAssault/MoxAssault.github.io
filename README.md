@@ -47,7 +47,7 @@ The builder is designed for repeat use: search for a table or reopen an existing
 ## Instructions
 
 1. Search for a table by VPS table ID or name, or drop an existing `.yml` file on the top bar.
-2. Choose the correct table from the search results when starting a new build.
+2. Choose the correct table from the search results when starting a new build. Each result shows the table's manufacturer and year after its name, with its VPS ID on the right.
 3. Select a VPX file and any additional assets that apply to the build.
 4. Open the enabled Configuration Panel tabs and complete the required fields.
 5. Drop supported files onto checksum fields to calculate MD5 values automatically, or enter valid hashes manually.
