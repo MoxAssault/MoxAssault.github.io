@@ -54,7 +54,10 @@ html[data-theme="light"] {
   --focus-ring: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent);
 }
 
-/* Round 6 state colors and themed form controls */
+/* Round 6 state colors and themed form controls.
+   --control-border is the edge of every text box, dropdown and checkbox. It is
+   kept apart from --panel-line (dividers) and must stay at 3:1 or more against
+   --panel-raised, --panel, --panel-soft, --stage and --checkbox-bg (WCAG 1.4.11). */
 :root,
 html[data-theme="dark"] {
   --state-green: #4ade80;
@@ -66,7 +69,7 @@ html[data-theme="dark"] {
   --state-red: #ff6473;
   --state-red-soft: rgba(255, 100, 115, 0.16);
   --checkbox-bg: #202735;
-  --checkbox-border: #59657a;
+  --control-border: #687286;
   --checkbox-check: #181007;
 }
 
@@ -80,6 +83,6 @@ html[data-theme="light"] {
   --state-red: #b51f38;
   --state-red-soft: #ffdbe1;
   --checkbox-bg: #ffffff;
-  --checkbox-border: #8f98a8;
+  --control-border: #7a8090;
   --checkbox-check: #ffffff;
 }

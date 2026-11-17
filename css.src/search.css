@@ -42,7 +42,7 @@
 .search-box {
   display: flex;
   min-width: 0;
-  border: 1px solid var(--panel-line);
+  border: 1px solid var(--control-border);
   border-radius: 10px;
   background: var(--panel);
   box-shadow: 0 5px 18px rgba(0, 0, 0, 0.16);

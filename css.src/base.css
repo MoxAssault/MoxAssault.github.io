@@ -169,7 +169,7 @@ kbd {
 .preset-select-wrap select {
   min-height: 32px;
   max-width: 150px;
-  border: 1px solid var(--panel-line);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   background: var(--panel-raised);
   padding: 0 28px 0 9px;
