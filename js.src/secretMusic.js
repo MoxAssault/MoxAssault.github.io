@@ -189,7 +189,9 @@
           return false;
         }
         failures += 1;
-        console.warn(`Secret music: "${tracks[index].title}" could not be played.`, error);
+        // A fixed message with the title passed on its own: a "%" in a title
+        // is never read as a format placeholder (semgrep, 2026-11-17).
+        console.warn('Secret music: a track could not be played:', tracks[index].title, error);
         if (failures >= tracks.length) { giveUp(); return false; }
         setTrack(index + 1);
         notify();
@@ -217,7 +219,7 @@
       sounding = false;
       if (!wanted || starting) return;
       failures += 1;
-      console.warn(`Secret music: "${tracks[index].title}" stopped with an error.`);
+      console.warn('Secret music: a track stopped with an error:', tracks[index].title);
       if (failures >= tracks.length) { giveUp(); return; }
       setTrack(index + 1);
       notify();
