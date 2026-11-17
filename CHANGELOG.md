@@ -4,6 +4,8 @@ What changed in the LU YML Builder, newest first. From 1.0.0 on, a version numbe
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-17
+
 ### Added
 - Search results show each table's manufacturer and year after its name, so tables with the same name are easier to tell apart.
 
